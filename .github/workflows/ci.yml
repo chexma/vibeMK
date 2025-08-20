@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio black isort mypy
+        
+    - name: Lint with black
+      run: |
+        black --check .
+        
+    - name: Sort imports with isort
+      run: |
+        isort --check-only --diff .
+        
+    - name: Type check with mypy
+      run: |
+        mypy . --ignore-missing-imports
+        
+    - name: Test with pytest
+      run: |
+        pytest -v
+      env:
+        CHECKMK_SERVER_URL: http://localhost:8080
+        CHECKMK_SITE: test
+        CHECKMK_USER: automation
+        CHECKMK_API_KEY: test-key
