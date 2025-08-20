@@ -25,75 +25,31 @@ vibeMK enables complete management of your CheckMK monitoring environment direct
 - 📜 **Rule Management**: Configure monitoring rules and rulesets
 - 📊 **Enterprise Features**: BI, Agent Bakery, metrics (Enterprise Edition)
 
-### ✨ What makes vibeMK special
-
-- **🏗️ Modular Architecture**: Clean separation of concerns with dedicated modules
-- **🔌 Zero Dependencies**: No external packages required - uses Python standard library only
-- **⚡ Better Performance**: Improved HTTP client with retry logic and connection pooling
-- **🛡️ Enhanced Security**: Comprehensive input validation and error handling
-- **📝 Type Safety**: Full type hints for better IDE support and code quality
-- **🔍 Advanced Debugging**: Built-in debugging tools and comprehensive logging
-- **🧪 Testable Design**: Modular structure enables comprehensive unit testing
-- **📚 Better Documentation**: Complete API documentation and examples
-
 ## 🚀 Quick Start
 
 ### 1. Installation
 
-**Option A: Package Installation (Recommended)**
+**Simple Clone & Use (Recommended)**
 ```bash
 # Clone repository
 git clone https://github.com/chexma/vibeMK.git
 cd vibeMK
 
-# Install package
-pip install -e .
-
-# Optional: Install development dependencies
-pip install -e ".[dev]"
+# Ready to use! No dependencies needed - uses Python standard library only
+python main.py
 ```
 
-**Option B: Standalone (No Dependencies)**
+**Optional: Development Setup**
 ```bash
-# Clone repository
-git clone https://github.com/chexma/vibeMK.git
-cd vibeMK
-
-# Ready to use! No additional dependencies required
-python main.py
+# Only needed for development/testing
+pip install -e ".[dev]"  # Installs pytest, black, mypy, etc.
 ```
 
 ### 2. Configuration
 
 **Important**: Configuration is done directly in your LLM client config file (e.g., `claude_desktop_config.json` for Claude Desktop)!
 
-**For installed package:**
-```json
-{
-  "mcpServers": {
-    "checkmk-server": {
-      "command": "vibeMK",
-      "env": {
-        "CHECKMK_SERVER_URL": "http://your-checkmk-server:8080",
-        "CHECKMK_SITE": "cmk",
-        "CHECKMK_USERNAME": "automation",
-        "CHECKMK_PASSWORD": "your_automation_password"
-      }
-    }
-  }
-}
-```
-
-**Quick Configuration:**
-```bash
-# Copy example configuration
-cp claude_desktop_config.example.json your_llm_config.json
-
-# Edit with your CheckMK details
-nano your_llm_config.json
-```
-
-**Example Configuration:**
+**Configuration Example:**
 ```json
 {
   "mcpServers": {
@@ -233,48 +189,6 @@ vibeMK/
     └── logging.py             # Logging configuration
 ```
 
-### 🔧 Design Principles
-
-- **Single Responsibility**: Each module has a clear, focused purpose
-- **Dependency Injection**: Easy testing and mocking
-- **Error Handling**: Comprehensive exception handling with custom exceptions
-- **Type Safety**: Full type hints for better IDE support
-- **Logging**: Structured logging for debugging and monitoring
-- **Configuration**: Centralized configuration management
-- **Extensibility**: Easy to add new handlers and tools
-
-## 🔧 Advanced Configuration
-
-All settings are managed through the LLM configuration file:
-
-```json
-{
-  "mcpServers": {
-    "checkmk-complete": {
-      "command": "python",
-      "args": ["/path/to/checkmk_mcp_server.py"],
-      "env": {
-        // SSL/TLS Setup
-        "CHECKMK_SERVER_URL": "https://checkmk.company.com:443",
-        "CHECKMK_VERIFY_SSL": "true",
-        "CHECKMK_CERT_FILE": "/path/to/client.crt",
-        "CHECKMK_KEY_FILE": "/path/to/client.key",
-        
-        // Performance optimization
-        "CHECKMK_TIMEOUT": "60",
-        "CHECKMK_MAX_RETRIES": "3",
-        "CHECKMK_RATE_LIMIT_REQUESTS": "200",
-        
-        // Debug mode
-        "CHECKMK_DEBUG": "true"
-      }
-    }
-  }
-}
-```
-
-## 📊 Supported CheckMK Versions
-
 | CheckMK Version | Compatibility | Features |
 |-----------------|---------------|----------|
 | **2.3.x** | ✅ Full | All features available |
@@ -341,15 +255,6 @@ get_users
 ## 📄 License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
-
-## 🙏 Acknowledgments
-
-- **CheckMK Team** for the excellent REST API
-- **Anthropic** for Claude and the MCP Protocol
-- **Python Community** for great libraries
-- **Contributors** for improvements and feedback
-
-## 📞 Support
 
 ### Documentation
 - 📖 [Installation Guide](INSTALL.md)
