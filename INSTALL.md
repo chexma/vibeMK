@@ -86,53 +86,22 @@ pip install -e ".[dev]"  # Installs pytest, black, mypy, etc.
 ### 3.1 Create CheckMK API User
 
 1. **Open CheckMK Web Interface**:
-   ```
-   http://your-checkmk-server/cmk/
-   ```
-
 2. **Create Automation User**:
    ```
    Setup → Users → Add user
    
    Settings:
-   - Username: automation  
+   - Username: vibemk  
    - Full name: vibeMK MCP Automation
    - Email: (optional)
-   - Role: Administrator ✅ (IMPORTANT: Not just "Automation user"!)
-   - Disable password login: ✅
+   - Role: Administrator
    ```
-
-   ⚠️ **Important**: The user must have **Administrator role** to access all CheckMK functions like:
-   - Creating/deleting hosts and services
-   - Managing folders and rules
-   - Activating configuration changes
-   - Accessing all monitoring data
 
 3. **Generate API Key**:
    ```
-   Edit user → Automation secrets → Add secret
-   
-   - Description: "vibeMK LLM Server"
+   Edit user → Automation secret for machine accounts → Add secret
    - Copy the generated key ➡️ Important for LLM config!
    ```
-
-### 3.2 Check User Permissions
-
-```
-Setup → Users → [automation user] → Effective permissions
-
-Required permissions (Administrator role provides all of these):
-✅ Use the REST API
-✅ See hosts in monitoring  
-✅ See services in monitoring
-✅ See folder structure
-✅ Configure rules and parameters
-✅ Activate configuration changes
-✅ Create and delete hosts
-✅ Manage user accounts and contact groups
-✅ Access BI (Business Intelligence) - Enterprise Edition
-✅ Agent Bakery access - Enterprise Edition
-```
 
 ## 🔐 Step 4: LLM Client Configuration
 
@@ -144,13 +113,11 @@ Required permissions (Administrator role provides all of these):
 
 ### 5.1 Find Configuration File
 
-```bash
-# macOS: Open config file
-open -e ~/Library/Application\ Support/Claude/claude_desktop_config.json
 
-# Or with other editor:
-code ~/Library/Application\ Support/Claude/claude_desktop_config.json
-nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
+**macOS**: 
+```
+Open config file
+~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
 **Windows**:
@@ -184,10 +151,11 @@ echo "Python Path: $(which python3)"
       "command": "python3",
       "args": ["/Users/andre/data/Entwicklung/claude/vibeMK/main.py"],
       "env": {
-        "CHECKMK_SERVER_URL": "http://localhost:8080",
+        "CHECKMK_SERVER_URL": "https://your-checkmk-server",
         "CHECKMK_SITE": "cmk",
-        "CHECKMK_USERNAME": "automation",
-        "CHECKMK_PASSWORD": "Your_real_API_key_here"
+        "CHECKMK_USERNAME": "vibemk",
+        "CHECKMK_PASSWORD": "Your_real_API_key_here",
+        "CHECKMK_VERIFY_SSL": "true",
       }
     }
   }
@@ -202,9 +170,9 @@ echo "Python Path: $(which python3)"
       "command": "python3",
       "args": ["/absolute/path/to/vibeMK/main.py"],
       "env": {
-        "CHECKMK_SERVER_URL": "https://checkmk.example.com",
-        "CHECKMK_SITE": "mysite",
-        "CHECKMK_USERNAME": "automation",
+        "CHECKMK_SERVER_URL": "https://your-checkmk-server",
+        "CHECKMK_SITE": "your-site",
+        "CHECKMK_USERNAME": "vibemk",
         "CHECKMK_PASSWORD": "cmk_api_key_here",
         "CHECKMK_VERIFY_SSL": "true",
         "CHECKMK_TIMEOUT": "30",
@@ -222,25 +190,13 @@ echo "Python Path: $(which python3)"
 
 ## 🧪 Step 6: Test Installation
 
-### 6.1 Basic Connection Test
-
-```bash
-# Is CheckMK server reachable?
-curl -s http://localhost:8080/cmk/ | grep -i checkmk
-
-# Test API endpoint  
-curl -H "Authorization: Bearer automation YOUR_API_KEY" \
-     -H "Accept: application/json" \
-     http://localhost:8080/cmk/check_mk/api/1.0/version
-```
-
 ### 6.2 Test vibeMK Server
 
 ```bash
 # Start server (test mode)
-CHECKMK_SERVER_URL="http://localhost:8080" \
-CHECKMK_SITE="cmk" \
-CHECKMK_USERNAME="automation" \
+CHECKMK_SERVER_URL="https://your-checkmk-server", \
+CHECKMK_SITE="your-site" \
+CHECKMK_USERNAME="vibemk" \
 CHECKMK_PASSWORD="your_api_key" \
 python main.py
 ```
@@ -250,7 +206,7 @@ python main.py
 # In another terminal:
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | \
 CHECKMK_SERVER_URL="http://localhost:8080" \
-CHECKMK_SITE="cmk" \
+CHECKMK_SITE="your-site" \
 CHECKMK_USERNAME="automation" \
 CHECKMK_PASSWORD="your_api_key" \
 python main.py
