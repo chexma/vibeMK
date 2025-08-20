@@ -81,8 +81,9 @@ class HostHandler(BaseHandler):
         # This is the correct approach similar to the service status fix
         try:
             # Use the documented CheckMK API format: objects/host/{name}?columns=...
+            # Include hard_state and state_type to get the correct monitoring state
             params = {
-                'columns': ['name', 'state', 'plugin_output', 'last_check', 'last_state_change']
+                'columns': ['name', 'state', 'hard_state', 'state_type', 'plugin_output', 'last_check', 'last_state_change', 'has_been_checked']
             }
             
             result = self.client.get(f"objects/host/{host_name}", params=params)
@@ -95,15 +96,30 @@ class HostHandler(BaseHandler):
                     extensions = data["extensions"]
                     
                     # Extract host state and other information
-                    state = extensions.get("state")
+                    # Use hard_state for the actual monitoring status (more reliable than soft state)
+                    state = extensions.get("state")  # Soft state
+                    hard_state = extensions.get("hard_state")  # Hard state
+                    state_type = extensions.get("state_type")  # 0=soft, 1=hard
+                    has_been_checked = extensions.get("has_been_checked", 0)
                     plugin_output = extensions.get("plugin_output", "No output available")
                     last_check = extensions.get("last_check")
                     last_state_change = extensions.get("last_state_change")
                     
-                    if state is not None:
+                    # Use the appropriate state based on state_type
+                    # If it's a hard state (state_type=1), use hard_state, otherwise use state
+                    if hard_state is not None and state_type == 1:
+                        effective_state = hard_state
+                        state_info = f"Hard State: {hard_state}"
+                    elif state is not None:
+                        effective_state = state
+                        state_info = f"Soft State: {state}"
+                    else:
+                        effective_state = None
+                        
+                    if effective_state is not None:
                         # Map numeric state to human-readable status
                         state_map = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
-                        status = state_map.get(state, f"UNKNOWN({state})")
+                        status = state_map.get(effective_state, f"UNKNOWN({effective_state})")
                         
                         # Format timestamps if available
                         import time
@@ -156,7 +172,8 @@ class HostHandler(BaseHandler):
                             "text": (
                                 f"✅ **Host Status: {host_name}**\\n\\n"
                                 f"**Status:** {status_display}\\n"
-                                f"**State Code:** {state}\\n"
+                                f"**State Code:** {effective_state} ({state_info})\\n"
+                                f"**Has Been Checked:** {'Yes' if has_been_checked else 'No'}\\n"
                                 f"**Last Check:** {last_check_display}\\n"
                                 f"**Last State Change:** {change_display}\\n\\n"
                                 f"**Plugin Output:** {plugin_output}\\n\\n"
@@ -197,7 +214,7 @@ class HostHandler(BaseHandler):
                             
                             if state is not None:
                                 state_map = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
-                                status = status_map.get(state, f"UNKNOWN({state})")
+                                status = state_map.get(state, f"UNKNOWN({state})")
                                 
                                 if status == "UP":
                                     status_display = f"🟢 **{status}**"

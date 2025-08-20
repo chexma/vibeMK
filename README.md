@@ -133,73 +133,73 @@ get_current_problems
 create_host("new-server", "/servers", {"ipaddress": "192.168.1.100", "alias": "New Server"})
 ```
 
-## 📚 Verfügbare Funktionen
+## 📚 Available Functions
 
-### 🔍 Verbindung & Diagnose (3 Funktionen)
-| Funktion | Beschreibung |
-|----------|--------------|
-| `debug_checkmk_connection` | Umfassende Verbindungsdiagnose |
-| `test_all_endpoints` | Alle API-Endpunkte testen |
-| `get_checkmk_version` | Version und Systeminfo anzeigen |
+### 🔍 Connection & Diagnostics (3 Functions)
+| Function | Description |
+|----------|-------------|
+| `debug_checkmk_connection` | Comprehensive connection diagnostics |
+| `test_all_endpoints` | Test all API endpoints |
+| `get_checkmk_version` | Display version and system information |
 
-### 🖥️ Host-Management (8 Funktionen)
-| Funktion | Beschreibung |
-|----------|--------------|
-| `get_checkmk_hosts` | Hosts auflisten (mit Filterung) |
-| `get_host_status` | Host-Status und Zustand |
-| `get_host_details` | Detaillierte Host-Informationen |
-| `get_host_config` | Host-Konfiguration anzeigen |
-| `create_host` | Neuen Host erstellen |
-| `delete_host` | Host permanent entfernen |
-| `update_host` | Host-Konfiguration ändern |
-| `move_host` | Host in anderen Ordner verschieben |
+### 🖥️ Host Management (8 Functions)
+| Function | Description |
+|----------|-------------|
+| `get_checkmk_hosts` | List hosts (with filtering) |
+| `get_host_status` | Get host status and state |
+| `get_host_details` | Detailed host information |
+| `get_host_config` | Display host configuration |
+| `create_host` | Create new host |
+| `delete_host` | Permanently remove host |
+| `update_host` | Modify host configuration |
+| `move_host` | Move host to different folder |
 
-### ⚙️ Service-Management (6 Funktionen)
-| Funktion | Beschreibung |
-|----------|--------------|
-| `get_checkmk_services` | Services eines Hosts auflisten |
-| `get_service_status` | Service-Status abfragen |
-| `get_service_config` | Service-Konfiguration anzeigen |
-| `discover_services` | Services auf Host entdecken |
-| `get_service_discovery` | Discovery-Ergebnisse anzeigen |
-| `bulk_discovery` | Bulk-Discovery für mehrere Hosts |
+### ⚙️ Service Management (6 Functions)
+| Function | Description |
+|----------|-------------|
+| `get_checkmk_services` | List services of a host |
+| `get_service_status` | Query service status |
+| `get_service_config` | Display service configuration |
+| `discover_services` | Discover services on host |
+| `get_service_discovery` | Show discovery results |
+| `bulk_discovery` | Bulk discovery for multiple hosts |
 
-### 🚨 Monitoring & Probleme (5 Funktionen)
-| Funktion | Beschreibung |
-|----------|--------------|
-| `get_current_problems` | Aktuelle Probleme anzeigen |
-| `acknowledge_problem` | Problem als bekannt markieren |
-| `schedule_downtime` | Wartungsfenster planen |
-| `remove_downtime` | Downtime vorzeitig beenden |
-| `reschedule_check` | Sofortige Überprüfung erzwingen |
+### 🚨 Monitoring & Problems (5 Functions)
+| Function | Description |
+|----------|-------------|
+| `get_current_problems` | Display current problems |
+| `acknowledge_problem` | Mark problem as acknowledged |
+| `schedule_downtime` | Schedule maintenance window |
+| `remove_downtime` | End downtime early |
+| `reschedule_check` | Force immediate check |
 
-## 💡 Praktische Beispiele
+## 💡 Practical Examples
 
-### Tägliche Monitoring-Routinen
+### Daily Monitoring Routines
 
 ```bash
-# Morgen-Check
-"Zeige mir alle aktuellen Probleme und geplanten Downtimes für heute"
+# Morning check
+"Show me all current problems and scheduled downtimes for today"
 
-# Neuen Server hinzufügen
-"Erstelle einen neuen Host 'web-server-05' im Ordner '/servers/web' 
-mit der IP 192.168.1.105 und entdecke alle Services"
+# Add new server
+"Create a new host 'web-server-05' in folder '/servers/web' 
+with IP 192.168.1.105 and discover all services"
 
-# Wartung planen
-"Plane eine 2-stündige Downtime für 'db-server-01' ab 22:00 heute 
-für Datenbank-Wartung"
+# Schedule maintenance
+"Schedule a 2-hour downtime for 'db-server-01' starting at 22:00 today 
+for database maintenance"
 ```
 
-### Automatisierte Workflows
+### Automated Workflows
 
 ```bash
-# Kompletter Server-Setup
-"Erstelle Host 'app-server-03' in '/production/apps', IP 10.0.1.50,
-führe Service-Discovery durch, aktiviere alle Änderungen"
+# Complete server setup
+"Create host 'app-server-03' in '/production/apps', IP 10.0.1.50,
+run service discovery, activate all changes"
 
-# Problem-Management
-"Zeige alle kritischen Probleme, bestätige das MySQL-Problem auf db-01 
-mit Kommentar 'DBA arbeitet daran'"
+# Problem management
+"Show all critical problems, acknowledge the MySQL problem on db-01 
+with comment 'DBA is working on it'"
 ```
 
 ## 🏗️ Architecture
@@ -243,9 +243,9 @@ vibeMK/
 - **Configuration**: Centralized configuration management
 - **Extensibility**: Easy to add new handlers and tools
 
-## 🔧 Erweiterte Konfiguration
+## 🔧 Advanced Configuration
 
-Alle Einstellungen werden über die LLM-Konfigurationsdatei verwaltet:
+All settings are managed through the LLM configuration file:
 
 ```json
 {
@@ -260,12 +260,12 @@ Alle Einstellungen werden über die LLM-Konfigurationsdatei verwaltet:
         "CHECKMK_CERT_FILE": "/path/to/client.crt",
         "CHECKMK_KEY_FILE": "/path/to/client.key",
         
-        // Performance-Optimierung
+        // Performance optimization
         "CHECKMK_TIMEOUT": "60",
         "CHECKMK_MAX_RETRIES": "3",
         "CHECKMK_RATE_LIMIT_REQUESTS": "200",
         
-        // Debug-Modus
+        // Debug mode
         "CHECKMK_DEBUG": "true"
       }
     }
@@ -273,101 +273,101 @@ Alle Einstellungen werden über die LLM-Konfigurationsdatei verwaltet:
 }
 ```
 
-## 📊 Unterstützte CheckMK-Versionen
+## 📊 Supported CheckMK Versions
 
-| CheckMK Version | Kompatibilität | Features |
-|-----------------|----------------|----------|
-| **2.3.x** | ✅ Vollständig | Alle Features verfügbar |
-| **2.2.x** | ✅ Vollständig | Alle Features verfügbar |
-| **2.1.x** | ✅ Vollständig | Alle Features verfügbar |
-| **2.0.x** | ✅ Vollständig | Basis-REST-API |
-| **1.6.x** | ⚠️ Eingeschränkt | Nur Web-API (legacy) |
+| CheckMK Version | Compatibility | Features |
+|-----------------|---------------|----------|
+| **2.3.x** | ✅ Full | All features available |
+| **2.2.x** | ✅ Full | All features available |
+| **2.1.x** | ✅ Full | All features available |
+| **2.0.x** | ✅ Full | Basic REST API |
+| **1.6.x** | ⚠️ Limited | Web API only (legacy) |
 
-### Edition-Support
+### Edition Support
 
-- **Raw Edition**: Grundfunktionen verfügbar
-- **Enterprise Edition**: Alle Features inklusive BI, Agent Bakery, Metriken
-- **Cloud Edition**: Alle Enterprise Features
+- **Raw Edition**: Basic functions available
+- **Enterprise Edition**: All features including BI, Agent Bakery, Metrics
+- **Cloud Edition**: All Enterprise features
 
 ## 🔍 Troubleshooting
 
-### Häufige Probleme
+### Common Issues
 
-#### Verbindungsfehler
+#### Connection Errors
 ```bash
-# Test-Befehl
+# Test command
 debug_checkmk_connection
 
-# Typische Lösungen:
-# 1. Server-URL prüfen
-# 2. Netzwerkverbindung testen: ping checkmk-server
-# 3. Firewall-Regeln überprüfen
+# Common solutions:
+# 1. Check server URL
+# 2. Test network connection: ping checkmk-server
+# 3. Check firewall rules
 ```
 
-#### Authentifizierungsfehler
+#### Authentication Errors
 ```bash
-# Automation-User prüfen
+# Check automation user
 get_users
 
-# Berechtigungen validieren:
-# 1. User existiert in CheckMK
-# 2. Passwort korrekt
-# 3. Benutzer hat API-Zugriff
+# Validate permissions:
+# 1. User exists in CheckMK
+# 2. Password is correct
+# 3. User has API access
 ```
 
-## 📚 Dokumentation
+## 📚 Documentation
 
-- 📖 [Detaillierte Installationsanleitung](INSTALLATION.md)
-- 📚 [Vollständiges Benutzerhandbuch](USER_GUIDE.md)
+- 📖 [Detailed Installation Guide](INSTALL.md)
+- 📚 [Complete User Manual](USER_GUIDE.md)
 
-## 🤝 Beitragen
+## 🤝 Contributing
 
 ### Contribution Guidelines
 
-1. **Fork** das Repository
-2. **Branch erstellen**: `git checkout -b feature/neue-funktion`
-3. **Änderungen committen**: `git commit -m 'Neue Funktion hinzugefügt'`
-4. **Push**: `git push origin feature/neue-funktion`
-5. **Pull Request** erstellen
+1. **Fork** the repository
+2. **Create branch**: `git checkout -b feature/new-feature`
+3. **Commit changes**: `git commit -m 'Add new feature'`
+4. **Push**: `git push origin feature/new-feature`
+5. **Create Pull Request**
 
-### Code-Standards
+### Code Standards
 
-- **Python 3.8+** Kompatibilität
-- **Type Hints** verwenden
-- **Async/Await** für I/O-Operationen
+- **Python 3.8+** compatibility
+- **Use Type Hints**
+- **Async/Await** for I/O operations
 - **Comprehensive Error Handling**
-- **Unit Tests** für neue Features
+- **Unit Tests** for new features
 
-## 📄 Lizenz
+## 📄 License
 
-Dieses Projekt ist unter der [GNU General Public License v3.0](LICENSE) lizenziert.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
-## 🙏 Danksagungen
+## 🙏 Acknowledgments
 
-- **CheckMK Team** für die exzellente REST API
-- **Anthropic** für Claude und das MCP Protocol
-- **Python Community** für großartige Libraries
-- **Contributors** für Verbesserungen und Feedback
+- **CheckMK Team** for the excellent REST API
+- **Anthropic** for Claude and the MCP Protocol
+- **Python Community** for great libraries
+- **Contributors** for improvements and feedback
 
 ## 📞 Support
 
-### Dokumentation
-- 📖 [Installationsanleitung](INSTALLATION.md)
-- 📚 [Vollständiges Benutzerhandbuch](USER_GUIDE.md)
-- 💡 [Praktische Beispiele](EXAMPLES.md)
+### Documentation
+- 📖 [Installation Guide](INSTALL.md)
+- 📚 [Complete User Manual](USER_GUIDE.md)
+- 💡 [Practical Examples](EXAMPLES.md)
 
-### Hilfe erhalten
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/your-repo/issues)
-- 💬 **Diskussionen**: [GitHub Discussions](https://github.com/your-repo/discussions)
-- 📧 **Email**: support@your-domain.com
+### Get Help
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/chexma/vibeMK/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/chexma/vibeMK/discussions)
+- 📧 **Email**: chexma@gmx.de
 
 ### Community
-- 🌟 **Star** das Repository wenn es hilfreich ist
-- 🔄 **Fork** für eigene Anpassungen
-- 📢 **Teilen** mit anderen CheckMK-Benutzern
+- 🌟 **Star** the repository if it's helpful
+- 🔄 **Fork** for your own customizations
+- 📢 **Share** with other CheckMK users
 
 ---
 
-**Happy Monitoring mit CheckMK und Claude!** 🎉
+**Happy Monitoring with CheckMK and LLMs!** 🎉
 
-*Automatisiere dein Monitoring, spare Zeit, und konzentriere dich auf das Wesentliche.*
+*Automate your monitoring, save time, and focus on what matters.*

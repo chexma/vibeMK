@@ -4,7 +4,7 @@ This directory contains example configurations for different use cases.
 
 ## LLM Client Configuration
 
-### 📁 `claude_desktop_configs/`
+### 📁 `llm_configs/`
 
 **Basic Configuration (`basic_config.json`)**
 - Simple single-server setup
@@ -25,7 +25,7 @@ This directory contains example configurations for different use cases.
 
 1. **Choose Your Configuration**
    ```bash
-   cp examples/claude_desktop_configs/basic_config.json claude_desktop_config.json
+   cp examples/llm_configs/basic_config.json llm_client_config.json
    ```
 
 2. **Edit Configuration**
@@ -42,7 +42,7 @@ This directory contains example configurations for different use cases.
 
 ### 🔒 Security Notes
 
-- **Never commit your actual `claude_desktop_config.json`** (already in .gitignore)
+- **Never commit your actual LLM client config** (already in .gitignore)
 - Use strong automation passwords
 - Enable SSL verification in production
 - Consider using environment-specific automation users
