@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "vibemk-production": {
+      "command": "python",
+      "args": ["/opt/vibeMK/main.py"],
+      "env": {
+        "CHECKMK_SERVER_URL": "https://checkmk-prod.company.com",
+        "CHECKMK_SITE": "production",
+        "CHECKMK_USERNAME": "automation",
+        "CHECKMK_PASSWORD": "prod-automation-key",
+        "CHECKMK_VERIFY_SSL": "true",
+        "CHECKMK_TIMEOUT": "45",
+        "CHECKMK_MAX_RETRIES": "5"
+      }
+    },
+    "vibemk-development": {
+      "command": "python",
+      "args": ["/home/dev/vibeMK/main.py"],
+      "env": {
+        "CHECKMK_SERVER_URL": "https://checkmk-dev.company.com",
+        "CHECKMK_SITE": "development",
+        "CHECKMK_USERNAME": "automation",
+        "CHECKMK_PASSWORD": "dev-automation-key",
+        "CHECKMK_VERIFY_SSL": "false",
+        "CHECKMK_TIMEOUT": "30",
+        "CHECKMK_MAX_RETRIES": "3"
+      }
+    }
+  }
+}

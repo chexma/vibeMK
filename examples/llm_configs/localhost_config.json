@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "vibemk-local": {
+      "command": "python",
+      "args": ["/Users/yourname/projects/vibeMK/main.py"],
+      "env": {
+        "CHECKMK_SERVER_URL": "http://localhost:8080",
+        "CHECKMK_SITE": "cmk",
+        "CHECKMK_USERNAME": "automation",
+        "CHECKMK_PASSWORD": "your-local-password",
+        "CHECKMK_VERIFY_SSL": "false",
+        "CHECKMK_TIMEOUT": "20",
+        "CHECKMK_MAX_RETRIES": "2"
+      }
+    }
+  }
+}

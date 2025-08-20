@@ -1,0 +1,132 @@
+# vibeMK - Claude Development Notes
+
+## Project Overview
+CheckMK MCP Server implementation for integrating CheckMK monitoring with LLM interfaces.
+
+## Environment Setup
+- **CheckMK Instance:** http://localhost:8080/cmk/check_mk/
+- **Site:** cmk
+- **Automation User:** automation / Passw0rdPassw0rd
+- **API Base:** http://localhost:8080/cmk/check_mk/api/1.0/
+
+## Fixed Issues
+
+### 1. Folder Operations (SOLVED ✅)
+**Problem:** HTTP 400 errors when creating/deleting folders
+
+**Root Cause:** Incorrect API data format
+- Wrong: `{"folder": "name", "parent": "/"}`
+- Correct: `{"name": "name", "parent": "~", "attributes": {}}`
+
+**Solution:** Updated `/handlers/folders.py:69-231`
+- Use `name` instead of `folder` field
+- Use `~` instead of `/` for root folder
+- Add required `attributes: {}` field
+- Proper path encoding: `/api` → `~api`
+
+### 2. Ruleset API Format (SOLVED ✅)
+**Problem:** HTTP 400 errors when creating rules due to format issues
+
+**Root Cause:** CheckMK expects Python string literals for `value_raw`
+- Wrong: `"value_raw": ["admins"]` (JSON array)
+- Correct: `"value_raw": "'admins'"` (Python string literal)
+
+**Working Format Example:**
+```json
+{
+  "properties": {"disabled": false},
+  "value_raw": "'admins'",
+  "conditions": {},
+  "ruleset": "host_contactgroups",
+  "folder": "~"
+}
+```
+
+**Solution:** Updated `/handlers/rules.py:109-128` and `/handlers/host_group_rules.py:117-195`
+
+### 3. Rule Retrieval Issue (SOLVED ✅)
+**Problem:** Rule queries returned 0 rules instead of actual count
+
+**Root Cause:** Wrong API endpoint
+- Wrong: `GET objects/ruleset/{name}` (metadata only)
+- Correct: `GET domain-types/rule/collections/all?ruleset_name={name}` (actual rules)
+
+**Solution:** Updated `/handlers/rules.py:73-133`
+
+### 4. Host Status Issue (SOLVED ✅)
+**Problem:** Host status showing errors instead of actual state (UP/DOWN/UNREACHABLE)
+
+**Root Cause:** Using incorrect API methods and complex workarounds
+- Wrong: Inferring status from services or using wrong endpoints
+- Correct: `GET objects/host/{name}?columns=state,plugin_output,last_check,last_state_change`
+
+**Working API Example:**
+```bash
+GET /cmk/check_mk/api/1.0/objects/host/www.google.de?columns=state&columns=plugin_output&columns=last_check
+```
+
+**Solution:** Updated `/handlers/hosts.py:73-268`
+- Uses documented CheckMK API with columns parameter
+- Maps numeric state codes (0=UP, 1=DOWN, 2=UNREACHABLE)
+- Proper timestamp formatting and error handling
+- Fallback methods for edge cases
+
+### 5. Service Status Issue (SOLVED ✅)
+**Problem:** Service status showing "unknown" instead of actual state
+
+**Root Cause:** REST API configuration endpoints don't include live monitoring data
+- Wrong: Using configuration endpoints
+- Correct: `GET objects/host/{host}/actions/show_service/invoke?service_description={service}`
+
+**Solution:** Updated `/handlers/services.py` (previously documented)
+- Uses show_service action with query parameters
+- Maps numeric state codes (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN)
+
+## Key Technical Insights
+
+### CheckMK API Patterns
+1. **Folder Paths:** Use tilde notation (`~` for root, `~folder~subfolder`)
+2. **Rule Values:** Must be Python string literals (`'value'` not `"value"`)
+3. **Authentication:** Basic Auth with automation user
+4. **Headers:** Always include `Accept: application/json`
+
+### Ruleset Format Requirements
+- **Single values:** `'admin'` (quoted string)
+- **Multiple values:** `['admin1', 'admin2']` (Python list string)
+- **Dict values:** `{'key': 'value'}` (Python dict string)
+
+### Working Endpoints
+```
+✅ Folders: POST domain-types/folder_config/collections/all
+✅ Rules: POST domain-types/rule/collections/all  
+✅ Rule Query: GET domain-types/rule/collections/all?ruleset_name=X
+✅ Host Status: GET objects/host/{name}?columns=state,plugin_output,last_check
+✅ Service Status: GET objects/host/{host}/actions/show_service/invoke?service_description={service}
+❌ Avoid: GET objects/ruleset/{name} (metadata only)
+```
+
+## Current Status
+- ✅ Folder creation/deletion working
+- ✅ Rule creation working with correct format
+- ✅ Rule retrieval showing actual rules (3/3 for host_contactgroups)
+- ✅ Host status showing correct state (UP/DOWN/UNREACHABLE) with live data
+- ✅ Service status showing correct state (OK/WARNING/CRITICAL/UNKNOWN) with live data
+- ✅ Tool routing optimized for direct access
+- ✅ All 82 tools renamed with vibemk_ prefix for namespace separation
+
+## Test Commands
+```bash
+# Test folder operations
+CHECKMK_SERVER_URL="http://localhost:8080" CHECKMK_SITE="cmk" CHECKMK_USERNAME="automation" CHECKMK_PASSWORD="Passw0rdPassw0rd" python3 -c "from handlers.folders import FolderHandler; ..."
+
+# Test rule operations  
+CHECKMK_SERVER_URL="http://localhost:8080" CHECKMK_SITE="cmk" CHECKMK_USERNAME="automation" CHECKMK_PASSWORD="Passw0rdPassw0rd" python3 -c "from handlers.rules import RulesHandler; ..."
+```
+
+## Next Steps
+- [ ] Test rule creation with existing contact groups
+- [ ] Implement format detection for remaining ~2000 rulesets
+- [ ] Add comprehensive error handling
+
+---
+*Generated during Claude collaboration - Contains sensitive testing information*

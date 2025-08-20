@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "vibemk": {
+      "command": "python",
+      "args": ["/Users/yourname/vibeMK/main.py"],
+      "env": {
+        "CHECKMK_SERVER_URL": "https://checkmk.company.com",
+        "CHECKMK_SITE": "production",
+        "CHECKMK_USERNAME": "automation",
+        "CHECKMK_PASSWORD": "your-secure-password"
+      }
+    }
+  }
+}
