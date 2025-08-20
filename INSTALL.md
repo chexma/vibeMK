@@ -1,32 +1,32 @@
-# vibeMK - Installationsanleitung
+# vibeMK - Installation Guide
 
-Eine Schritt-für-Schritt Anleitung zur Installation und Konfiguration von vibeMK für LLM-Interfaces.
+A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 
-## 📋 Voraussetzungen
+## 📋 Prerequisites
 
-### System-Anforderungen
+### System Requirements
 
-- **Betriebssystem**: macOS, Linux, oder Windows
-- **Python**: Version 3.8 oder höher
-- **CheckMK**: Version 2.1.0 oder höher (CE/CEE/CCE/CRE)
-- **LLM Client**: Z.B. Claude Desktop, OpenAI API Client, etc.
+- **Operating System**: macOS, Linux, or Windows
+- **Python**: Version 3.8 or higher
+- **CheckMK**: Version 2.1.0 or higher (CE/CEE/CCE/CRE)
+- **LLM Client**: E.g., Claude Desktop, OpenAI API Client, etc.
 
-### Software-Dependencies
+### Software Dependencies
 
 - Python Virtual Environment Support
-- Git (für Repository-Kloning)
-- Zugriff auf CheckMK-Instanz (lokal oder remote)
+- Git (for repository cloning)
+- Access to CheckMK instance (local or remote)
 
 ## 🚀 vibeMK Features (Version 0.1)
 
-### ✨ Aktuelle Features
-- **🏷️ Einheitliche Tool-Benennung**: Alle 82 Tools mit `vibemk_` Präfix für bessere Identifikation
-- **🔧 Modulare Architektur**: Saubere Handler-Struktur für verschiedene CheckMK-Bereiche
-- **⚡ Optimierte Performance**: Effiziente API-Clients und Verbindungsmanagement
-- **🛡️ Robuste Sicherheit**: Umfassende Input-Validierung und Fehlerbehandlung
-- **🧪 Zero Dependencies**: Verwendet ausschließlich Python Standard-Bibliothek
+### ✨ Current Features
+- **🏷️ Unified Tool Naming**: All 82 tools with `vibemk_` prefix for better identification
+- **🔧 Modular Architecture**: Clean handler structure for different CheckMK areas
+- **⚡ Optimized Performance**: Efficient API clients and connection management
+- **🛡️ Robust Security**: Comprehensive input validation and error handling
+- **🧪 Zero Dependencies**: Uses exclusively Python standard library
 
-### 📊 Tool-Übersicht (82 Tools)
+### 📊 Tool Overview (82 Tools)
 - **CheckMK Core**: `vibemk_get_checkmk_version`, `vibemk_debug_checkmk_connection`
 - **Host Management**: `vibemk_get_checkmk_hosts`, `vibemk_create_host`, `vibemk_delete_host`
 - **Service Management**: `vibemk_get_checkmk_services`, `vibemk_discover_services`
@@ -41,70 +41,70 @@ Eine Schritt-für-Schritt Anleitung zur Installation und Konfiguration von vibeM
 - **Time Period Management**: `vibemk_get_timeperiods`, `vibemk_create_timeperiod`
 - **Debug & Diagnostics**: `vibemk_debug_api_endpoints`, `vibemk_test_all_endpoints`
 
-## 🔧 Schritt 1: Repository Setup
+## 🔧 Step 1: Repository Setup
 
-### Repository klonen
+### Clone Repository
 
 ```bash
-# Repository klonen
-git clone https://github.com/your-username/vibeMK.git
+# Clone repository
+git clone https://github.com/chexma/vibeMK.git
 cd vibeMK
 
-# Oder: ZIP-Download und extrahieren
+# Or: Download ZIP and extract
 # wget https://github.com/.../archive/main.zip
 # unzip main.zip && cd vibeMK-main
 ```
 
-### Python Virtual Environment erstellen
+### Create Python Virtual Environment
 
 ```bash
-# Virtual Environment erstellen
+# Create virtual environment
 python3 -m venv venv
 
-# Virtual Environment aktivieren
+# Activate virtual environment
 # macOS/Linux:
 source venv/bin/activate
 
 # Windows:
 venv\Scripts\activate
 
-# Aktivierung überprüfen
-which python  # sollte venv/bin/python zeigen
+# Verify activation
+which python  # should show venv/bin/python
 ```
 
-## 📦 Schritt 2: Dependencies installieren
+## 📦 Step 2: Install Dependencies
 
-### ⚡ Zero-Dependency Installation (Empfohlen)
+### ⚡ Zero-Dependency Installation (Recommended)
 
 ```bash
-# Keine zusätzlichen Pakete nötig!
-# vibeMK nutzt nur Python Standard-Bibliothek
+# No additional packages needed!
+# vibeMK uses only Python standard library
 
-# Installation überprüfen
+# Verify installation
 python -c "import json, urllib.request, asyncio; print('✅ All dependencies available')"
 ```
 
-### Legacy Installation (falls requirements.txt vorhanden)
+### Legacy Installation (if requirements.txt exists)
 
 ```bash
-# Falls vorhanden, aber nicht zwingend nötig
+# If present, but not strictly necessary
 pip install -r requirements.txt 2>/dev/null || echo "No requirements.txt - using built-in modules"
 ```
 
-## ⚙️ Schritt 3: CheckMK konfigurieren
+## ⚙️ Step 3: Configure CheckMK
 
-### 3.1 CheckMK API-Benutzer erstellen
+### 3.1 Create CheckMK API User
 
-1. **CheckMK Web-Interface öffnen**:
+1. **Open CheckMK Web Interface**:
    ```
    http://your-checkmk-server/cmk/
    ```
 
-2. **Automation-Benutzer anlegen**:
+2. **Create Automation User**:
    ```
    Setup → Users → Add user
    
-   Einstellungen:
+   Settings:
    - Username: automation  
    - Full name: vibeMK MCP Automation
    - Email: (optional)
@@ -112,20 +112,20 @@ pip install -r requirements.txt 2>/dev/null || echo "No requirements.txt - using
    - Disable password login: ✅
    ```
 
-3. **API-Schlüssel generieren**:
+3. **Generate API Key**:
    ```
-   User bearbeiten → Automation secrets → Add secret
+   Edit user → Automation secrets → Add secret
    
    - Description: "vibeMK LLM Server"
-   - Copy the generated key ➡️ Wichtig für Claude Config!
+   - Copy the generated key ➡️ Important for LLM config!
    ```
 
-### 3.2 Benutzer-Berechtigungen prüfen
+### 3.2 Check User Permissions
 
 ```
 Setup → Users → [automation user] → Effective permissions
 
-Benötigte Berechtigungen:
+Required permissions:
 ✅ Use the REST API
 ✅ See hosts in monitoring  
 ✅ See services in monitoring
@@ -134,21 +134,21 @@ Benötigte Berechtigungen:
 ✅ Activate configuration changes
 ```
 
-## 🔐 Schritt 4: LLM Client Konfiguration
+## 🔐 Step 4: LLM Client Configuration
 
-### 4.1 Wichtiger Hinweis
+### 4.1 Important Note
 
-✅ **Keine .env-Datei nötig!** Credentials werden direkt in der LLM Client Config gespeichert.
+✅ **No .env file needed!** Credentials are stored directly in the LLM client config.
 
-## 🔎 Schritt 5: vibeMK in LLM Client einrichten
+## 🔎 Step 5: Setup vibeMK in LLM Client
 
-### 5.1 Konfigurationsdatei finden
+### 5.1 Find Configuration File
 
 ```bash
-# macOS: Config-Datei öffnen
+# macOS: Open config file
 open -e ~/Library/Application\ Support/Claude/claude_desktop_config.json
 
-# Oder mit anderem Editor:
+# Or with other editor:
 code ~/Library/Application\ Support/Claude/claude_desktop_config.json
 nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
@@ -163,20 +163,20 @@ nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ~/.config/claude/claude_desktop_config.json
 ```
 
-### 5.2 Absolute Pfade ermitteln
+### 5.2 Determine Absolute Paths
 
 ```bash
-# Aktuelles Verzeichnis  
+# Current directory  
 CURRENT_DIR=$(pwd)
 echo "Server Path: $CURRENT_DIR/main.py"
 
-# Python im venv
+# Python in venv
 echo "Python Path: $CURRENT_DIR/venv/bin/python"
 ```
 
-### 5.3 MCP Server registrieren
+### 5.3 Register MCP Server
 
-**Basis-Konfiguration:**
+**Basic Configuration:**
 ```json
 {
   "mcpServers": {
@@ -187,14 +187,14 @@ echo "Python Path: $CURRENT_DIR/venv/bin/python"
         "CHECKMK_SERVER_URL": "http://localhost:8080",
         "CHECKMK_SITE": "cmk",
         "CHECKMK_USERNAME": "automation",
-        "CHECKMK_PASSWORD": "Ihr_echter_API_Schlüssel_hier"
+        "CHECKMK_PASSWORD": "Your_real_API_key_here"
       }
     }
   }
 }
 ```
 
-**Erweiterte Konfiguration:**
+**Advanced Configuration:**
 ```json
 {
   "mcpServers": {
@@ -215,29 +215,29 @@ echo "Python Path: $CURRENT_DIR/venv/bin/python"
 }
 ```
 
-⚠️ **Wichtig**: 
-- Absolute Pfade verwenden!
-- Echten API-Schlüssel einsetzen!
-- Server-ID ist jetzt `vibemk` (früher `checkmk`)
+⚠️ **Important**: 
+- Use absolute paths!
+- Insert real API key!
+- Server ID is now `vibemk` (formerly `checkmk`)
 
-## 🧪 Schritt 6: Installation testen
+## 🧪 Step 6: Test Installation
 
-### 6.1 Basis-Verbindungstest
+### 6.1 Basic Connection Test
 
 ```bash
-# CheckMK-Server erreichbar?
+# Is CheckMK server reachable?
 curl -s http://localhost:8080/cmk/ | grep -i checkmk
 
-# API-Endpoint testen  
+# Test API endpoint  
 curl -H "Authorization: Bearer automation YOUR_API_KEY" \
      -H "Accept: application/json" \
      http://localhost:8080/cmk/check_mk/api/1.0/version
 ```
 
-### 6.2 vibeMK Server testen
+### 6.2 Test vibeMK Server
 
 ```bash
-# Server starten (Test-Modus)
+# Start server (test mode)
 CHECKMK_SERVER_URL="http://localhost:8080" \
 CHECKMK_SITE="cmk" \
 CHECKMK_USERNAME="automation" \
@@ -245,9 +245,9 @@ CHECKMK_PASSWORD="your_api_key" \
 python main.py
 ```
 
-**Test-Request senden:**
+**Send test request:**
 ```bash
-# In einem anderen Terminal:
+# In another terminal:
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | \
 CHECKMK_SERVER_URL="http://localhost:8080" \
 CHECKMK_SITE="cmk" \
@@ -256,7 +256,7 @@ CHECKMK_PASSWORD="your_api_key" \
 python main.py
 ```
 
-**Erwartete Ausgabe:**
+**Expected output:**
 ```json
 {
   "jsonrpc": "2.0", 
@@ -271,77 +271,77 @@ python main.py
 }
 ```
 
-## 🖥️ Schritt 7: LLM Client Integration
+## 🖥️ Step 7: LLM Client Integration
 
-### 7.1 LLM Client beenden
+### 7.1 Quit LLM Client
 
 ```bash
-# macOS: Claude komplett beenden
+# macOS: Completely quit Claude
 osascript -e 'quit app "Claude"'
 
-# oder manuell: Cmd+Q drücken
+# or manually: Press Cmd+Q
 ```
 
-### 7.2 LLM Client neustarten
+### 7.2 Restart LLM Client
 
 ```bash
-# macOS: Claude neu starten
+# macOS: Start Claude again
 open -a Claude
 
-# Warten auf Startup (ca. 5-10 Sekunden)
+# Wait for startup (approx. 5-10 seconds)
 ```
 
-### 7.3 vibeMK-Integration überprüfen
+### 7.3 Verify vibeMK Integration
 
-**Test-Fragen an Claude**:
+**Test Questions for Claude**:
 
-1. **Tools verfügbar?**
+1. **Tools available?**
    ```
-   "Welche vibeMK-Tools hast du verfügbar?"
+   "Which vibeMK tools do you have available?"
    ```
 
-2. **Verbindung testen**:
+2. **Test connection**:
    ```  
-   "Verwende vibemk_debug_checkmk_connection um die Verbindung zu testen"
+   "Use vibemk_debug_checkmk_connection to test the connection"
    ```
 
-3. **Version abrufen**:
+3. **Get version**:
    ```
-   "Zeige mir die CheckMK-Version mit vibemk_get_checkmk_version"
-   ```
-
-4. **Hosts anzeigen**:
-   ```
-   "Liste alle CheckMK-Hosts mit vibemk_get_checkmk_hosts auf"
+   "Show me the CheckMK version with vibemk_get_checkmk_version"
    ```
 
-## 🐛 Schritt 8: Troubleshooting
+4. **Show hosts**:
+   ```
+   "List all CheckMK hosts with vibemk_get_checkmk_hosts"
+   ```
 
-### 8.1 Häufige Probleme
+## 🐛 Step 8: Troubleshooting
 
-| Problem | Symptom | Lösung |
-|---------|---------|--------|
-| "No vibemk tools available" | Claude kennt keine vibemk_* Tools | Config-Pfade prüfen, Claude neustarten |
-| "Connection failed" | API-Verbindung fehlgeschlagen | Server-URL und Port überprüfen |
-| "Authentication failed" | 401 Unauthorized | API-Schlüssel und Username prüfen |
-| "Permission denied" | 403 Forbidden | Benutzer-Berechtigungen in CheckMK |
-| "Python not found" | Server startet nicht | Virtual Environment-Pfad korrigieren |
-| "Module not found" | Import-Fehler | `source venv/bin/activate` ausführen |
+### 8.1 Common Issues
 
-### 8.2 Debug-Logs aktivieren
+| Problem | Symptom | Solution |
+|---------|---------|----------|
+| "No vibemk tools available" | Claude doesn't know vibemk_* tools | Check config paths, restart Claude |
+| "Connection failed" | API connection failed | Check server URL and port |
+| "Authentication failed" | 401 Unauthorized | Check API key and username |
+| "Permission denied" | 403 Forbidden | Check user permissions in CheckMK |
+| "Python not found" | Server won't start | Correct virtual environment path |
+| "Module not found" | Import error | Run `source venv/bin/activate` |
 
-**MCP-Logs überwachen** (macOS):
+### 8.2 Enable Debug Logs
+
+**Monitor MCP logs** (macOS):
 ```bash
-# Log-Datei überwachen
+# Monitor log file
 tail -f ~/Library/Logs/Claude/mcp.log
 
-# Alle Claude-Logs
+# All Claude logs
 ls -la ~/Library/Logs/Claude/
 ```
 
-**Server-Debug-Modus**:
+**Server debug mode**:
 ```bash
-# Debug-Level Logging aktivieren
+# Enable debug-level logging
 export CHECKMK_DEBUG=true
 export CHECKMK_SERVER_URL="http://localhost:8080"
 export CHECKMK_SITE="cmk"  
@@ -351,34 +351,34 @@ export CHECKMK_PASSWORD="your_api_key"
 python main.py 2>&1 | tee vibemk-debug.log
 ```
 
-### 8.3 Verbindungsdiagnose
+### 8.3 Connection Diagnostics
 
 ```bash
-# Schritt-für-Schritt Diagnose
+# Step-by-step diagnosis
 
-# 1. Python-Environment prüfen
+# 1. Check Python environment
 which python
 python --version
 python -c "import json, urllib.request, asyncio; print('✅ Modules OK')"
 
-# 2. CheckMK-Server erreichbar?
+# 2. Is CheckMK server reachable?
 curl -v http://localhost:8080/cmk/
 
-# 3. API-Endpoint verfügbar?
+# 3. Is API endpoint available?
 curl -v -H "Authorization: Bearer automation YOUR_KEY" \
         http://localhost:8080/cmk/check_mk/api/1.0/version
 
-# 4. vibeMK Server startbar?
+# 4. Can vibeMK server start?
 timeout 10s python main.py
 
-# 5. LLM Client Config gültig?
+# 5. Is LLM client config valid?
 python -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
-### 8.4 Tool-Verfügbarkeit prüfen
+### 8.4 Check Tool Availability
 
 ```bash
-# Alle verfügbaren Tools anzeigen
+# Show all available tools
 python -c "
 from mcp.tools import get_all_tools
 tools = get_all_tools()
@@ -388,55 +388,55 @@ for tool in tools[:5]:
 "
 ```
 
-### 8.5 Konfiguration zurücksetzen
+### 8.5 Reset Configuration
 
 ```bash
-# 1. LLM Client beenden
+# 1. Quit LLM client
 osascript -e 'quit app "Claude"'
 
-# 2. MCP-Config sichern
+# 2. Backup MCP config
 cp ~/Library/Application\ Support/Claude/claude_desktop_config.json \
    ~/Library/Application\ Support/Claude/claude_desktop_config.json.backup
 
-# 3. Minimal-Config erstellen
+# 3. Create minimal config
 cat > ~/Library/Application\ Support/Claude/claude_desktop_config.json << 'EOF'
 {
   "mcpServers": {}
 }
 EOF
 
-# 4. Claude neustarten und schrittweise Server hinzufügen
+# 4. Restart Claude and add servers step by step
 ```
 
-## ✅ Schritt 9: Installation verifizieren
+## ✅ Step 9: Verify Installation
 
-### 9.1 Erfolgskriterien
+### 9.1 Success Criteria
 
-- ✅ CheckMK-API antwortet auf Version-Request
-- ✅ vibeMK Server startet ohne Fehler  
-- ✅ LLM Client erkennt alle 82 vibemk_* Tools
-- ✅ Verbindungsdiagnose erfolgreich
-- ✅ Host- und Service-Daten abrufbar
+- ✅ CheckMK API responds to version request
+- ✅ vibeMK server starts without errors  
+- ✅ LLM client recognizes all 82 vibemk_* tools
+- ✅ Connection diagnostics successful
+- ✅ Host and service data retrievable
 
-### 9.2 Test-Sequenz
+### 9.2 Test Sequence
 
 ```
 1. "vibemk_debug_checkmk_connection" → "✅ Connection successful" 
-2. "vibemk_get_checkmk_version" → CheckMK-Versionsinformationen
-3. "vibemk_get_checkmk_hosts" → Liste der konfigurierten Hosts
-4. "vibemk_get_checkmk_services" → Service-Übersicht
-5. "vibemk_get_folders" → Folder-Struktur
+2. "vibemk_get_checkmk_version" → CheckMK version information
+3. "vibemk_get_checkmk_hosts" → List of configured hosts
+4. "vibemk_get_checkmk_services" → Service overview
+5. "vibemk_get_folders" → Folder structure
 ```
 
-### 9.3 Performance-Test
+### 9.3 Performance Test
 
 ```
-"vibemk_test_all_endpoints" → Alle API-Endpoints erfolgreich getestet
+"vibemk_test_all_endpoints" → All API endpoints successfully tested
 ```
 
-### 9.4 Tool-Kategorien-Test
+### 9.4 Tool Category Test
 
-Testen Sie verschiedene Tool-Kategorien:
+Test different tool categories:
 
 - **Host Management**: `vibemk_get_host_status`
 - **Monitoring**: `vibemk_get_current_problems` 
@@ -444,30 +444,30 @@ Testen Sie verschiedene Tool-Kategorien:
 - **Rules**: `vibemk_get_rulesets`
 - **Groups**: `vibemk_get_host_groups`
 
-## 🚀 Schritt 10: Produktive Nutzung
+## 🚀 Step 10: Production Use
 
-### 10.1 vibeMK optimal nutzen
+### 10.1 Use vibeMK Optimally
 
-**Natürliche Sprache verwenden:**
+**Use natural language:**
 ```
-"Zeige mir alle Hosts mit Problemen"
-"Erstelle eine neue Hostgruppe namens 'Webserver'" 
-"Aktiviere alle ausstehenden Änderungen"
-"Welche Services auf dem Host 'server01' haben Probleme?"
-```
-
-**Erweiterte Operationen:**
-```
-"Erstelle einen Host in der Folder 'production' mit IP 192.168.1.100"
-"Plane eine Wartungszeit für alle Webserver von heute 22:00 bis morgen 06:00"
-"Zeige mir die Performance-Metriken für den Host 'database01'"
+"Show me all hosts with problems"
+"Create a new host group named 'Webservers'" 
+"Activate all pending changes"
+"Which services on host 'server01' have problems?"
 ```
 
-### 10.2 Autostart einrichten (optional)
+**Advanced operations:**
+```
+"Create a host in folder 'production' with IP 192.168.1.100"
+"Schedule maintenance for all web servers from today 22:00 to tomorrow 06:00"
+"Show me performance metrics for host 'database01'"
+```
+
+### 10.2 Setup Autostart (optional)
 
 **macOS LaunchAgent**:
 ```bash
-# LaunchAgent-Datei erstellen
+# Create LaunchAgent file
 mkdir -p ~/Library/LaunchAgents
 
 cat > ~/Library/LaunchAgents/com.vibemk.mcp.plist << 'EOF'
@@ -501,36 +501,36 @@ cat > ~/Library/LaunchAgents/com.vibemk.mcp.plist << 'EOF'
 </plist>
 EOF
 
-# LaunchAgent laden
+# Load LaunchAgent
 launchctl load ~/Library/LaunchAgents/com.vibemk.mcp.plist
 ```
 
-### 10.3 Updates verwalten
+### 10.3 Manage Updates
 
 ```bash
-# Repository Updates
+# Repository updates
 git pull origin main
 
-# Nach Updates: LLM Client neustarten
+# After updates: Restart LLM client
 osascript -e 'quit app "Claude"'
 sleep 2
 open -a Claude
 ```
 
-### 10.4 Monitoring & Wartung
+### 10.4 Monitoring & Maintenance
 
 ```bash
-# Server-Status prüfen (falls LaunchAgent verwendet)
+# Check server status (if using LaunchAgent)
 launchctl list | grep vibemk
 
-# Log-Monitoring
+# Log monitoring
 tail -f ~/Library/Logs/Claude/mcp.log | grep vibemk
 
-# Performance überwachen
+# Monitor performance
 ps aux | grep "main.py"
 ```
 
-### 10.5 Mehrere CheckMK-Instanzen
+### 10.5 Multiple CheckMK Instances
 
 ```json
 {
@@ -561,20 +561,20 @@ ps aux | grep "main.py"
 
 ---
 
-## 🎉 Installation abgeschlossen!
+## 🎉 Installation Complete!
 
-Ihr **vibeMK v0.1** Server ist jetzt bereit für die Nutzung mit beliebigen LLM Clients. Mit **82 verfügbaren Tools** können Sie Ihre komplette CheckMK-Umgebung über natürliche Sprache verwalten.
+Your **vibeMK v0.1** server is now ready for use with any LLM clients. With **82 available tools** you can manage your complete CheckMK environment using natural language.
 
-**Nächste Schritte**:
-- ✅ Entdecken Sie alle `vibemk_*` Tools in Claude  
-- ✅ Testen Sie verschiedene Tool-Kategorien
-- ✅ Konfigurieren Sie zusätzliche CheckMK-Instanzen
-- ✅ Passen Sie die Automation an Ihre Bedürfnisse an
+**Next steps**:
+- ✅ Discover all `vibemk_*` tools in Claude  
+- ✅ Test different tool categories
+- ✅ Configure additional CheckMK instances
+- ✅ Customize automation to your needs
 
 **Support**:
-- 📚 Dokumentation: [README.md](README.md)
+- 📚 Documentation: [README.md](README.md)
 - 🐛 Issues: GitHub Issues
 - 💬 Discussions: GitHub Discussions
-- 📧 Beiträge: [CONTRIBUTING.md](CONTRIBUTING.md)
+- 📧 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-**Happy Monitoring mit vibeMK! 🚀**
+**Happy Monitoring with vibeMK! 🚀**

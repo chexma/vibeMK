@@ -54,19 +54,22 @@ CheckMK MCP Server implementation for integrating CheckMK monitoring with LLM in
 **Solution:** Updated `/handlers/rules.py:73-133`
 
 ### 4. Host Status Issue (SOLVED ✅)
-**Problem:** Host status showing errors instead of actual state (UP/DOWN/UNREACHABLE)
+**Problem:** Host status showing incorrect state - DOWN hosts showing as UP
 
-**Root Cause:** Using incorrect API methods and complex workarounds
-- Wrong: Inferring status from services or using wrong endpoints
-- Correct: `GET objects/host/{name}?columns=state,plugin_output,last_check,last_state_change`
+**Root Cause:** Using soft state instead of hard state for monitoring status
+- Wrong: Using only `state` column which shows soft state
+- Correct: `GET objects/host/{name}?columns=state,hard_state,state_type,plugin_output,last_check,last_state_change`
+- **Key Fix**: Use `hard_state` when `state_type=1` for accurate current monitoring status
 
 **Working API Example:**
 ```bash
-GET /cmk/check_mk/api/1.0/objects/host/www.google.de?columns=state&columns=plugin_output&columns=last_check
+GET /cmk/check_mk/api/1.0/objects/host/myshinyserver?columns=state&columns=hard_state&columns=state_type&columns=plugin_output&columns=last_check
+# Returns: state=1, hard_state=1, state_type=1 -> Use hard_state=1 (DOWN)
 ```
 
 **Solution:** Updated `/handlers/hosts.py:73-268`
-- Uses documented CheckMK API with columns parameter
+- Uses documented CheckMK API with columns parameter including hard_state and state_type
+- **Critical Fix**: Uses hard_state instead of soft state when state_type=1 for accurate monitoring status
 - Maps numeric state codes (0=UP, 1=DOWN, 2=UNREACHABLE)
 - Proper timestamp formatting and error handling
 - Fallback methods for edge cases
@@ -102,6 +105,7 @@ GET /cmk/check_mk/api/1.0/objects/host/www.google.de?columns=state&columns=plugi
 ✅ Rule Query: GET domain-types/rule/collections/all?ruleset_name=X
 ✅ Host Status: GET objects/host/{name}?columns=state,plugin_output,last_check
 ✅ Service Status: GET objects/host/{host}/actions/show_service/invoke?service_description={service}
+✅ Service Collections: GET objects/host/{host}/collections/services?columns=state,hard_state,state_type,plugin_output
 ❌ Avoid: GET objects/ruleset/{name} (metadata only)
 ```
 
@@ -110,7 +114,7 @@ GET /cmk/check_mk/api/1.0/objects/host/www.google.de?columns=state&columns=plugi
 - ✅ Rule creation working with correct format
 - ✅ Rule retrieval showing actual rules (3/3 for host_contactgroups)
 - ✅ Host status showing correct state (UP/DOWN/UNREACHABLE) with live data
-- ✅ Service status showing correct state (OK/WARNING/CRITICAL/UNKNOWN) with live data
+- ✅ Service status showing correct state (OK/WARNING/CRITICAL/UNKNOWN) with live data (verified with hard states)
 - ✅ Tool routing optimized for direct access
 - ✅ All 82 tools renamed with vibemk_ prefix for namespace separation
 
@@ -127,6 +131,24 @@ CHECKMK_SERVER_URL="http://localhost:8080" CHECKMK_SITE="cmk" CHECKMK_USERNAME="
 - [ ] Test rule creation with existing contact groups
 - [ ] Implement format detection for remaining ~2000 rulesets
 - [ ] Add comprehensive error handling
+
+## Documentation Standards
+
+### Language Policy
+- **All documentation must be written in English only**
+- This ensures international accessibility and consistency
+- Apply this to:
+  - All README files
+  - Installation guides
+  - Code comments
+  - Error messages
+  - Configuration examples
+  - User-facing text
+
+### Code Standards
+- Use English for all variable names, function names, and class names
+- Write all comments in English
+- Use English in all user-facing strings and error messages
 
 ---
 *Generated during Claude collaboration - Contains sensitive testing information*
