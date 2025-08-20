@@ -75,3 +75,4 @@ llm_config.json
 # CheckMK specific
 checkmk_config.json
 test_credentials.json
+openapi-swagger-ui.yaml
