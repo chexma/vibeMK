@@ -11,6 +11,13 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 - **CheckMK**: Version 2.1.0 or higher (CE/CEE/CCE/CRE)
 - **LLM Client**: E.g., Claude Desktop, OpenAI API Client, etc.
 
+### CheckMK Requirements
+
+⚠️ **IMPORTANT**: You need **Administrator access** to your CheckMK instance to:
+- Create an automation user with Administrator role
+- Set up API access
+- Configure all vibeMK functions properly
+
 ### Software Dependencies
 
 - Python Virtual Environment Support
@@ -72,23 +79,22 @@ venv\Scripts\activate
 which python  # should show venv/bin/python
 ```
 
-## 📦 Step 2: Install Dependencies
+## 📦 Step 2: Verify Dependencies
 
-### ⚡ Zero-Dependency Installation (Recommended)
+### ⚡ Zero Dependencies Required
+
+vibeMK uses **only Python standard library** - no external packages needed!
 
 ```bash
-# No additional packages needed!
-# vibeMK uses only Python standard library
-
-# Verify installation
+# Verify all required modules are available
 python -c "import json, urllib.request, asyncio; print('✅ All dependencies available')"
 ```
 
-### Legacy Installation (if requirements.txt exists)
+**Optional: Development Dependencies (only for contributors)**
 
 ```bash
-# If present, but not strictly necessary
-pip install -r requirements.txt 2>/dev/null || echo "No requirements.txt - using built-in modules"
+# Only needed for development/testing
+pip install -e ".[dev]"  # Installs pytest, black, mypy, etc.
 ```
 
 ## ⚙️ Step 3: Configure CheckMK
@@ -108,9 +114,15 @@ pip install -r requirements.txt 2>/dev/null || echo "No requirements.txt - using
    - Username: automation  
    - Full name: vibeMK MCP Automation
    - Email: (optional)
-   - Role: Automation user ✅
+   - Role: Administrator ✅ (IMPORTANT: Not just "Automation user"!)
    - Disable password login: ✅
    ```
+
+   ⚠️ **Important**: The user must have **Administrator role** to access all CheckMK functions like:
+   - Creating/deleting hosts and services
+   - Managing folders and rules
+   - Activating configuration changes
+   - Accessing all monitoring data
 
 3. **Generate API Key**:
    ```
@@ -125,13 +137,17 @@ pip install -r requirements.txt 2>/dev/null || echo "No requirements.txt - using
 ```
 Setup → Users → [automation user] → Effective permissions
 
-Required permissions:
+Required permissions (Administrator role provides all of these):
 ✅ Use the REST API
 ✅ See hosts in monitoring  
 ✅ See services in monitoring
 ✅ See folder structure
 ✅ Configure rules and parameters
 ✅ Activate configuration changes
+✅ Create and delete hosts
+✅ Manage user accounts and contact groups
+✅ Access BI (Business Intelligence) - Enterprise Edition
+✅ Agent Bakery access - Enterprise Edition
 ```
 
 ## 🔐 Step 4: LLM Client Configuration

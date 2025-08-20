@@ -29,7 +29,6 @@ vibeMK enables complete management of your CheckMK monitoring environment direct
 
 ### 1. Installation
 
-**Simple Clone & Use (Recommended)**
 ```bash
 # Clone repository
 git clone https://github.com/chexma/vibeMK.git
@@ -39,17 +38,15 @@ cd vibeMK
 python main.py
 ```
 
-**Optional: Development Setup**
-```bash
-# Only needed for development/testing
-pip install -e ".[dev]"  # Installs pytest, black, mypy, etc.
-```
+📖 **Complete Installation Guide**: See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions including:
+- CheckMK automation user setup (Administrator role required)
+- LLM client configuration
+- Troubleshooting and testing
 
-### 2. Configuration
+### 2. Configuration Example
 
-**Important**: Configuration is done directly in your LLM client config file (e.g., `claude_desktop_config.json` for Claude Desktop)!
+Configure your LLM client (e.g., Claude Desktop) with:
 
-**Configuration Example:**
 ```json
 {
   "mcpServers": {
@@ -67,13 +64,9 @@ pip install -e ".[dev]"  # Installs pytest, black, mypy, etc.
 }
 ```
 
-📁 **More Examples**: See `examples/llm_configs/` for different scenarios (production, development, localhost)
+📁 **More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)
 
-### 3. LLM Integration
-
-Configuration is already included in step 2. Simply restart your LLM client (e.g., Claude Desktop, OpenAI API, etc.).
-
-### 4. First Steps
+### 3. First Steps
 
 ```bash
 # 1. Test connection
@@ -84,9 +77,6 @@ get_checkmk_hosts
 
 # 3. Check current problems
 get_current_problems
-
-# 4. Add new host
-create_host("new-server", "/servers", {"ipaddress": "192.168.1.100", "alias": "New Server"})
 ```
 
 ## 📚 Available Functions
@@ -231,7 +221,7 @@ get_users
 
 ## 📚 Documentation
 
-- 📖 [Detailed Installation Guide](INSTALL.md)
+- 📖 [Complete Installation Guide](INSTALL.md) - Step-by-step setup instructions
 - 📚 [Complete User Manual](USER_GUIDE.md)
 
 ## 🤝 Contributing
@@ -257,7 +247,7 @@ get_users
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ### Documentation
-- 📖 [Installation Guide](INSTALL.md)
+- 📖 [Complete Installation Guide](INSTALL.md) - CheckMK setup, user creation, troubleshooting
 - 📚 [Complete User Manual](USER_GUIDE.md)
 - 💡 [Practical Examples](EXAMPLES.md)
 
