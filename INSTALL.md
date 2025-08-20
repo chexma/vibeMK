@@ -62,22 +62,6 @@ cd vibeMK
 # unzip main.zip && cd vibeMK-main
 ```
 
-### Create Python Virtual Environment
-
-```bash
-# Create virtual environment
-python3 -m venv venv
-
-# Activate virtual environment
-# macOS/Linux:
-source venv/bin/activate
-
-# Windows:
-venv\Scripts\activate
-
-# Verify activation
-which python  # should show venv/bin/python
-```
 
 ## 📦 Step 2: Verify Dependencies
 
@@ -186,8 +170,8 @@ nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
 CURRENT_DIR=$(pwd)
 echo "Server Path: $CURRENT_DIR/main.py"
 
-# Python in venv
-echo "Python Path: $CURRENT_DIR/venv/bin/python"
+# Python path
+echo "Python Path: $(which python3)"
 ```
 
 ### 5.3 Register MCP Server
@@ -197,7 +181,7 @@ echo "Python Path: $CURRENT_DIR/venv/bin/python"
 {
   "mcpServers": {
     "vibemk": {
-      "command": "/Users/andre/data/Entwicklung/claude/vibeMK/venv/bin/python",
+      "command": "python3",
       "args": ["/Users/andre/data/Entwicklung/claude/vibeMK/main.py"],
       "env": {
         "CHECKMK_SERVER_URL": "http://localhost:8080",
@@ -215,7 +199,7 @@ echo "Python Path: $CURRENT_DIR/venv/bin/python"
 {
   "mcpServers": {
     "vibemk": {
-      "command": "/absolute/path/to/venv/bin/python",
+      "command": "python3",
       "args": ["/absolute/path/to/vibeMK/main.py"],
       "env": {
         "CHECKMK_SERVER_URL": "https://checkmk.example.com",
@@ -232,9 +216,9 @@ echo "Python Path: $CURRENT_DIR/venv/bin/python"
 ```
 
 ⚠️ **Important**: 
-- Use absolute paths!
+- Use absolute paths for main.py!
 - Insert real API key!
-- Server ID is now `vibemk` (formerly `checkmk`)
+- Use `python3` command (no virtual environment needed)
 
 ## 🧪 Step 6: Test Installation
 
@@ -341,8 +325,8 @@ open -a Claude
 | "Connection failed" | API connection failed | Check server URL and port |
 | "Authentication failed" | 401 Unauthorized | Check API key and username |
 | "Permission denied" | 403 Forbidden | Check user permissions in CheckMK |
-| "Python not found" | Server won't start | Correct virtual environment path |
-| "Module not found" | Import error | Run `source venv/bin/activate` |
+| "Python not found" | Server won't start | Check python3 installation |
+| "Module not found" | Import error | Verify Python 3.8+ installation |
 
 ### 8.2 Enable Debug Logs
 
@@ -495,7 +479,7 @@ cat > ~/Library/LaunchAgents/com.vibemk.mcp.plist << 'EOF'
     <string>com.vibemk.mcp</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/path/to/venv/bin/python</string>
+        <string>python3</string>
         <string>/path/to/main.py</string>
     </array>
     <key>RunAtLoad</key>
@@ -552,7 +536,7 @@ ps aux | grep "main.py"
 {
   "mcpServers": {
     "vibemk-prod": {
-      "command": "/path/to/venv/bin/python",
+      "command": "python3",
       "args": ["/path/to/main.py"], 
       "env": {
         "CHECKMK_SERVER_URL": "https://checkmk-prod.company.com",
@@ -562,7 +546,7 @@ ps aux | grep "main.py"
       }
     },
     "vibemk-test": {
-      "command": "/path/to/venv/bin/python",
+      "command": "python3",
       "args": ["/path/to/main.py"],
       "env": {
         "CHECKMK_SERVER_URL": "https://checkmk-test.company.com", 
