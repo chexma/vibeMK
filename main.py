@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
 import asyncio
+
 from config import CheckMKConfig
 from mcp.server import CheckMKMCPServer
 from utils import setup_logging

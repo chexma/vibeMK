@@ -2,9 +2,10 @@
 Specialized handler for host group and contact group rules
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
+from typing import Any, Dict, List
+
 from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class HostGroupRulesHandler(BaseHandler):

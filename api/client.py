@@ -17,23 +17,24 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-import json
-import ssl
-import urllib.request
-import urllib.parse
-import urllib.error
 import base64
-import time
+import json
 import logging
-from typing import Dict, Any, List, Optional, Union
-from config import CheckMKConfig
+import ssl
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from typing import Any, Dict, List, Optional, Union
+
 from api.exceptions import (
-    CheckMKConnectionError,
-    CheckMKAuthenticationError,
-    CheckMKPermissionError,
-    CheckMKNotFoundError,
     CheckMKAPIError,
+    CheckMKAuthenticationError,
+    CheckMKConnectionError,
+    CheckMKNotFoundError,
+    CheckMKPermissionError,
 )
+from config import CheckMKConfig
 
 logger = logging.getLogger(__name__)
 

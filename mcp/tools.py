@@ -2,7 +2,7 @@
 vibeMK Tool definitions for CheckMK operations
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 def get_connection_tools() -> List[Dict[str, Any]]:

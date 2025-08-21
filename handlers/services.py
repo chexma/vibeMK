@@ -2,9 +2,10 @@
 Service management handlers
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
+from typing import Any, Dict, List
+
 from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class ServiceHandler(BaseHandler):

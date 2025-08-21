@@ -17,10 +17,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
-from api.exceptions import CheckMKError
 import urllib.parse
+from typing import Any, Dict, List
+
+from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class MonitoringHandler(BaseHandler):
