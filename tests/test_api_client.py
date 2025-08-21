@@ -2,12 +2,14 @@
 Tests for CheckMK API Client
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
-import urllib.error
 import json
+import urllib.error
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from api.client import CheckMKClient
-from api.exceptions import CheckMKConnectionError, CheckMKAuthenticationError, CheckMKAPIError
+from api.exceptions import CheckMKAPIError, CheckMKAuthenticationError, CheckMKConnectionError
 
 
 class TestCheckMKClient:

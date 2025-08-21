@@ -17,29 +17,30 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
+import asyncio
 import json
 import sys
-import asyncio
-from typing import Dict, Any, Optional
-from config import CheckMKConfig, MCPConfig
+from typing import Any, Dict, Optional
+
 from api import CheckMKClient
-from handlers.connection import ConnectionHandler
-from handlers.hosts import HostHandler
-from handlers.services import ServiceHandler
-from handlers.monitoring import MonitoringHandler
+from config import CheckMKConfig, MCPConfig
 from handlers.configuration import ConfigurationHandler
+from handlers.connection import ConnectionHandler
+from handlers.debug import DebugHandler
 from handlers.folders import FolderHandler
-from handlers.metrics import MetricsHandler
-from handlers.users import UserHandler
 from handlers.groups import GroupsHandler
+from handlers.host_group_rules import HostGroupRulesHandler
+from handlers.hosts import HostHandler
+from handlers.metrics import MetricsHandler
+from handlers.monitoring import MonitoringHandler
+from handlers.passwords import PasswordsHandler
 from handlers.rules import RulesHandler
+from handlers.services import ServiceHandler
 from handlers.tags import TagsHandler
 from handlers.timeperiods import TimePeriodsHandler
-from handlers.passwords import PasswordsHandler
-from handlers.debug import DebugHandler
-from handlers.host_group_rules import HostGroupRulesHandler
-from utils import get_logger
+from handlers.users import UserHandler
 from mcp.tools import get_all_tools
+from utils import get_logger
 
 logger = get_logger(__name__)
 

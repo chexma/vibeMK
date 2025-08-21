@@ -2,9 +2,10 @@
 Host management handlers
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
+from typing import Any, Dict, List
+
 from api.exceptions import CheckMKError, CheckMKNotFoundError
+from handlers.base import BaseHandler
 
 
 class HostHandler(BaseHandler):

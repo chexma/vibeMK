@@ -2,7 +2,7 @@
 Custom exceptions for CheckMK API
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class CheckMKError(Exception):

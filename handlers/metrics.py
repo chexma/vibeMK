@@ -2,10 +2,11 @@
 Metrics and performance data handlers for RRD access
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
-from api.exceptions import CheckMKError
 import datetime
+from typing import Any, Dict, List
+
+from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class MetricsHandler(BaseHandler):
@@ -72,32 +73,34 @@ class MetricsHandler(BaseHandler):
         # For host metrics, we need a different approach since hosts don't have services
         # Try common host metric IDs or get available host metrics
         if not metric_name:
-            return [{
-                "type": "text",
-                "text": (
-                    f"📊 **Host Metrics for {host_name}**\n\n"
-                    f"**Common Host Metric IDs:**\n"
-                    f"• cpu_util_guest - Guest CPU utilization\n"
-                    f"• cpu_util_steal - Stolen CPU time\n"
-                    f"• cpu_util_system - System CPU utilization\n"
-                    f"• cpu_util_user - User CPU utilization\n"
-                    f"• cpu_util_wait - CPU wait time\n"
-                    f"• load1 - 1-minute load average\n"
-                    f"• load15 - 15-minute load average\n"
-                    f"• load5 - 5-minute load average\n\n"
-                    f"💡 **Usage:** Specify metric_name parameter with one of these IDs\n"
-                    f"📝 **Note:** Host metrics depend on which services are configured for this host"
-                )
-            }]
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        f"📊 **Host Metrics for {host_name}**\n\n"
+                        f"**Common Host Metric IDs:**\n"
+                        f"• cpu_util_guest - Guest CPU utilization\n"
+                        f"• cpu_util_steal - Stolen CPU time\n"
+                        f"• cpu_util_system - System CPU utilization\n"
+                        f"• cpu_util_user - User CPU utilization\n"
+                        f"• cpu_util_wait - CPU wait time\n"
+                        f"• load1 - 1-minute load average\n"
+                        f"• load15 - 15-minute load average\n"
+                        f"• load5 - 5-minute load average\n\n"
+                        f"💡 **Usage:** Specify metric_name parameter with one of these IDs\n"
+                        f"📝 **Note:** Host metrics depend on which services are configured for this host"
+                    ),
+                }
+            ]
 
         # Build metrics request for specific host metric
         data = {
             "time_range": time_data,
             "reduce": reduce_function,
-            "site": getattr(self.client.config, 'site', 'cmk'),
+            "site": getattr(self.client.config, "site", "cmk"),
             "host_name": host_name,
             "type": "single_metric",
-            "metric_id": metric_name
+            "metric_id": metric_name,
         }
 
         self.logger.debug(f"Requesting host metrics with data: {data}")
@@ -107,14 +110,18 @@ class MetricsHandler(BaseHandler):
             metrics_data = result["data"]
 
             # Format metrics response
-            return [{
-                "type": "text",
-                "text": self._format_host_metrics_response(host_name, metric_name, metrics_data, time_range)
-            }]
+            return [
+                {
+                    "type": "text",
+                    "text": self._format_host_metrics_response(host_name, metric_name, metrics_data, time_range),
+                }
+            ]
         else:
             error_data = result.get("data", {})
-            return self.error_response("Failed to retrieve host metrics", 
-                                     f"Could not get metric '{metric_name}' for host '{host_name}': {error_data.get('title', str(error_data))}")
+            return self.error_response(
+                "Failed to retrieve host metrics",
+                f"Could not get metric '{metric_name}' for host '{host_name}': {error_data.get('title', str(error_data))}",
+            )
 
     async def _get_service_metrics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get service metrics using CheckMK REST API metrics endpoint"""
@@ -423,72 +430,76 @@ class MetricsHandler(BaseHandler):
             target, "search", metrics_data, time_range
         )
 
-    def _format_service_metrics_response(self, host_name: str, service_description: str, metric_name: str, metrics_data: Dict, time_range: str) -> str:
+    def _format_service_metrics_response(
+        self, host_name: str, service_description: str, metric_name: str, metrics_data: Dict, time_range: str
+    ) -> str:
         """Format service metrics response with detailed information"""
         curves = metrics_data.get("curves", [])
-        
+
         if not curves:
             return f"📊 **No Metrics Data**\n\nNo data available for metric '{metric_name}' on {host_name}/{service_description} in the last {time_range}"
-        
+
         response = f"📊 **Service Metrics: {host_name}/{service_description}**\n\n"
         response += f"Metric: {metric_name}\n"
         response += f"Time Range: {time_range}\n"
         response += f"Curves: {len(curves)}\n\n"
-        
+
         for i, curve in enumerate(curves):
             title = curve.get("title", f"Curve {i+1}")
             color = curve.get("color", "#000000")
             line_type = curve.get("line_type", "line")
             points = curve.get("points", [])
-            
+
             if points:
                 latest_value = points[-1] if points else "No data"
                 min_value = min(points) if points else "N/A"
                 max_value = max(points) if points else "N/A"
                 avg_value = sum(points) / len(points) if points else "N/A"
-                
+
                 response += f"📈 **{title}**\n"
                 response += f"   Latest Value: {latest_value}\n"
                 response += f"   Min/Max/Avg: {min_value} / {max_value} / {avg_value:.2f}\n"
                 response += f"   Data Points: {len(points)}\n"
                 response += f"   Line Type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
-        
+
         response += f"💡 **Tip:** Use different time_range values (4h, 24h, 7d, 30d) for longer periods"
-        
+
         return response
 
-    def _format_host_metrics_response(self, host_name: str, metric_name: str, metrics_data: Dict, time_range: str) -> str:
+    def _format_host_metrics_response(
+        self, host_name: str, metric_name: str, metrics_data: Dict, time_range: str
+    ) -> str:
         """Format host metrics response with detailed information"""
         curves = metrics_data.get("curves", [])
-        
+
         if not curves:
             return f"📊 **No Metrics Data**\n\nNo data available for metric '{metric_name}' on host {host_name} in the last {time_range}"
-        
+
         response = f"📊 **Host Metrics: {host_name}**\n\n"
         response += f"Metric: {metric_name}\n"
         response += f"Time Range: {time_range}\n"
         response += f"Curves: {len(curves)}\n\n"
-        
+
         for i, curve in enumerate(curves):
             title = curve.get("title", f"Curve {i+1}")
             color = curve.get("color", "#000000")
             line_type = curve.get("line_type", "line")
             points = curve.get("points", [])
-            
+
             if points:
                 latest_value = points[-1] if points else "No data"
                 min_value = min(points) if points else "N/A"
                 max_value = max(points) if points else "N/A"
                 avg_value = sum(points) / len(points) if points else "N/A"
-                
+
                 response += f"📈 **{title}**\n"
                 response += f"   Latest Value: {latest_value}\n"
                 response += f"   Min/Max/Avg: {min_value} / {max_value} / {avg_value:.2f}\n"
                 response += f"   Data Points: {len(points)}\n"
                 response += f"   Line Type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
-        
+
         response += f"💡 **Tip:** Use different time_range values (4h, 24h, 7d, 30d) for longer periods"
-        
+
         return response

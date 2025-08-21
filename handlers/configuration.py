@@ -2,9 +2,10 @@
 Configuration management handlers
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
+from typing import Any, Dict, List
+
 from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class ConfigurationHandler(BaseHandler):
@@ -57,8 +58,8 @@ class ConfigurationHandler(BaseHandler):
         # Make activation request with proper headers
         try:
             # Custom request with headers
-            import urllib.request
             import json
+            import urllib.request
 
             url = f"{self.client.api_base_url}/domain-types/activation_run/actions/activate-changes/invoke"
 

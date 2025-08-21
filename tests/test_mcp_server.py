@@ -2,9 +2,11 @@
 Tests for MCP Server Implementation
 """
 
-import pytest
 import json
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from mcp.server import CheckMKMCPServer
 
 

@@ -2,10 +2,12 @@
 Tests for Host Handler
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
-from handlers.hosts import HostHandler
+
+import pytest
+
 from api.exceptions import CheckMKAPIError
+from handlers.hosts import HostHandler
 
 
 class TestHostHandler:

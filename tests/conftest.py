@@ -2,11 +2,13 @@
 Pytest configuration and shared fixtures for vibeMK tests
 """
 
-import pytest
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, Any
-from config import CheckMKConfig, MCPConfig
+
+import pytest
+
 from api import CheckMKClient
+from config import CheckMKConfig, MCPConfig
 
 
 @pytest.fixture

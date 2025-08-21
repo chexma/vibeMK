@@ -2,13 +2,13 @@
 
 from api.client import CheckMKClient
 from api.exceptions import (
-    CheckMKError,
-    CheckMKConnectionError,
+    CheckMKAPIError,
     CheckMKAuthenticationError,
+    CheckMKConnectionError,
+    CheckMKError,
+    CheckMKNotFoundError,
     CheckMKPermissionError,
     CheckMKValidationError,
-    CheckMKNotFoundError,
-    CheckMKAPIError,
 )
 
 __all__ = [

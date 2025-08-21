@@ -2,9 +2,11 @@
 Tests for Configuration Management
 """
 
-import pytest
 import os
 from unittest.mock import patch
+
+import pytest
+
 from config.settings import CheckMKConfig, MCPConfig
 
 

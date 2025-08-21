@@ -18,8 +18,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass

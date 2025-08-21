@@ -5,13 +5,14 @@ These tests require a running CheckMK instance and can be run optionally.
 Set INTEGRATION_TESTS=true and provide real CheckMK credentials to run.
 """
 
-import pytest
 import os
 from unittest.mock import patch
-from config import CheckMKConfig
-from api import CheckMKClient
-from mcp.server import CheckMKMCPServer
 
+import pytest
+
+from api import CheckMKClient
+from config import CheckMKConfig
+from mcp.server import CheckMKMCPServer
 
 # Skip integration tests by default
 pytestmark = pytest.mark.skipif(

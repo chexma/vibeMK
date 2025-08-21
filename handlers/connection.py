@@ -3,11 +3,12 @@ Connection and diagnostics handlers
 """
 
 import json
-import urllib.request
 import urllib.error
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
+import urllib.request
+from typing import Any, Dict, List
+
 from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class ConnectionHandler(BaseHandler):

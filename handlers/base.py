@@ -3,7 +3,8 @@ Base handler for vibeMK operations
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from api import CheckMKClient
 from utils import get_logger
 

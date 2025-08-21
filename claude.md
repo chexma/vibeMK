@@ -106,8 +106,53 @@ GET /cmk/check_mk/api/1.0/objects/host/myshinyserver?columns=state&columns=hard_
 ✅ Host Status: GET objects/host/{name}?columns=state,plugin_output,last_check
 ✅ Service Status: GET objects/host/{host}/actions/show_service/invoke?service_description={service}
 ✅ Service Collections: GET objects/host/{host}/collections/services?columns=state,hard_state,state_type,plugin_output
+✅ Performance Metrics: POST domain-types/metric/actions/get/invoke (with Unix timestamps)
 ❌ Avoid: GET objects/ruleset/{name} (metadata only)
+❌ Avoid: webapi.py endpoints (deprecated in newer CheckMK versions)
 ```
+
+### 6. Performance Metrics Implementation (SOLVED ✅)
+**Problem:** Performance metrics retrieval was not working due to incorrect API endpoint usage
+
+**Root Cause:** 
+- Wrong API endpoints being used (webapi.py is deprecated)
+- Incorrect timestamp format for time_range parameter
+- Missing Unix timestamp conversion
+
+**Working API Endpoint:**
+```
+POST /cmk/check_mk/api/1.0/domain-types/metric/actions/get/invoke
+```
+
+**Correct Format:**
+```json
+{
+    "time_range": {
+        "start": 1724234567,  // Unix timestamp
+        "end": 1724238167     // Unix timestamp  
+    },
+    "reduce": "max",
+    "site": "cmk",
+    "host_name": "www.google.de",
+    "service_description": "HTTPS Webservice",
+    "type": "single_metric",
+    "metric_id": "response_time"
+}
+```
+
+**Solution:** Updated `/handlers/metrics.py:37-474`
+- Fixed `_parse_time_range()` to return Unix timestamps instead of datetime strings
+- Updated service metrics to use correct REST API endpoint with proper format
+- Added automatic metric discovery - shows available metrics when no metric_name specified
+- Added comprehensive error handling with helpful metric suggestions
+- Improved response formatting with detailed statistics (min/max/avg values)
+
+**Key Features:**
+- **Service Metrics:** `vibemk_get_service_metrics` - Shows available metrics or retrieves specific metric data
+- **Host Metrics:** `vibemk_get_host_metrics` - Lists common host metric IDs and retrieves data
+- **Metric Discovery:** Automatically shows available performance metrics for services
+- **Time Ranges:** Supports 1h, 4h, 24h, 7d, 30d time periods
+- **Data Analysis:** Shows latest value, min/max/avg statistics, and data point counts
 
 ## Current Status
 - ✅ Folder creation/deletion working
@@ -115,6 +160,7 @@ GET /cmk/check_mk/api/1.0/objects/host/myshinyserver?columns=state&columns=hard_
 - ✅ Rule retrieval showing actual rules (3/3 for host_contactgroups)
 - ✅ Host status showing correct state (UP/DOWN/UNREACHABLE) with live data
 - ✅ Service status showing correct state (OK/WARNING/CRITICAL/UNKNOWN) with live data (verified with hard states)
+- ✅ Performance metrics retrieval working with automatic metric discovery and detailed analysis
 - ✅ Tool routing optimized for direct access
 - ✅ All 82 tools renamed with vibemk_ prefix for namespace separation
 

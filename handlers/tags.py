@@ -2,9 +2,10 @@
 Tag group management handlers for CheckMK host and service tags
 """
 
-from typing import Dict, Any, List
-from handlers.base import BaseHandler
+from typing import Any, Dict, List
+
 from api.exceptions import CheckMKError
+from handlers.base import BaseHandler
 
 
 class TagsHandler(BaseHandler):
