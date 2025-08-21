@@ -80,6 +80,7 @@ class CheckMKMCPServer:
         debug_handler = DebugHandler(self.client)
         host_group_rules_handler = HostGroupRulesHandler(self.client)
         downtime_handler = DowntimeHandler(self.client)
+        acknowledgement_handler = AcknowledgementHandler(self.client)
 
         # Define tool-to-handler mapping with vibemk_ prefix
         self.handlers = {
@@ -184,6 +185,11 @@ class CheckMKMCPServer:
             "vibemk_list_downtimes": downtime_handler,
             "vibemk_get_active_downtimes": downtime_handler,
             "vibemk_delete_downtime": downtime_handler,
+            # Acknowledgement management
+            "vibemk_acknowledge_host_problem": acknowledgement_handler,
+            "vibemk_acknowledge_service_problem": acknowledgement_handler,
+            "vibemk_list_acknowledgements": acknowledgement_handler,
+            "vibemk_remove_acknowledgement": acknowledgement_handler,
         }
 
         # Add placeholder handlers for remaining unimplemented tools

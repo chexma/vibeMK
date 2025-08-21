@@ -89,22 +89,32 @@ class TimePeriodsHandler(BaseHandler):
         result = self.client.post("domain-types/time_period/collections/all", data=data)
 
         if result.get("success"):
+            # Format time ranges for display
+            time_display = []
+            for tr in active_time_ranges:
+                day = tr.get("day", "unknown")
+                ranges = tr.get("time_ranges", [])
+                for range_item in ranges:
+                    start = range_item.get("start", "")
+                    end = range_item.get("end", "")
+                    time_display.append(f"{day.capitalize()}: {start}-{end}")
+            
             return [
                 {
                     "type": "text",
                     "text": (
                         f"✅ **Time Period Created Successfully**\n\n"
-                        f"Name: {name}\n"
-                        f"Alias: {alias or 'None'}\n"
-                        f"Active ranges: {len(active_time_ranges)}\n"
-                        f"Exceptions: {len(exceptions)}\n"
-                        f"Exclusions: {len(exclude)}\n\n"
+                        f"Name: **{name}**\n"
+                        f"Alias: {alias or name}\n"
+                        f"Active time ranges:\n"
+                        + "\n".join(f"  • {td}" for td in time_display) + "\n\n"
                         f"⚠️ **Remember to activate changes!**"
                     ),
                 }
             ]
         else:
-            return self.error_response("Time period creation failed", f"Could not create time period '{name}'")
+            error_msg = result.get("data", {}).get("detail", "Unknown error")
+            return self.error_response("Time period creation failed", f"Could not create time period '{name}': {error_msg}")
 
     async def _update_timeperiod(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Update an existing time period"""
