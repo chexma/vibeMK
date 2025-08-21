@@ -106,7 +106,7 @@ GET /cmk/check_mk/api/1.0/objects/host/myshinyserver?columns=state&columns=hard_
 ✅ Host Status: GET objects/host/{name}?columns=state,plugin_output,last_check
 ✅ Service Status: GET objects/host/{host}/actions/show_service/invoke?service_description={service}
 ✅ Service Collections: GET objects/host/{host}/collections/services?columns=state,hard_state,state_type,plugin_output
-✅ Performance Metrics: POST domain-types/metric/actions/get/invoke (with Unix timestamps)
+✅ Performance Metrics: POST domain-types/metric/actions/get/invoke (with datetime strings)
 ❌ Avoid: GET objects/ruleset/{name} (metadata only)
 ❌ Avoid: webapi.py endpoints (deprecated in newer CheckMK versions)
 ```
@@ -116,8 +116,9 @@ GET /cmk/check_mk/api/1.0/objects/host/myshinyserver?columns=state&columns=hard_
 
 **Root Cause:** 
 - Wrong API endpoints being used (webapi.py is deprecated)
-- Incorrect timestamp format for time_range parameter
-- Missing Unix timestamp conversion
+- Incorrect timestamp format for time_range parameter (Unix timestamps don't work)
+- Wrong response structure parsing (expecting `curves` instead of `metrics`)
+- Missing None value handling in data calculations
 
 **Working API Endpoint:**
 ```
@@ -128,8 +129,8 @@ POST /cmk/check_mk/api/1.0/domain-types/metric/actions/get/invoke
 ```json
 {
     "time_range": {
-        "start": 1724234567,  // Unix timestamp
-        "end": 1724238167     // Unix timestamp  
+        "start": "2025-08-21 06:44:33",  // Datetime string (NO microseconds)
+        "end": "2025-08-21 07:44:33"     // Datetime string (NO microseconds)
     },
     "reduce": "max",
     "site": "cmk",
@@ -140,12 +141,12 @@ POST /cmk/check_mk/api/1.0/domain-types/metric/actions/get/invoke
 }
 ```
 
-**Solution:** Updated `/handlers/metrics.py:37-474`
-- Fixed `_parse_time_range()` to return Unix timestamps instead of datetime strings
-- Updated service metrics to use correct REST API endpoint with proper format
-- Added automatic metric discovery - shows available metrics when no metric_name specified
-- Added comprehensive error handling with helpful metric suggestions
-- Improved response formatting with detailed statistics (min/max/avg values)
+**Solution:** Updated `/handlers/metrics.py:38-515`
+- Fixed `_parse_time_range()` to return datetime strings in `'%Y-%m-%d %H:%M:%S'` format
+- Updated response parsing to handle `metrics` list instead of `curves`
+- Fixed field names: `data_points` instead of `points`
+- Added None value filtering for min/max/avg calculations
+- Verified working with all 4 HTTPS Webservice metrics: response_time, response_size, time_http_headers, time_http_body
 
 **Key Features:**
 - **Service Metrics:** `vibemk_get_service_metrics` - Shows available metrics or retrieves specific metric data
@@ -281,3 +282,49 @@ The GitHub Actions CI pipeline automatically runs:
 
 ---
 *Generated during Claude collaboration - Contains sensitive testing information*
+### 🤖 Automated Tools (NEW!)
+
+**Zero-effort compliance**: The project now includes automated tools for formatting!
+
+#### 🪝 Git Pre-Push Hook (AUTOMATIC)
+Located in `.git/hooks/pre-push` - **runs automatically** before every `git push`:
+- ✅ Automatically formats code with black and isort
+- ✅ Verifies formatting is correct 
+- ✅ Aborts push if any issues found
+- ✅ Provides helpful fix instructions
+
+**You no longer need to manually run formatting commands!**
+
+#### 🛠️ Manual Tools (OPTIONAL)
+
+```bash
+# Quick formatting only
+make format
+
+# Check if ready for push  
+make push-ready
+
+# Full quality check (includes tests)
+make check
+
+# Manual comprehensive check
+./scripts/format-check.sh
+
+# Show available commands
+make help
+```
+
+#### 📋 Available Make Targets
+```bash
+make format     - Format code with black and isort
+make check      - Run all quality checks (format + type + test)
+make lint       - Run only linting/formatting checks  
+make test       - Run test suite
+make clean      - Clean up temporary files
+make push-ready - Prepare code for push (format + check)
+make install-dev - Install development dependencies
+```
+
+#### 🎯 Result: Zero-Effort Compliance
+Just code and push - the pre-push hook handles everything automatically!
+
