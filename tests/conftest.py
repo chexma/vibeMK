@@ -19,30 +19,27 @@ def mock_config():
         password="test_password",
         verify_ssl=False,
         timeout=30,
-        max_retries=3
+        max_retries=3,
     )
 
 
 @pytest.fixture
 def mock_mcp_config():
     """Mock MCP configuration for testing"""
-    return MCPConfig(
-        name="test-vibemk",
-        version="0.1.0"
-    )
+    return MCPConfig(name="test-vibemk", version="0.1.0")
 
 
 @pytest.fixture
 def mock_checkmk_client(mock_config):
     """Mock CheckMK client with predefined responses"""
     client = CheckMKClient(mock_config)
-    
+
     # Mock HTTP methods
     client.get = AsyncMock()
     client.post = AsyncMock()
     client.put = AsyncMock()
     client.delete = AsyncMock()
-    
+
     return client
 
 
@@ -52,11 +49,7 @@ def sample_host_data():
     return {
         "host_name": "test-server-01",
         "folder": "/servers/test",
-        "attributes": {
-            "ipaddress": "192.168.1.100",
-            "alias": "Test Server 01",
-            "site": "test_site"
-        }
+        "attributes": {"ipaddress": "192.168.1.100", "alias": "Test Server 01", "site": "test_site"},
     }
 
 
@@ -68,7 +61,7 @@ def sample_service_data():
         "service_description": "CPU utilization",
         "state": 0,
         "plugin_output": "OK - CPU usage is 25%",
-        "performance_data": "cpu=25%;80;90;0;100"
+        "performance_data": "cpu=25%;80;90;0;100",
     }
 
 
@@ -83,8 +76,8 @@ def mock_checkmk_responses():
                 "group": "checkmk",
                 "rest_api": {"revision": "1.0"},
                 "versions": {"checkmk": "2.3.0p1"},
-                "edition": "cre"
-            }
+                "edition": "cre",
+            },
         },
         "hosts": {
             "success": True,
@@ -94,14 +87,11 @@ def mock_checkmk_responses():
                         "id": "test-server-01",
                         "extensions": {
                             "folder": "/servers/test",
-                            "attributes": {
-                                "ipaddress": "192.168.1.100",
-                                "alias": "Test Server 01"
-                            }
-                        }
+                            "attributes": {"ipaddress": "192.168.1.100", "alias": "Test Server 01"},
+                        },
                     }
                 ]
-            }
+            },
         },
         "host_status": {
             "success": True,
@@ -113,9 +103,9 @@ def mock_checkmk_responses():
                     "state_type": 1,
                     "plugin_output": "PING OK - Packet loss = 0%, RTA = 1.23ms",
                     "last_check": 1640995200,
-                    "has_been_checked": True
+                    "has_been_checked": True,
                 }
-            }
+            },
         },
         "service_status": {
             "success": True,
@@ -127,24 +117,16 @@ def mock_checkmk_responses():
                     "state_type": 1,
                     "plugin_output": "OK - CPU usage is 25%",
                     "last_check": 1640995200,
-                    "has_been_checked": True
+                    "has_been_checked": True,
                 }
-            }
+            },
         },
         "error_404": {
             "success": False,
-            "data": {
-                "title": "Not Found",
-                "status": 404,
-                "detail": "The requested resource was not found"
-            }
+            "data": {"title": "Not Found", "status": 404, "detail": "The requested resource was not found"},
         },
         "error_401": {
             "success": False,
-            "data": {
-                "title": "Unauthorized",
-                "status": 401,
-                "detail": "Invalid credentials"
-            }
-        }
+            "data": {"title": "Unauthorized", "status": 401, "detail": "Invalid credentials"},
+        },
     }

@@ -26,13 +26,13 @@ from utils import setup_logging
 
 async def main():
     """Main entry point for vibeMK"""
-    
+
     # Load config to determine debug mode
     config = CheckMKConfig.from_env()
-    
+
     # Setup logging
     setup_logging(debug=config.debug)
-    
+
     # Create and run server
     server = CheckMKMCPServer()
     await server.run()

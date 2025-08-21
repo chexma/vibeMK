@@ -8,10 +8,10 @@ from handlers.monitoring import MonitoringHandler
 from handlers.configuration import ConfigurationHandler
 
 __all__ = [
-    "BaseHandler", 
-    "ConnectionHandler", 
+    "BaseHandler",
+    "ConnectionHandler",
     "HostHandler",
     "ServiceHandler",
-    "MonitoringHandler", 
-    "ConfigurationHandler"
+    "MonitoringHandler",
+    "ConfigurationHandler",
 ]

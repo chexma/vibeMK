@@ -11,12 +11,12 @@ def get_connection_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_debug_checkmk_connection",
             "description": "🔍 CheckMK connection diagnostics - Test server connectivity and API access",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_debug_url_detection",
             "description": "🔍 Debug URL detection - Show all tested URL patterns and results",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_test_direct_url",
@@ -25,23 +25,23 @@ def get_connection_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "test_url": {
-                        "type": "string", 
-                        "description": "Full URL to test (e.g., http://localhost:8080/cmk/check_mk/api/1.0/version)"
+                        "type": "string",
+                        "description": "Full URL to test (e.g., http://localhost:8080/cmk/check_mk/api/1.0/version)",
                     }
                 },
-                "required": ["test_url"]
-            }
+                "required": ["test_url"],
+            },
         },
         {
             "name": "vibemk_test_all_endpoints",
             "description": "🧪 Test all API endpoints - Comprehensive endpoint availability check",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_get_checkmk_version",
             "description": "📋 Get CheckMK version - Show version information and system details",
-            "inputSchema": {"type": "object", "properties": {}}
-        }
+            "inputSchema": {"type": "object", "properties": {}},
+        },
     ]
 
 
@@ -55,42 +55,36 @@ def get_host_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "folder": {"type": "string", "description": "Folder path to filter hosts"},
-                    "effective_attributes": {"type": "boolean", "description": "Include effective attributes"}
-                }
-            }
+                    "effective_attributes": {"type": "boolean", "description": "Include effective attributes"},
+                },
+            },
         },
         {
             "name": "vibemk_get_host_status",
             "description": "📊 Get host status - Show current monitoring status of a specific host",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Name of the host"}
-                },
-                "required": ["host_name"]
-            }
+                "properties": {"host_name": {"type": "string", "description": "Name of the host"}},
+                "required": ["host_name"],
+            },
         },
         {
             "name": "vibemk_get_host_details",
             "description": "🔍 Host details - Get comprehensive host information",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Name of the host"}
-                },
-                "required": ["host_name"]
-            }
+                "properties": {"host_name": {"type": "string", "description": "Name of the host"}},
+                "required": ["host_name"],
+            },
         },
         {
             "name": "vibemk_get_host_config",
             "description": "⚙️ Get host configuration - Show host configuration with attributes",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Name of the host"}
-                },
-                "required": ["host_name"]
-            }
+                "properties": {"host_name": {"type": "string", "description": "Name of the host"}},
+                "required": ["host_name"],
+            },
         },
         {
             "name": "vibemk_create_host",
@@ -100,10 +94,10 @@ def get_host_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "host_name": {"type": "string", "description": "Name of the new host"},
                     "folder": {"type": "string", "description": "Folder path"},
-                    "attributes": {"type": "object", "description": "Host attributes (ipaddress, etc.)"}
+                    "attributes": {"type": "object", "description": "Host attributes (ipaddress, etc.)"},
                 },
-                "required": ["host_name", "folder", "attributes"]
-            }
+                "required": ["host_name", "folder", "attributes"],
+            },
         },
         {
             "name": "vibemk_update_host",
@@ -112,21 +106,19 @@ def get_host_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "host_name": {"type": "string", "description": "Name of the host"},
-                    "attributes": {"type": "object", "description": "Updated attributes"}
+                    "attributes": {"type": "object", "description": "Updated attributes"},
                 },
-                "required": ["host_name", "attributes"]
-            }
+                "required": ["host_name", "attributes"],
+            },
         },
         {
             "name": "vibemk_delete_host",
             "description": "🗑️ Delete host - Remove host from monitoring",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Name of the host"}
-                },
-                "required": ["host_name"]
-            }
+                "properties": {"host_name": {"type": "string", "description": "Name of the host"}},
+                "required": ["host_name"],
+            },
         },
         {
             "name": "vibemk_move_host",
@@ -135,22 +127,20 @@ def get_host_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "host_name": {"type": "string", "description": "Name of the host"},
-                    "target_folder": {"type": "string", "description": "Target folder path"}
+                    "target_folder": {"type": "string", "description": "Target folder path"},
                 },
-                "required": ["host_name", "target_folder"]
-            }
+                "required": ["host_name", "target_folder"],
+            },
         },
         {
             "name": "vibemk_bulk_update_hosts",
             "description": "🔄 Bulk update hosts - Update multiple hosts at once",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "entries": {"type": "array", "description": "List of host update entries"}
-                },
-                "required": ["entries"]
-            }
-        }
+                "properties": {"entries": {"type": "array", "description": "List of host update entries"}},
+                "required": ["entries"],
+            },
+        },
     ]
 
 
@@ -162,10 +152,8 @@ def get_service_tools() -> List[Dict[str, Any]]:
             "description": "🔧 List services - Show services with optional host filtering",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Filter by host name"}
-                }
-            }
+                "properties": {"host_name": {"type": "string", "description": "Filter by host name"}},
+            },
         },
         {
             "name": "vibemk_get_service_status",
@@ -174,10 +162,10 @@ def get_service_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "host_name": {"type": "string", "description": "Name of the host"},
-                    "service_description": {"type": "string", "description": "Service description"}
+                    "service_description": {"type": "string", "description": "Service description"},
                 },
-                "required": ["host_name", "service_description"]
-            }
+                "required": ["host_name", "service_description"],
+            },
         },
         {
             "name": "vibemk_discover_services",
@@ -187,13 +175,21 @@ def get_service_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "host_name": {"type": "string", "description": "Name of the host"},
                     "hosts": {"type": "array", "description": "List of host names for bulk discovery"},
-                    "mode": {"type": "string", "description": "Discovery mode: new, remove, fix_all, only_host_labels, only_service_labels", "default": "new"},
+                    "mode": {
+                        "type": "string",
+                        "description": "Discovery mode: new, remove, fix_all, only_host_labels, only_service_labels",
+                        "default": "new",
+                    },
                     "do_full_scan": {"type": "boolean", "description": "Perform full service scan", "default": False},
                     "bulk_size": {"type": "number", "description": "Bulk processing size", "default": 10},
-                    "wait_for_completion": {"type": "boolean", "description": "Wait for discovery completion", "default": False}
-                }
-            }
-        }
+                    "wait_for_completion": {
+                        "type": "boolean",
+                        "description": "Wait for discovery completion",
+                        "default": False,
+                    },
+                },
+            },
+        },
     ]
 
 
@@ -205,10 +201,8 @@ def get_monitoring_tools() -> List[Dict[str, Any]]:
             "description": "🚨 Get current problems - Show all hosts and services with problems",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Filter by host name"}
-                }
-            }
+                "properties": {"host_name": {"type": "string", "description": "Filter by host name"}},
+            },
         },
         {
             "name": "vibemk_acknowledge_problem",
@@ -219,10 +213,10 @@ def get_monitoring_tools() -> List[Dict[str, Any]]:
                     "acknowledge_type": {"type": "string", "description": "Type: host or service"},
                     "host_name": {"type": "string", "description": "Name of the host"},
                     "service_description": {"type": "string", "description": "Service description (for service ack)"},
-                    "comment": {"type": "string", "description": "Acknowledgment comment"}
+                    "comment": {"type": "string", "description": "Acknowledgment comment"},
                 },
-                "required": ["acknowledge_type", "host_name", "comment"]
-            }
+                "required": ["acknowledge_type", "host_name", "comment"],
+            },
         },
         {
             "name": "vibemk_schedule_downtime",
@@ -232,14 +226,17 @@ def get_monitoring_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "downtime_type": {"type": "string", "description": "Type: host, service, or hostgroup"},
                     "host_name": {"type": "string", "description": "Name of the host"},
-                    "service_description": {"type": "string", "description": "Service description (for service downtime)"},
+                    "service_description": {
+                        "type": "string",
+                        "description": "Service description (for service downtime)",
+                    },
                     "start_time": {"type": "string", "description": "Start time (ISO format)"},
                     "end_time": {"type": "string", "description": "End time (ISO format)"},
-                    "comment": {"type": "string", "description": "Downtime comment"}
+                    "comment": {"type": "string", "description": "Downtime comment"},
                 },
-                "required": ["downtime_type", "start_time", "end_time", "comment"]
-            }
-        }
+                "required": ["downtime_type", "start_time", "end_time", "comment"],
+            },
+        },
     ]
 
 
@@ -253,15 +250,15 @@ def get_configuration_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "sites": {"type": "array", "description": "List of site names"},
-                    "force_foreign_changes": {"type": "boolean", "description": "Force activation"}
-                }
-            }
+                    "force_foreign_changes": {"type": "boolean", "description": "Force activation"},
+                },
+            },
         },
         {
             "name": "vibemk_get_pending_changes",
             "description": "📋 Get pending changes - Show uncommitted configuration changes",
-            "inputSchema": {"type": "object", "properties": {}}
-        }
+            "inputSchema": {"type": "object", "properties": {}},
+        },
     ]
 
 
@@ -273,10 +270,8 @@ def get_folder_tools() -> List[Dict[str, Any]]:
             "description": "📁 List folders - Show folder structure with optional parent filtering",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "parent": {"type": "string", "description": "Parent folder path to filter"}
-                }
-            }
+                "properties": {"parent": {"type": "string", "description": "Parent folder path to filter"}},
+            },
         },
         {
             "name": "vibemk_create_folder",
@@ -286,10 +281,10 @@ def get_folder_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "folder": {"type": "string", "description": "Folder path"},
                     "title": {"type": "string", "description": "Display title"},
-                    "parent": {"type": "string", "description": "Parent folder path"}
+                    "parent": {"type": "string", "description": "Parent folder path"},
                 },
-                "required": ["folder", "title"]
-            }
+                "required": ["folder", "title"],
+            },
         },
         {
             "name": "vibemk_delete_folder",
@@ -298,10 +293,14 @@ def get_folder_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "folder": {"type": "string", "description": "Folder path to delete"},
-                    "delete_mode": {"type": "string", "description": "Delete mode: 'abort_on_nonempty' or 'recursive'", "default": "abort_on_nonempty"}
+                    "delete_mode": {
+                        "type": "string",
+                        "description": "Delete mode: 'abort_on_nonempty' or 'recursive'",
+                        "default": "abort_on_nonempty",
+                    },
                 },
-                "required": ["folder"]
-            }
+                "required": ["folder"],
+            },
         },
         {
             "name": "vibemk_update_folder",
@@ -311,10 +310,10 @@ def get_folder_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "folder": {"type": "string", "description": "Folder path"},
                     "title": {"type": "string", "description": "New display title"},
-                    "attributes": {"type": "object", "description": "Folder attributes"}
+                    "attributes": {"type": "object", "description": "Folder attributes"},
                 },
-                "required": ["folder"]
-            }
+                "required": ["folder"],
+            },
         },
         {
             "name": "vibemk_move_folder",
@@ -323,22 +322,20 @@ def get_folder_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "folder": {"type": "string", "description": "Folder path to move"},
-                    "destination": {"type": "string", "description": "New parent folder path"}
+                    "destination": {"type": "string", "description": "New parent folder path"},
                 },
-                "required": ["folder", "destination"]
-            }
+                "required": ["folder", "destination"],
+            },
         },
         {
             "name": "vibemk_get_folder_hosts",
             "description": "🖥️ Get folder hosts - List all hosts in a specific folder",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "folder": {"type": "string", "description": "Folder path"}
-                },
-                "required": ["folder"]
-            }
-        }
+                "properties": {"folder": {"type": "string", "description": "Folder path"}},
+                "required": ["folder"],
+            },
+        },
     ]
 
 
@@ -348,7 +345,7 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_users",
             "description": "👥 List users - Show all CheckMK users",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_user",
@@ -361,10 +358,10 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
                     "email": {"type": "string", "description": "Email address"},
                     "password": {"type": "string", "description": "Password"},
                     "roles": {"type": "array", "description": "User roles"},
-                    "contactgroups": {"type": "array", "description": "Contact groups to assign user to"}
+                    "contactgroups": {"type": "array", "description": "Contact groups to assign user to"},
                 },
-                "required": ["username", "fullname"]
-            }
+                "required": ["username", "fullname"],
+            },
         },
         {
             "name": "vibemk_update_user",
@@ -376,26 +373,24 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
                     "fullname": {"type": "string", "description": "Full name"},
                     "email": {"type": "string", "description": "Email address"},
                     "roles": {"type": "array", "description": "User roles"},
-                    "contactgroups": {"type": "array", "description": "Contact groups to assign user to"}
+                    "contactgroups": {"type": "array", "description": "Contact groups to assign user to"},
                 },
-                "required": ["username"]
-            }
+                "required": ["username"],
+            },
         },
         {
             "name": "vibemk_delete_user",
             "description": "🗑️ Delete user - Remove CheckMK user",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "username": {"type": "string", "description": "Username to delete"}
-                },
-                "required": ["username"]
-            }
+                "properties": {"username": {"type": "string", "description": "Username to delete"}},
+                "required": ["username"],
+            },
         },
         {
             "name": "vibemk_get_contact_groups",
             "description": "👥 List contact groups - Show contact groups",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_contact_group",
@@ -405,10 +400,10 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "name": {"type": "string", "description": "Group name"},
                     "alias": {"type": "string", "description": "Display alias"},
-                    "members": {"type": "array", "description": "Group members"}
+                    "members": {"type": "array", "description": "Group members"},
                 },
-                "required": ["name", "alias"]
-            }
+                "required": ["name", "alias"],
+            },
         },
         {
             "name": "vibemk_add_user_to_group",
@@ -417,10 +412,10 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "username": {"type": "string", "description": "Username"},
-                    "group_name": {"type": "string", "description": "Contact group name"}
+                    "group_name": {"type": "string", "description": "Contact group name"},
                 },
-                "required": ["username", "group_name"]
-            }
+                "required": ["username", "group_name"],
+            },
         },
         {
             "name": "vibemk_remove_user_from_group",
@@ -429,10 +424,10 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "username": {"type": "string", "description": "Username"},
-                    "group_name": {"type": "string", "description": "Contact group name"}
+                    "group_name": {"type": "string", "description": "Contact group name"},
                 },
-                "required": ["username", "group_name"]
-            }
+                "required": ["username", "group_name"],
+            },
         },
         {
             "name": "vibemk_update_contact_group",
@@ -442,22 +437,20 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "name": {"type": "string", "description": "Group name"},
                     "alias": {"type": "string", "description": "Display alias"},
-                    "members": {"type": "array", "description": "Group members"}
+                    "members": {"type": "array", "description": "Group members"},
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         },
         {
             "name": "vibemk_delete_contact_group",
             "description": "🗑️ Delete contact group - Remove contact group",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Group name to delete"}
-                },
-                "required": ["name"]
-            }
-        }
+                "properties": {"name": {"type": "string", "description": "Group name to delete"}},
+                "required": ["name"],
+            },
+        },
     ]
 
 
@@ -467,7 +460,7 @@ def get_group_management_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_host_groups",
             "description": "🏠 List host groups - Show all host groups",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_host_group",
@@ -476,10 +469,10 @@ def get_group_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "Group name"},
-                    "alias": {"type": "string", "description": "Display alias"}
+                    "alias": {"type": "string", "description": "Display alias"},
                 },
-                "required": ["name", "alias"]
-            }
+                "required": ["name", "alias"],
+            },
         },
         {
             "name": "vibemk_update_host_group",
@@ -488,26 +481,24 @@ def get_group_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "Group name"},
-                    "alias": {"type": "string", "description": "Display alias"}
+                    "alias": {"type": "string", "description": "Display alias"},
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         },
         {
             "name": "vibemk_delete_host_group",
             "description": "🗑️ Delete host group - Remove host group",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Group name to delete"}
-                },
-                "required": ["name"]
-            }
+                "properties": {"name": {"type": "string", "description": "Group name to delete"}},
+                "required": ["name"],
+            },
         },
         {
             "name": "vibemk_get_service_groups",
             "description": "🔧 List service groups - Show all service groups",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_service_group",
@@ -516,10 +507,10 @@ def get_group_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "Group name"},
-                    "alias": {"type": "string", "description": "Display alias"}
+                    "alias": {"type": "string", "description": "Display alias"},
                 },
-                "required": ["name", "alias"]
-            }
+                "required": ["name", "alias"],
+            },
         },
         {
             "name": "vibemk_update_service_group",
@@ -528,22 +519,20 @@ def get_group_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "Group name"},
-                    "alias": {"type": "string", "description": "Display alias"}
+                    "alias": {"type": "string", "description": "Display alias"},
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         },
         {
             "name": "vibemk_delete_service_group",
             "description": "🗑️ Delete service group - Remove service group",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Group name to delete"}
-                },
-                "required": ["name"]
-            }
-        }
+                "properties": {"name": {"type": "string", "description": "Group name to delete"}},
+                "required": ["name"],
+            },
+        },
     ]
 
 
@@ -557,9 +546,9 @@ def get_advanced_monitoring_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "host_name": {"type": "string", "description": "Filter by host name"},
-                    "service_description": {"type": "string", "description": "Filter by service"}
-                }
-            }
+                    "service_description": {"type": "string", "description": "Filter by service"},
+                },
+            },
         },
         {
             "name": "vibemk_add_comment",
@@ -571,31 +560,27 @@ def get_advanced_monitoring_tools() -> List[Dict[str, Any]]:
                     "host_name": {"type": "string", "description": "Host name"},
                     "service_description": {"type": "string", "description": "Service (for service comments)"},
                     "comment": {"type": "string", "description": "Comment text"},
-                    "persistent": {"type": "boolean", "description": "Persistent comment"}
+                    "persistent": {"type": "boolean", "description": "Persistent comment"},
                 },
-                "required": ["comment_type", "host_name", "comment"]
-            }
+                "required": ["comment_type", "host_name", "comment"],
+            },
         },
         {
             "name": "vibemk_get_downtimes",
             "description": "⏰ List downtimes - Show scheduled downtimes",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Filter by host name"}
-                }
-            }
+                "properties": {"host_name": {"type": "string", "description": "Filter by host name"}},
+            },
         },
         {
             "name": "vibemk_delete_downtime",
             "description": "🗑️ Delete downtime - Remove scheduled downtime",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "downtime_id": {"type": "string", "description": "Downtime ID"}
-                },
-                "required": ["downtime_id"]
-            }
+                "properties": {"downtime_id": {"type": "string", "description": "Downtime ID"}},
+                "required": ["downtime_id"],
+            },
         },
         {
             "name": "vibemk_reschedule_check",
@@ -605,11 +590,11 @@ def get_advanced_monitoring_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "check_type": {"type": "string", "description": "Type: host or service"},
                     "host_name": {"type": "string", "description": "Host name"},
-                    "service_description": {"type": "string", "description": "Service (for service checks)"}
+                    "service_description": {"type": "string", "description": "Service (for service checks)"},
                 },
-                "required": ["check_type", "host_name"]
-            }
-        }
+                "required": ["check_type", "host_name"],
+            },
+        },
     ]
 
 
@@ -621,21 +606,17 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
             "description": "📋 List rulesets - Show available rulesets",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "search": {"type": "string", "description": "Search term to filter rulesets"}
-                }
-            }
+                "properties": {"search": {"type": "string", "description": "Search term to filter rulesets"}},
+            },
         },
         {
             "name": "vibemk_get_ruleset",
             "description": "📋 Get ruleset - Show specific ruleset configuration",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "ruleset_name": {"type": "string", "description": "Ruleset name"}
-                },
-                "required": ["ruleset_name"]
-            }
+                "properties": {"ruleset_name": {"type": "string", "description": "Ruleset name"}},
+                "required": ["ruleset_name"],
+            },
         },
         {
             "name": "vibemk_create_rule",
@@ -648,10 +629,14 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
                     "conditions": {"type": "object", "description": "Rule conditions"},
                     "comment": {"type": "string", "description": "Rule comment"},
                     "folder": {"type": "string", "description": "Target folder", "default": "/"},
-                    "position": {"type": "string", "description": "Rule position: top, bottom, before, after", "default": "top"}
+                    "position": {
+                        "type": "string",
+                        "description": "Rule position: top, bottom, before, after",
+                        "default": "top",
+                    },
                 },
-                "required": ["ruleset_name", "rule_config"]
-            }
+                "required": ["ruleset_name", "rule_config"],
+            },
         },
         {
             "name": "vibemk_update_rule",
@@ -663,21 +648,19 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
                     "rule_config": {"type": "object", "description": "Rule configuration"},
                     "conditions": {"type": "object", "description": "Rule conditions"},
                     "comment": {"type": "string", "description": "Rule comment"},
-                    "disabled": {"type": "boolean", "description": "Disable rule"}
+                    "disabled": {"type": "boolean", "description": "Disable rule"},
                 },
-                "required": ["rule_id"]
-            }
+                "required": ["rule_id"],
+            },
         },
         {
             "name": "vibemk_delete_rule",
             "description": "🗑️ Delete rule - Remove monitoring rule",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "rule_id": {"type": "string", "description": "Rule ID to delete"}
-                },
-                "required": ["rule_id"]
-            }
+                "properties": {"rule_id": {"type": "string", "description": "Rule ID to delete"}},
+                "required": ["rule_id"],
+            },
         },
         {
             "name": "vibemk_move_rule",
@@ -686,12 +669,16 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "rule_id": {"type": "string", "description": "Rule ID"},
-                    "position": {"type": "string", "description": "Position: top, bottom, before, after", "default": "top"},
-                    "target_rule_id": {"type": "string", "description": "Target rule ID for before/after positioning"}
+                    "position": {
+                        "type": "string",
+                        "description": "Position: top, bottom, before, after",
+                        "default": "top",
+                    },
+                    "target_rule_id": {"type": "string", "description": "Target rule ID for before/after positioning"},
                 },
-                "required": ["rule_id"]
-            }
-        }
+                "required": ["rule_id"],
+            },
+        },
     ]
 
 
@@ -701,7 +688,7 @@ def get_tag_management_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_host_tags",
             "description": "🏷️ List host tags - Show available host tag groups",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_host_tag",
@@ -713,10 +700,10 @@ def get_tag_management_tools() -> List[Dict[str, Any]]:
                     "title": {"type": "string", "description": "Tag group title"},
                     "topic": {"type": "string", "description": "Tag topic/category"},
                     "tags": {"type": "array", "description": "List of tags with id and title"},
-                    "help": {"type": "string", "description": "Help text"}
+                    "help": {"type": "string", "description": "Help text"},
                 },
-                "required": ["tag_id", "title", "tags"]
-            }
+                "required": ["tag_id", "title", "tags"],
+            },
         },
         {
             "name": "vibemk_update_host_tag",
@@ -729,10 +716,10 @@ def get_tag_management_tools() -> List[Dict[str, Any]]:
                     "topic": {"type": "string", "description": "Tag topic/category"},
                     "tags": {"type": "array", "description": "List of tags with id and title"},
                     "help": {"type": "string", "description": "Help text"},
-                    "repair": {"type": "boolean", "description": "Repair host assignments", "default": False}
+                    "repair": {"type": "boolean", "description": "Repair host assignments", "default": False},
                 },
-                "required": ["tag_id"]
-            }
+                "required": ["tag_id"],
+            },
         },
         {
             "name": "vibemk_delete_host_tag",
@@ -741,11 +728,11 @@ def get_tag_management_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "tag_id": {"type": "string", "description": "Tag group ID to delete"},
-                    "repair": {"type": "boolean", "description": "Repair host assignments", "default": False}
+                    "repair": {"type": "boolean", "description": "Repair host assignments", "default": False},
                 },
-                "required": ["tag_id"]
-            }
-        }
+                "required": ["tag_id"],
+            },
+        },
     ]
 
 
@@ -755,7 +742,7 @@ def get_timeperiod_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_timeperiods",
             "description": "⏰ List time periods - Show all configured time periods",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_timeperiod",
@@ -767,10 +754,10 @@ def get_timeperiod_tools() -> List[Dict[str, Any]]:
                     "alias": {"type": "string", "description": "Time period alias"},
                     "active_time_ranges": {"type": "array", "description": "Active time ranges"},
                     "exceptions": {"type": "array", "description": "Exception time ranges"},
-                    "exclude": {"type": "array", "description": "Excluded time periods"}
+                    "exclude": {"type": "array", "description": "Excluded time periods"},
                 },
-                "required": ["name", "active_time_ranges"]
-            }
+                "required": ["name", "active_time_ranges"],
+            },
         },
         {
             "name": "vibemk_update_timeperiod",
@@ -782,22 +769,20 @@ def get_timeperiod_tools() -> List[Dict[str, Any]]:
                     "alias": {"type": "string", "description": "Time period alias"},
                     "active_time_ranges": {"type": "array", "description": "Active time ranges"},
                     "exceptions": {"type": "array", "description": "Exception time ranges"},
-                    "exclude": {"type": "array", "description": "Excluded time periods"}
+                    "exclude": {"type": "array", "description": "Excluded time periods"},
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         },
         {
             "name": "vibemk_delete_timeperiod",
             "description": "🗑️ Delete time period - Remove time period",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Time period name to delete"}
-                },
-                "required": ["name"]
-            }
-        }
+                "properties": {"name": {"type": "string", "description": "Time period name to delete"}},
+                "required": ["name"],
+            },
+        },
     ]
 
 
@@ -807,7 +792,7 @@ def get_password_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_passwords",
             "description": "🔐 List passwords - Show stored passwords",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_password",
@@ -821,10 +806,10 @@ def get_password_tools() -> List[Dict[str, Any]]:
                     "comment": {"type": "string", "description": "Password description"},
                     "documentation_url": {"type": "string", "description": "Documentation URL"},
                     "owner": {"type": "string", "description": "Owner user/group", "default": "admin"},
-                    "shared": {"type": "array", "description": "Shared with users/groups"}
+                    "shared": {"type": "array", "description": "Shared with users/groups"},
                 },
-                "required": ["ident", "password"]
-            }
+                "required": ["ident", "password"],
+            },
         },
         {
             "name": "vibemk_update_password",
@@ -838,22 +823,20 @@ def get_password_tools() -> List[Dict[str, Any]]:
                     "comment": {"type": "string", "description": "Password description"},
                     "documentation_url": {"type": "string", "description": "Documentation URL"},
                     "owner": {"type": "string", "description": "Owner user/group"},
-                    "shared": {"type": "array", "description": "Shared with users/groups"}
+                    "shared": {"type": "array", "description": "Shared with users/groups"},
                 },
-                "required": ["ident"]
-            }
+                "required": ["ident"],
+            },
         },
         {
             "name": "vibemk_delete_password",
             "description": "🗑️ Delete password - Remove stored password",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "ident": {"type": "string", "description": "Password identifier to delete"}
-                },
-                "required": ["ident"]
-            }
-        }
+                "properties": {"ident": {"type": "string", "description": "Password identifier to delete"}},
+                "required": ["ident"],
+            },
+        },
     ]
 
 
@@ -863,7 +846,7 @@ def get_notification_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_notification_rules",
             "description": "📢 List notification rules - Show notification configuration",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_test_notification",
@@ -872,11 +855,11 @@ def get_notification_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "contact": {"type": "string", "description": "Contact to notify"},
-                    "message": {"type": "string", "description": "Test message"}
+                    "message": {"type": "string", "description": "Test message"},
                 },
-                "required": ["contact"]
-            }
-        }
+                "required": ["contact"],
+            },
+        },
     ]
 
 
@@ -891,11 +874,19 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "host_name": {"type": "string", "description": "Host name"},
                     "metric_name": {"type": "string", "description": "Specific metric name (optional)"},
-                    "time_range": {"type": "string", "description": "Time range: '1h', '4h', '24h', '7d', '30d'", "default": "1h"},
-                    "reduce": {"type": "string", "description": "Aggregation function: 'max', 'min', 'average'", "default": "max"}
+                    "time_range": {
+                        "type": "string",
+                        "description": "Time range: '1h', '4h', '24h', '7d', '30d'",
+                        "default": "1h",
+                    },
+                    "reduce": {
+                        "type": "string",
+                        "description": "Aggregation function: 'max', 'min', 'average'",
+                        "default": "max",
+                    },
                 },
-                "required": ["host_name"]
-            }
+                "required": ["host_name"],
+            },
         },
         {
             "name": "vibemk_get_service_metrics",
@@ -905,13 +896,24 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "host_name": {"type": "string", "description": "Host name"},
                     "service_description": {"type": "string", "description": "Service description"},
-                    "metric_name": {"type": "string", "description": "Specific metric ID (e.g., 'if_in_bps', 'cpu_util')"},
-                    "time_range": {"type": "string", "description": "Time range: '1h', '4h', '24h', '7d', '30d'", "default": "1h"},
-                    "reduce": {"type": "string", "description": "Aggregation function: 'max', 'min', 'average'", "default": "max"},
-                    "site": {"type": "string", "description": "CheckMK site name", "default": "cmk"}
+                    "metric_name": {
+                        "type": "string",
+                        "description": "Specific metric ID (e.g., 'if_in_bps', 'cpu_util')",
+                    },
+                    "time_range": {
+                        "type": "string",
+                        "description": "Time range: '1h', '4h', '24h', '7d', '30d'",
+                        "default": "1h",
+                    },
+                    "reduce": {
+                        "type": "string",
+                        "description": "Aggregation function: 'max', 'min', 'average'",
+                        "default": "max",
+                    },
+                    "site": {"type": "string", "description": "CheckMK site name", "default": "cmk"},
                 },
-                "required": ["host_name", "service_description"]
-            }
+                "required": ["host_name", "service_description"],
+            },
         },
         {
             "name": "vibemk_get_custom_graph",
@@ -920,11 +922,15 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "custom_graph_id": {"type": "string", "description": "Custom graph ID"},
-                    "time_range": {"type": "string", "description": "Time range: '1h', '4h', '24h', '7d', '30d'", "default": "1h"},
-                    "reduce": {"type": "string", "description": "Aggregation function", "default": "max"}
+                    "time_range": {
+                        "type": "string",
+                        "description": "Time range: '1h', '4h', '24h', '7d', '30d'",
+                        "default": "1h",
+                    },
+                    "reduce": {"type": "string", "description": "Aggregation function", "default": "max"},
                 },
-                "required": ["custom_graph_id"]
-            }
+                "required": ["custom_graph_id"],
+            },
         },
         {
             "name": "vibemk_search_metrics",
@@ -936,10 +942,10 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
                     "service_filter": {"type": "string", "description": "Service filter pattern (optional)"},
                     "site_filter": {"type": "string", "description": "Site filter (optional)"},
                     "time_range": {"type": "string", "description": "Time range", "default": "1h"},
-                    "reduce": {"type": "string", "description": "Aggregation function", "default": "max"}
+                    "reduce": {"type": "string", "description": "Aggregation function", "default": "max"},
                 },
-                "required": ["host_filter"]
-            }
+                "required": ["host_filter"],
+            },
         },
         {
             "name": "vibemk_list_available_metrics",
@@ -948,11 +954,14 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "host_name": {"type": "string", "description": "Host name"},
-                    "service_description": {"type": "string", "description": "Service description (optional for service metrics)"}
+                    "service_description": {
+                        "type": "string",
+                        "description": "Service description (optional for service metrics)",
+                    },
                 },
-                "required": ["host_name"]
-            }
-        }
+                "required": ["host_name"],
+            },
+        },
     ]
 
 
@@ -962,13 +971,13 @@ def get_debug_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_debug_api_endpoints",
             "description": "🔍 Debug API endpoints - Analyze available CheckMK API endpoints and their structure",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_debug_permissions",
             "description": "🔐 Debug permissions - Check automation user permissions for API access",
-            "inputSchema": {"type": "object", "properties": {}}
-        }
+            "inputSchema": {"type": "object", "properties": {}},
+        },
     ]
 
 
@@ -978,7 +987,7 @@ def get_host_group_rules_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_find_host_grouping_rulesets",
             "description": "🔍 Find host grouping rulesets - Discover available rulesets for host group and contact group assignment",
-            "inputSchema": {"type": "object", "properties": {}}
+            "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_host_contactgroup_rule",
@@ -989,7 +998,7 @@ def get_host_group_rules_tools() -> List[Dict[str, Any]]:
                     "contact_groups": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of contact group names to assign"
+                        "description": "List of contact group names to assign",
                     },
                     "host_conditions": {
                         "type": "object",
@@ -997,14 +1006,14 @@ def get_host_group_rules_tools() -> List[Dict[str, Any]]:
                         "properties": {
                             "host_name": {"type": "object", "description": "Host name matching conditions"},
                             "host_tags": {"type": "object", "description": "Host tag conditions"},
-                            "host_labels": {"type": "object", "description": "Host label conditions"}
-                        }
+                            "host_labels": {"type": "object", "description": "Host label conditions"},
+                        },
                     },
                     "comment": {"type": "string", "description": "Rule comment"},
-                    "folder": {"type": "string", "description": "Folder path", "default": "/"}
+                    "folder": {"type": "string", "description": "Folder path", "default": "/"},
                 },
-                "required": ["contact_groups"]
-            }
+                "required": ["contact_groups"],
+            },
         },
         {
             "name": "vibemk_create_host_hostgroup_rule",
@@ -1015,7 +1024,7 @@ def get_host_group_rules_tools() -> List[Dict[str, Any]]:
                     "host_groups": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of host group names to assign"
+                        "description": "List of host group names to assign",
                     },
                     "host_conditions": {
                         "type": "object",
@@ -1023,23 +1032,21 @@ def get_host_group_rules_tools() -> List[Dict[str, Any]]:
                         "properties": {
                             "host_name": {"type": "object", "description": "Host name matching conditions"},
                             "host_tags": {"type": "object", "description": "Host tag conditions"},
-                            "host_labels": {"type": "object", "description": "Host label conditions"}
-                        }
+                            "host_labels": {"type": "object", "description": "Host label conditions"},
+                        },
                     },
                     "comment": {"type": "string", "description": "Rule comment"},
-                    "folder": {"type": "string", "description": "Folder path", "default": "/"}
+                    "folder": {"type": "string", "description": "Folder path", "default": "/"},
                 },
-                "required": ["host_groups"]
-            }
+                "required": ["host_groups"],
+            },
         },
         {
             "name": "vibemk_get_example_rule_structures",
             "description": "📚 Get example rule structures - Show example JSON structures for host grouping rules",
-            "inputSchema": {"type": "object", "properties": {}}
-        }
+            "inputSchema": {"type": "object", "properties": {}},
+        },
     ]
-
-
 
 
 def get_all_tools() -> List[Dict[str, Any]]:

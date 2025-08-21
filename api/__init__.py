@@ -4,20 +4,20 @@ from api.client import CheckMKClient
 from api.exceptions import (
     CheckMKError,
     CheckMKConnectionError,
-    CheckMKAuthenticationError, 
+    CheckMKAuthenticationError,
     CheckMKPermissionError,
     CheckMKValidationError,
     CheckMKNotFoundError,
-    CheckMKAPIError
+    CheckMKAPIError,
 )
 
 __all__ = [
     "CheckMKClient",
     "CheckMKError",
-    "CheckMKConnectionError", 
+    "CheckMKConnectionError",
     "CheckMKAuthenticationError",
-    "CheckMKPermissionError", 
+    "CheckMKPermissionError",
     "CheckMKValidationError",
     "CheckMKNotFoundError",
-    "CheckMKAPIError"
+    "CheckMKAPIError",
 ]
