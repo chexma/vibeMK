@@ -1049,6 +1049,131 @@ def get_host_group_rules_tools() -> List[Dict[str, Any]]:
     ]
 
 
+def get_downtime_tools() -> List[Dict[str, Any]]:
+    """Downtime management tools"""
+    return [
+        {
+            "name": "vibemk_schedule_host_downtime",
+            "description": "🔧 Schedule host downtime - Schedule maintenance downtime for a host to suppress alerts",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name to schedule downtime for"},
+                    "start_time": {
+                        "type": "string",
+                        "description": "Start time (ISO format, 'now', or relative like '+1h'). Default: now",
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "End time (ISO format or relative like '+2h'). Optional if duration specified",
+                    },
+                    "duration": {
+                        "type": "integer",
+                        "description": "Downtime duration in minutes. Default: 60",
+                        "minimum": 1,
+                    },
+                    "comment": {
+                        "type": "string",
+                        "description": "Comment describing the reason for downtime. Default: 'Scheduled maintenance'",
+                    },
+                    "recur": {
+                        "type": "string",
+                        "description": "Optional recurring pattern: 'hour', 'day', 'week', 'month'",
+                        "enum": ["hour", "day", "week", "month"],
+                    },
+                },
+                "required": ["host_name"],
+            },
+        },
+        {
+            "name": "vibemk_schedule_service_downtime",
+            "description": "🔧 Schedule service downtime - Schedule maintenance downtime for specific services",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name where services are located"},
+                    "service_descriptions": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of service descriptions to schedule downtime for",
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "Start time (ISO format, 'now', or relative like '+1h'). Default: now",
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "End time (ISO format or relative like '+2h'). Optional if duration specified",
+                    },
+                    "duration": {
+                        "type": "integer",
+                        "description": "Downtime duration in minutes. Default: 60",
+                        "minimum": 1,
+                    },
+                    "comment": {
+                        "type": "string",
+                        "description": "Comment describing the reason for downtime. Default: 'Scheduled service maintenance'",
+                    },
+                    "recur": {
+                        "type": "string",
+                        "description": "Optional recurring pattern: 'hour', 'day', 'week', 'month'",
+                        "enum": ["hour", "day", "week", "month"],
+                    },
+                },
+                "required": ["host_name", "service_descriptions"],
+            },
+        },
+        {
+            "name": "vibemk_list_downtimes",
+            "description": "📋 List downtimes - Show all scheduled downtimes with filtering options",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {
+                        "type": "string",
+                        "description": "Optional: Filter downtimes for specific host",
+                    },
+                    "service_description": {
+                        "type": "string",
+                        "description": "Optional: Filter downtimes for specific service",
+                    },
+                    "active_only": {
+                        "type": "boolean",
+                        "description": "Show only active downtimes (default: true)",
+                    },
+                },
+            },
+        },
+        {
+            "name": "vibemk_get_active_downtimes",
+            "description": "🔴 Get active downtimes - Show only currently active downtimes that are suppressing alerts",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {
+                        "type": "string",
+                        "description": "Optional: Filter active downtimes for specific host",
+                    }
+                },
+            },
+        },
+        {
+            "name": "vibemk_delete_downtime",
+            "description": "🗑️ Delete downtime - Cancel a scheduled or active downtime by ID",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "downtime_id": {
+                        "type": "integer",
+                        "description": "Downtime ID to delete (get from list_downtimes)",
+                    }
+                },
+                "required": ["downtime_id"],
+            },
+        },
+    ]
+
+
 def get_all_tools() -> List[Dict[str, Any]]:
     """Get all available tools"""
     tools = []
@@ -1069,4 +1194,5 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_metrics_tools())
     tools.extend(get_debug_tools())
     tools.extend(get_host_group_rules_tools())
+    tools.extend(get_downtime_tools())
     return tools

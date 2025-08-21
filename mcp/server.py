@@ -27,6 +27,7 @@ from config import CheckMKConfig, MCPConfig
 from handlers.configuration import ConfigurationHandler
 from handlers.connection import ConnectionHandler
 from handlers.debug import DebugHandler
+from handlers.downtimes import DowntimeHandler
 from handlers.folders import FolderHandler
 from handlers.groups import GroupsHandler
 from handlers.host_group_rules import HostGroupRulesHandler
@@ -77,6 +78,7 @@ class CheckMKMCPServer:
         passwords_handler = PasswordsHandler(self.client)
         debug_handler = DebugHandler(self.client)
         host_group_rules_handler = HostGroupRulesHandler(self.client)
+        downtime_handler = DowntimeHandler(self.client)
 
         # Define tool-to-handler mapping with vibemk_ prefix
         self.handlers = {
@@ -175,6 +177,12 @@ class CheckMKMCPServer:
             "vibemk_create_host_contactgroup_rule": host_group_rules_handler,
             "vibemk_create_host_hostgroup_rule": host_group_rules_handler,
             "vibemk_get_example_rule_structures": host_group_rules_handler,
+            # Downtime management
+            "vibemk_schedule_host_downtime": downtime_handler,
+            "vibemk_schedule_service_downtime": downtime_handler,
+            "vibemk_list_downtimes": downtime_handler,
+            "vibemk_get_active_downtimes": downtime_handler,
+            "vibemk_delete_downtime": downtime_handler,
         }
 
         # Add placeholder handlers for remaining unimplemented tools
