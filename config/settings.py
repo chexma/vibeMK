@@ -25,7 +25,7 @@ from dataclasses import dataclass
 @dataclass
 class CheckMKConfig:
     """CheckMK server configuration"""
-    
+
     server_url: str
     site: str
     username: str
@@ -34,7 +34,7 @@ class CheckMKConfig:
     timeout: int = 30
     max_retries: int = 3
     debug: bool = False
-    
+
     @classmethod
     def from_env(cls) -> "CheckMKConfig":
         """Load configuration from environment variables"""
@@ -46,9 +46,9 @@ class CheckMKConfig:
             verify_ssl=os.environ.get("CHECKMK_VERIFY_SSL", "true").lower() == "true",
             timeout=int(os.environ.get("CHECKMK_TIMEOUT", "30")),
             max_retries=int(os.environ.get("CHECKMK_MAX_RETRIES", "3")),
-            debug=os.environ.get("CHECKMK_DEBUG", "false").lower() == "true"
+            debug=os.environ.get("CHECKMK_DEBUG", "false").lower() == "true",
         )
-    
+
     def validate(self) -> None:
         """Validate configuration"""
         if not self.server_url:
@@ -64,7 +64,7 @@ class CheckMKConfig:
 @dataclass
 class MCPConfig:
     """MCP server configuration"""
-    
+
     protocol_version: str = "2024-11-05"
     server_name: str = "vibeMK"
     server_version: str = "0.1.0"
