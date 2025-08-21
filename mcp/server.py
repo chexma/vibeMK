@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional
 
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
+from handlers.acknowledgements import AcknowledgementHandler
 from handlers.configuration import ConfigurationHandler
 from handlers.connection import ConnectionHandler
 from handlers.debug import DebugHandler

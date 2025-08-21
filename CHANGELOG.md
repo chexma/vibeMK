@@ -23,19 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Previous Releases
 
-### [0.3.0] - 2025-08-21
-- **Performance Metrics System** - Complete metrics retrieval and analysis
+### [0.2.0] - 2025-08-21
+- **Performance Metrics System** - Complete metrics retrieval and analysis with REST API
+  - Fixed deprecated webapi.py → domain-types/metric/actions/get/invoke endpoint
+  - Datetime string timestamps (not Unix timestamps)
+  - Handle metrics list response structure with data_points
+  - Verified working with all 4 HTTPS Webservice metrics
 - **Host/Service Status Monitoring** - Live monitoring data with hard state support
 - **Folder Management** - CheckMK folder operations with proper API format
 - **Ruleset Management** - Rule creation/retrieval with Python string literal support
 
-### [0.2.0] - 2025-08-20
+### [0.1.0] - 2025-08-20
+- **Initial MCP Server Implementation** - Basic CheckMK integration
 - **Automated Development Tools** - Pre-push hooks and formatting automation
 - **CI/CD Pipeline** - GitHub Actions with comprehensive quality checks
 - **Code Quality Standards** - Black, isort, mypy integration
-
-### [0.1.0] - 2025-08-19
-- **Initial MCP Server Implementation** - Basic CheckMK integration
 - **Authentication System** - Automation user support
 - **Core API Client** - HTTP client with proper error handling
 - **Tool Registration** - vibemk_ namespace for all tools

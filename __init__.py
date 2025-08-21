@@ -3,7 +3,7 @@ vibeMK Package
 CheckMK Monitoring via LLM
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Andre"
 __email__ = "andre@example.com"
 __description__ = "vibeMK - CheckMK monitoring via LLM"
