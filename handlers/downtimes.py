@@ -60,7 +60,7 @@ class DowntimeHandler(BaseHandler):
         # Check for existing downtimes (optional - based on working example)
         existing_downtimes = await self._get_current_downtimes(host_name, [], comment)
         force = arguments.get("force", False)
-        
+
         if existing_downtimes and not force:
             self.logger.info(f"Host {host_name} already has downtime with comment '{comment}'")
             response = f"⚠️ **Downtime Already Exists**\n\n"
@@ -108,7 +108,7 @@ class DowntimeHandler(BaseHandler):
     async def _schedule_service_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Schedule downtime for service(s) on a host using CheckMK API"""
         host_name = arguments.get("host_name")
-        
+
         # Accept both singular and plural forms
         service_descriptions = arguments.get("service_descriptions", [])
         if not service_descriptions:
@@ -144,7 +144,7 @@ class DowntimeHandler(BaseHandler):
         # Check for existing downtimes for services (based on working example)
         existing_downtimes = await self._get_current_downtimes(host_name, service_descriptions, comment)
         force = arguments.get("force", False)
-        
+
         # Filter out services that already have downtimes (unless force=true)
         if not force:
             services_to_schedule = [s for s in service_descriptions if s not in existing_downtimes]
@@ -186,11 +186,11 @@ class DowntimeHandler(BaseHandler):
             response += f"**End:** {downtime_times['end_time']}\n"
             response += f"**Duration:** {duration_minutes} minutes\n"
             response += f"**Comment:** {comment}\n"
-            
+
             if len(services_to_schedule) != len(service_descriptions):
                 skipped = [s for s in service_descriptions if s not in services_to_schedule]
                 response += f"**Skipped (existing):** {', '.join(skipped)}\n"
-                
+
             response += f"\n💡 **Tip:** Use `vibemk_list_downtimes` to view all active downtimes"
 
             return [{"type": "text", "text": response}]
@@ -214,24 +214,24 @@ class DowntimeHandler(BaseHandler):
 
         if result.get("success"):
             downtimes = result["data"].get("value", [])
-            
+
             # Filter downtimes if requested
             filtered_downtimes = []
             for downtime in downtimes:
                 extensions = downtime.get("extensions", {})
-                
+
                 # Filter by host if specified
                 if host_name and extensions.get("host_name") != host_name:
                     continue
-                    
+
                 # Filter by service if specified
                 if service_description and extensions.get("service_description") != service_description:
                     continue
-                
+
                 # Filter by active status if requested
                 if show_only_active and extensions.get("is_pending", 0) == 1:
                     continue
-                
+
                 filtered_downtimes.append(downtime)
 
             return [{"type": "text", "text": self._format_downtimes_list(filtered_downtimes, host_name)}]
@@ -258,23 +258,23 @@ class DowntimeHandler(BaseHandler):
         # If downtime_id is provided, get the specific downtime details first
         if downtime_id:
             self.logger.debug(f"Getting downtime details for ID: {downtime_id}")
-            
+
             # Get all downtimes to find the specific one and extract required info
             list_result = self.client.get("domain-types/downtime/collections/all")
             if not list_result.get("success"):
                 return self.error_response("Failed to get downtime info", "Could not retrieve downtime details")
-                
+
             downtimes = list_result["data"].get("value", [])
             target_downtime = None
-            
+
             for downtime in downtimes:
                 if str(downtime.get("id")) == str(downtime_id):
                     target_downtime = downtime
                     break
-                    
+
             if not target_downtime:
                 return self.error_response("Downtime not found", f"No downtime found with ID {downtime_id}")
-            
+
             # Extract information from the specific downtime for query-based deletion
             extensions = target_downtime.get("extensions", {})
             host_name = extensions.get("host_name")
@@ -282,10 +282,10 @@ class DowntimeHandler(BaseHandler):
             comment = comment or extensions.get("comment")  # Use existing comment if not provided
             is_service_raw = extensions.get("is_service", 0)
             is_service = is_service_raw == 1 or is_service_raw == "yes"
-            
+
             if is_service and service_desc:
                 service_descriptions = [service_desc]
-            
+
             if not host_name:
                 return self.error_response("Invalid downtime", "Could not determine host name for downtime")
 
@@ -295,25 +295,27 @@ class DowntimeHandler(BaseHandler):
         # Check existing downtimes before deletion (based on working example)
         existing_downtimes = await self._get_current_downtimes(host_name, service_descriptions, comment)
         is_service = len(service_descriptions) > 0
-        
+
         if not existing_downtimes:
             item = f"{host_name}/[{', '.join(service_descriptions)}]" if is_service else host_name
-            return [{"type": "text", "text": f"ℹ️ **No Matching Downtimes**\n\n'{item}' has no downtimes with comment '{comment}'"}]
+            return [
+                {
+                    "type": "text",
+                    "text": f"ℹ️ **No Matching Downtimes**\n\n'{item}' has no downtimes with comment '{comment}'",
+                }
+            ]
 
         # Build query filters for deletion (based on working CheckMK example)
         query_filters = []
-        
+
         if is_service:
             # Handle service downtime deletion
             if len(service_descriptions) > 1:
                 # Multiple services - use OR filter
                 service_filter_parts = [
-                    f'{{"op": "~", "left": "service_description", "right": "{s}"}}'
-                    for s in service_descriptions
+                    f'{{"op": "~", "left": "service_description", "right": "{s}"}}' for s in service_descriptions
                 ]
-                query_filters.append(
-                    f'{{"op": "or", "expr": [{", ".join(service_filter_parts)}]}}'
-                )
+                query_filters.append(f'{{"op": "or", "expr": [{", ".join(service_filter_parts)}]}}')
             else:
                 # Single service
                 query_filters.append(
@@ -328,19 +330,16 @@ class DowntimeHandler(BaseHandler):
             query_filters.append(f'{{"op": "~", "left": "comment", "right": "{comment}"}}')
 
         # Build delete request data using query-based deletion (working CheckMK format)
-        delete_data = {
-            "delete_type": "query",
-            "query": f'{{"op": "and", "expr": [{", ".join(query_filters)}]}}'
-        }
+        delete_data = {"delete_type": "query", "query": f'{{"op": "and", "expr": [{", ".join(query_filters)}]}}'}
 
         self.logger.debug(f"Deleting downtime with query data: {delete_data}")
-        
+
         result = self.client.post("domain-types/downtime/actions/delete/invoke", data=delete_data)
 
         if result.get("success"):
             item = f"{host_name}/[{', '.join(service_descriptions)}]" if is_service else host_name
             downtime_type = "Service" if is_service else "Host"
-            
+
             response = f"✅ **Downtime Deleted Successfully**\n\n"
             if downtime_id:
                 response += f"**Downtime ID:** {downtime_id}\n"
@@ -363,28 +362,28 @@ class DowntimeHandler(BaseHandler):
     async def _get_active_downtimes(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get only currently active downtimes"""
         host_name = arguments.get("host_name")  # Optional filter
-        
+
         # Get all downtimes first
         result = self.client.get("domain-types/downtime/collections/all")
 
         if result.get("success"):
             all_downtimes = result["data"].get("value", [])
-            
+
             # Filter for active downtimes only
             active_downtimes = []
             now = datetime.datetime.now().timestamp()
-            
+
             for downtime in all_downtimes:
                 extensions = downtime.get("extensions", {})
-                
+
                 # Skip pending downtimes
                 if extensions.get("is_pending", 0) == 1:
                     continue
-                
+
                 # Check if downtime is currently active (between start_time and end_time)
                 start_time = self._timestamp_to_unix(extensions.get("start_time", 0))
                 end_time = self._timestamp_to_unix(extensions.get("end_time", 0))
-                
+
                 if start_time <= now <= end_time:
                     # Filter by host if specified
                     if not host_name or extensions.get("host_name") == host_name:
@@ -401,7 +400,7 @@ class DowntimeHandler(BaseHandler):
     def _parse_downtime_times(self, start_time: str, end_time: str, duration_minutes: int) -> Dict[str, str]:
         """Parse and convert downtime start/end times to ISO format using CheckMK pattern"""
         from datetime import datetime, timedelta
-        
+
         # Use datetime.utcnow() to match CheckMK working example
         default_start_time = datetime.utcnow()
         default_end_time = default_start_time + timedelta(minutes=duration_minutes or 30)
@@ -425,7 +424,7 @@ class DowntimeHandler(BaseHandler):
                 self.logger.warning(f"Could not parse start_time '{start_time}', using default")
                 start_dt = default_start_time
 
-        # Parse end time 
+        # Parse end time
         if not end_time or end_time == "":
             # If no end time specified, use start_time + duration (end_after pattern)
             end_dt = start_dt + timedelta(minutes=duration_minutes or 30)
@@ -459,25 +458,25 @@ class DowntimeHandler(BaseHandler):
         """Parse relative time string like '+1h', '+30m', '1h30m' into minutes"""
         delta_str = delta_str.strip("+")
         total_minutes = 0
-        
+
         # Handle complex formats like "1h30m", "2d4h", etc.
         import re
-        
+
         # Extract all time components
-        time_pattern = r'(\d+)([dhm])'
+        time_pattern = r"(\d+)([dhm])"
         matches = re.findall(time_pattern, delta_str.lower())
-        
+
         if matches:
             for value, unit in matches:
                 value = int(value)
-                if unit == 'm':
+                if unit == "m":
                     total_minutes += value
-                elif unit == 'h':
+                elif unit == "h":
                     total_minutes += value * 60
-                elif unit == 'd':
+                elif unit == "d":
                     total_minutes += value * 24 * 60
             return total_minutes
-        
+
         # Fallback to simple format
         if delta_str.endswith("m"):
             return int(delta_str[:-1])
@@ -496,7 +495,7 @@ class DowntimeHandler(BaseHandler):
         """Format timestamp to readable string, handling both Unix timestamps and ISO format"""
         if not timestamp:
             return "Unknown"
-        
+
         try:
             # If it's already a string, try to parse as ISO format
             if isinstance(timestamp, str):
@@ -515,7 +514,7 @@ class DowntimeHandler(BaseHandler):
         """Convert timestamp to Unix timestamp for comparison"""
         if not timestamp:
             return 0.0
-        
+
         try:
             # If it's already a string, try to parse as ISO format
             if isinstance(timestamp, str):
@@ -541,19 +540,19 @@ class DowntimeHandler(BaseHandler):
 
         for i, downtime in enumerate(downtimes[:10], 1):  # Limit to 10 for readability
             extensions = downtime.get("extensions", {})
-            
+
             downtime_id = downtime.get("id", "Unknown")
             host_name = extensions.get("host_name", "Unknown")
             comment = extensions.get("comment", "No comment")
             is_service = extensions.get("is_service", 0) == 1
             is_pending = extensions.get("is_pending", 0) == 1
-            
+
             # Format times (handle both Unix timestamps and ISO format)
             start_time = extensions.get("start_time", 0)
             end_time = extensions.get("end_time", 0)
             start_str = self._format_timestamp(start_time)
             end_str = self._format_timestamp(end_time)
-            
+
             # Status
             if is_pending:
                 status = "🟡 Pending"
@@ -561,7 +560,7 @@ class DowntimeHandler(BaseHandler):
                 now = datetime.datetime.now().timestamp()
                 start_unix = self._timestamp_to_unix(start_time)
                 end_unix = self._timestamp_to_unix(end_time)
-                
+
                 if start_unix <= now <= end_unix:
                     status = "🔴 Active"
                 elif now < start_unix:
@@ -576,10 +575,10 @@ class DowntimeHandler(BaseHandler):
             response += f"   Start: {start_str}\n"
             response += f"   End: {end_str}\n"
             response += f"   Comment: {comment}\n"
-            
+
             if is_service and extensions.get("service_description"):
                 response += f"   Service: {extensions.get('service_description')}\n"
-            
+
             response += "\n"
 
         if len(downtimes) > 10:
@@ -600,21 +599,21 @@ class DowntimeHandler(BaseHandler):
 
         for i, downtime in enumerate(active_downtimes, 1):
             extensions = downtime.get("extensions", {})
-            
+
             downtime_id = downtime.get("id", "Unknown")
             host_name = extensions.get("host_name", "Unknown")
             comment = extensions.get("comment", "No comment")
             is_service = extensions.get("is_service", 0) == 1
-            
+
             # Calculate remaining time
             end_time = extensions.get("end_time", 0)
             now = datetime.datetime.now().timestamp()
-            
+
             # Handle different timestamp formats from CheckMK API
             if isinstance(end_time, str):
                 try:
                     # Try parsing ISO format timestamp
-                    end_time_dt = datetime.datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                    end_time_dt = datetime.datetime.fromisoformat(end_time.replace("Z", "+00:00"))
                     end_time = end_time_dt.timestamp()
                 except (ValueError, AttributeError):
                     # Fallback: assume it's already a Unix timestamp string
@@ -622,24 +621,26 @@ class DowntimeHandler(BaseHandler):
                         end_time = float(end_time)
                     except (ValueError, TypeError):
                         end_time = now  # Default to now if parsing fails
-            
+
             remaining_minutes = max(0, int((end_time - now) / 60))
-            
+
             response += f"**{i}. Downtime #{downtime_id}**\n"
             response += f"   🏠 Host: {host_name}\n"
             response += f"   🔧 Type: {'Service' if is_service else 'Host'}\n"
             response += f"   ⏰ Remaining: {remaining_minutes} minutes\n"
             response += f"   💬 Comment: {comment}\n"
-            
+
             if is_service and extensions.get("service_description"):
                 response += f"   🔧 Service: {extensions.get('service_description')}\n"
-            
+
             response += "\n"
 
         response += "💡 **Info:** These downtimes are currently suppressing alerts"
         return response
 
-    async def _get_current_downtimes(self, host_name: str, service_descriptions: List[str], comment: str = None) -> List[str]:
+    async def _get_current_downtimes(
+        self, host_name: str, service_descriptions: List[str], comment: str = None
+    ) -> List[str]:
         """Get current downtimes for a host/services, based on working CheckMK example"""
         filters = []
         is_service = len(service_descriptions) > 0
@@ -649,17 +650,12 @@ class DowntimeHandler(BaseHandler):
             if len(service_descriptions) > 1:
                 # Create OR filter for multiple services
                 service_filters = [
-                    f'{{"op": "~", "left": "service_description", "right": "{s}"}}'
-                    for s in service_descriptions
+                    f'{{"op": "~", "left": "service_description", "right": "{s}"}}' for s in service_descriptions
                 ]
-                filters.append(
-                    f'{{"op": "or", "expr": [{", ".join(service_filters)}]}}'
-                )
+                filters.append(f'{{"op": "or", "expr": [{", ".join(service_filters)}]}}')
             else:
                 # Single service filter
-                filters.append(
-                    f'{{"op": "~", "left": "service_description", "right": "{service_descriptions[0]}"}}'
-                )
+                filters.append(f'{{"op": "~", "left": "service_description", "right": "{service_descriptions[0]}"}}')
             filters.append('{"op": "=", "left": "is_service", "right": "1"}')
         else:
             # Host downtime filter
@@ -667,7 +663,7 @@ class DowntimeHandler(BaseHandler):
 
         # Add host name filter
         filters.append(f'{{"op": "~", "left": "host_name", "right": "{host_name}"}}')
-        
+
         # Add comment filter if provided
         if comment:
             filters.append(f'{{"op": "~", "left": "comment", "right": "{comment}"}}')
@@ -679,10 +675,10 @@ class DowntimeHandler(BaseHandler):
         try:
             # Query existing downtimes
             result = self.client.get("domain-types/downtime/collections/all", params=params)
-            
+
             if result.get("success"):
                 downtimes = result["data"].get("value", [])
-                
+
                 if is_service:
                     # Return list of service descriptions that already have downtimes
                     existing_services = []
@@ -698,7 +694,7 @@ class DowntimeHandler(BaseHandler):
             else:
                 self.logger.warning(f"Failed to query existing downtimes: {result.get('data', {})}")
                 return []
-                
+
         except Exception as e:
             self.logger.warning(f"Error querying existing downtimes: {e}")
             return []
