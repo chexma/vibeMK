@@ -35,27 +35,28 @@ class MetricsHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-    def _parse_time_range(self, time_range: str) -> Dict[str, int]:
-        """Parse time range string into start/end Unix timestamps"""
-        import time
+    def _parse_time_range(self, time_range: str) -> Dict[str, str]:
+        """Parse time range string into start/end datetime strings for CheckMK API"""
+        import datetime
 
-        now = int(time.time())
+        now = datetime.datetime.now()
 
         if time_range == "1h":
-            start = now - 3600
+            start_time = now - datetime.timedelta(hours=1)
         elif time_range == "4h":
-            start = now - 14400
+            start_time = now - datetime.timedelta(hours=4)
         elif time_range == "24h":
-            start = now - 86400
+            start_time = now - datetime.timedelta(days=1)
         elif time_range == "7d":
-            start = now - 604800
+            start_time = now - datetime.timedelta(days=7)
         elif time_range == "30d":
-            start = now - 2592000
+            start_time = now - datetime.timedelta(days=30)
         else:
             # Default to 1 hour
-            start = now - 3600
+            start_time = now - datetime.timedelta(hours=1)
 
-        return {"start": start, "end": now}
+        # Format as strings without microseconds (CheckMK requirement)
+        return {"start": start_time.strftime("%Y-%m-%d %H:%M:%S"), "end": now.strftime("%Y-%m-%d %H:%M:%S")}
 
     async def _get_host_metrics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get host metrics using CheckMK REST API metrics endpoint"""
@@ -389,29 +390,32 @@ class MetricsHandler(BaseHandler):
 
     def _format_metrics_response(self, target: str, target_type: str, metrics_data: Dict, time_range: str) -> str:
         """Format metrics data into readable text"""
-        curves = metrics_data.get("curves", [])
+        # CheckMK API returns metrics as a list, not curves
+        metrics = metrics_data.get("metrics", [])
 
-        if not curves:
+        if not metrics:
             return f"📊 **No Metrics Data**\n\nNo data available for {target} in the last {time_range}"
 
         response = f"📊 **{target_type.title()} Metrics: {target}**\n\n"
         response += f"Time Range: {time_range}\n"
-        response += f"Data Points: {len(curves)} curves\n\n"
+        response += f"Metrics: {len(metrics)} found\n\n"
 
-        for i, curve in enumerate(curves[:5]):  # Limit to 5 curves
-            title = curve.get("title", f"Metric {i+1}")
-            color = curve.get("color", "#000000")
-            points = curve.get("points", [])
+        for i, metric in enumerate(metrics[:5]):  # Limit to 5 metrics
+            title = metric.get("title", f"Metric {i+1}")
+            color = metric.get("color", "#000000")
+            line_type = metric.get("line_type", "line")
+            data_points = metric.get("data_points", [])
 
-            if points:
-                latest_value = points[-1] if points else "No data"
+            if data_points:
+                latest_value = data_points[-1] if data_points else "No data"
                 response += f"📈 **{title}**\n"
                 response += f"   Latest: {latest_value}\n"
-                response += f"   Data points: {len(points)}\n"
+                response += f"   Data points: {len(data_points)}\n"
+                response += f"   Line type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
 
-        if len(curves) > 5:
-            response += f"... and {len(curves) - 5} more curves\n"
+        if len(metrics) > 5:
+            response += f"... and {len(metrics) - 5} more metrics\n"
 
         response += f"\n💡 **Use specific metric_name for detailed data**"
 
@@ -434,32 +438,39 @@ class MetricsHandler(BaseHandler):
         self, host_name: str, service_description: str, metric_name: str, metrics_data: Dict, time_range: str
     ) -> str:
         """Format service metrics response with detailed information"""
-        curves = metrics_data.get("curves", [])
+        # CheckMK API returns metrics as a list, not curves
+        metrics = metrics_data.get("metrics", [])
 
-        if not curves:
+        if not metrics:
             return f"📊 **No Metrics Data**\n\nNo data available for metric '{metric_name}' on {host_name}/{service_description} in the last {time_range}"
 
         response = f"📊 **Service Metrics: {host_name}/{service_description}**\n\n"
         response += f"Metric: {metric_name}\n"
         response += f"Time Range: {time_range}\n"
-        response += f"Curves: {len(curves)}\n\n"
+        response += f"Metrics: {len(metrics)}\n\n"
 
-        for i, curve in enumerate(curves):
-            title = curve.get("title", f"Curve {i+1}")
-            color = curve.get("color", "#000000")
-            line_type = curve.get("line_type", "line")
-            points = curve.get("points", [])
+        for i, metric in enumerate(metrics):
+            title = metric.get("title", f"Metric {i+1}")
+            color = metric.get("color", "#000000")
+            line_type = metric.get("line_type", "line")
+            data_points = metric.get("data_points", [])
 
-            if points:
-                latest_value = points[-1] if points else "No data"
-                min_value = min(points) if points else "N/A"
-                max_value = max(points) if points else "N/A"
-                avg_value = sum(points) / len(points) if points else "N/A"
+            if data_points:
+                # Filter out None values for calculations
+                valid_points = [p for p in data_points if p is not None]
+
+                latest_value = data_points[-1] if data_points else "No data"
+                if valid_points:
+                    min_value = min(valid_points)
+                    max_value = max(valid_points)
+                    avg_value = sum(valid_points) / len(valid_points)
+                else:
+                    min_value = max_value = avg_value = "N/A"
 
                 response += f"📈 **{title}**\n"
                 response += f"   Latest Value: {latest_value}\n"
                 response += f"   Min/Max/Avg: {min_value} / {max_value} / {avg_value:.2f}\n"
-                response += f"   Data Points: {len(points)}\n"
+                response += f"   Data Points: {len(data_points)}\n"
                 response += f"   Line Type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
 
@@ -471,32 +482,39 @@ class MetricsHandler(BaseHandler):
         self, host_name: str, metric_name: str, metrics_data: Dict, time_range: str
     ) -> str:
         """Format host metrics response with detailed information"""
-        curves = metrics_data.get("curves", [])
+        # CheckMK API returns metrics as a list, not curves
+        metrics = metrics_data.get("metrics", [])
 
-        if not curves:
+        if not metrics:
             return f"📊 **No Metrics Data**\n\nNo data available for metric '{metric_name}' on host {host_name} in the last {time_range}"
 
         response = f"📊 **Host Metrics: {host_name}**\n\n"
         response += f"Metric: {metric_name}\n"
         response += f"Time Range: {time_range}\n"
-        response += f"Curves: {len(curves)}\n\n"
+        response += f"Metrics: {len(metrics)}\n\n"
 
-        for i, curve in enumerate(curves):
-            title = curve.get("title", f"Curve {i+1}")
-            color = curve.get("color", "#000000")
-            line_type = curve.get("line_type", "line")
-            points = curve.get("points", [])
+        for i, metric in enumerate(metrics):
+            title = metric.get("title", f"Metric {i+1}")
+            color = metric.get("color", "#000000")
+            line_type = metric.get("line_type", "line")
+            data_points = metric.get("data_points", [])
 
-            if points:
-                latest_value = points[-1] if points else "No data"
-                min_value = min(points) if points else "N/A"
-                max_value = max(points) if points else "N/A"
-                avg_value = sum(points) / len(points) if points else "N/A"
+            if data_points:
+                # Filter out None values for calculations
+                valid_points = [p for p in data_points if p is not None]
+
+                latest_value = data_points[-1] if data_points else "No data"
+                if valid_points:
+                    min_value = min(valid_points)
+                    max_value = max(valid_points)
+                    avg_value = sum(valid_points) / len(valid_points)
+                else:
+                    min_value = max_value = avg_value = "N/A"
 
                 response += f"📈 **{title}**\n"
                 response += f"   Latest Value: {latest_value}\n"
                 response += f"   Min/Max/Avg: {min_value} / {max_value} / {avg_value:.2f}\n"
-                response += f"   Data Points: {len(points)}\n"
+                response += f"   Data Points: {len(data_points)}\n"
                 response += f"   Line Type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
 
