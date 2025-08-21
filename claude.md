@@ -178,7 +178,7 @@ CHECKMK_SERVER_URL="http://localhost:8080" CHECKMK_SITE="cmk" CHECKMK_USERNAME="
 - [ ] Implement format detection for remaining ~2000 rulesets
 - [ ] Add comprehensive error handling
 
-## Documentation Standards
+## Development Standards
 
 ### Language Policy
 - **All documentation must be written in English only**
@@ -195,6 +195,89 @@ CHECKMK_SERVER_URL="http://localhost:8080" CHECKMK_SITE="cmk" CHECKMK_USERNAME="
 - Use English for all variable names, function names, and class names
 - Write all comments in English
 - Use English in all user-facing strings and error messages
+
+### Code Quality & CI Requirements
+
+**CRITICAL: All code must pass these checks before pushing to GitHub:**
+
+#### 🔧 Required Tools Configuration
+Located in `pyproject.toml`:
+```toml
+[tool.black]
+line-length = 120
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+explicit_package_bases = true
+```
+
+#### 📋 Pre-Push Checklist
+**ALWAYS run these commands before `git push`:**
+
+```bash
+# 1. Format code with black
+black .
+
+# 2. Sort imports with isort
+isort .
+
+# 3. Verify formatting (both must pass)
+black --check .
+isort --check-only .
+
+# 4. Type checking (improve annotations over time)
+mypy . --ignore-missing-imports
+
+# 5. Run tests
+pytest -v
+
+# 6. Commit and push only if all checks pass
+git add .
+git commit -m "Your commit message"
+git push
+```
+
+#### 🚨 CI Pipeline
+The GitHub Actions CI pipeline automatically runs:
+- `black --check .` (code formatting)
+- `isort --check-only .` (import sorting)
+- `mypy . --ignore-missing-imports` (type checking)
+- `pytest -v` (test suite)
+
+**Any formatting issues will cause CI failure!**
+
+#### 💡 IDE Integration
+**Recommended VS Code settings** (`.vscode/settings.json`):
+```json
+{
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": ["--line-length=120"],
+  "python.sortImports.args": ["--profile=black"],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  }
+}
+```
+
+#### 🔍 Common Issues
+- **Black formatting fails**: Run `black .` to auto-fix
+- **Import sorting fails**: Run `isort .` to auto-fix  
+- **Black/isort conflicts**: Use `profile = "black"` in isort config
+- **mypy type errors**: Add proper type annotations gradually
 
 ---
 *Generated during Claude collaboration - Contains sensitive testing information*
