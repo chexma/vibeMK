@@ -86,14 +86,14 @@ class DowntimeHandler(BaseHandler):
 
         # Check for successful creation (expect 204 No Content or 200 OK)
         success = result.get("success") or (result.get("status_code") in [200, 204])
-        
+
         if success:
             downtime_info = result.get("data", {})
             downtime_id = downtime_info.get("id", "Unknown")
 
             # Verify downtime creation with retry logic (based on working example)
             verified = await self._verify_downtime_creation(host_name, comment, max_retries=5)
-            
+
             response = f"✅ **Host Downtime Scheduled Successfully**\n\n"
             response += f"**Host:** {host_name}\n"
             if downtime_id != "Unknown":
@@ -184,14 +184,16 @@ class DowntimeHandler(BaseHandler):
 
         # Check for successful creation (expect 204 No Content or 200 OK)
         success = result.get("success") or (result.get("status_code") in [200, 204])
-        
+
         if success:
             downtime_info = result.get("data", {})
             downtime_id = downtime_info.get("id", "Unknown")
 
             # Verify downtime creation with retry logic for services
-            verified = await self._verify_downtime_creation(host_name, comment, max_retries=5, services=services_to_schedule)
-            
+            verified = await self._verify_downtime_creation(
+                host_name, comment, max_retries=5, services=services_to_schedule
+            )
+
             response = f"✅ **Service Downtime Scheduled Successfully**\n\n"
             response += f"**Host:** {host_name}\n"
             response += f"**Services:** {', '.join(services_to_schedule)}\n"
@@ -725,64 +727,61 @@ class DowntimeHandler(BaseHandler):
         import asyncio
 
         is_service = services and len(services) > 0
-        
+
         for retry in range(max_retries):
             try:
                 # Enhanced query parameters based on working example
                 query_filters = []
-                
+
                 # Host name filter
                 query_filters.append(f'{{"op": "=", "left": "host_name", "right": "{host_name}"}}')
-                
+
                 # Comment filter
                 if comment:
                     query_filters.append(f'{{"op": "=", "left": "comment", "right": "{comment}"}}')
-                
+
                 # Type filter (based on working example pattern)
                 if is_service:
                     query_filters.append('{"op": "=", "left": "type", "right": "3"}')  # Service downtime type
                 else:
                     query_filters.append('{"op": "=", "left": "type", "right": "2"}')  # Host downtime type
-                
+
                 # Build query
                 query = f'{{"op": "and", "expr": [{", ".join(query_filters)}]}}'
-                
+
                 # Enhanced parameters based on working example
-                params = {
-                    "host_name": host_name,
-                    "query": query
-                }
-                
+                params = {"host_name": host_name, "query": query}
+
                 # Add service-specific parameters
                 if is_service:
                     params["downtime_type"] = "service"
                 else:
                     params["downtime_type"] = "host"
-                
+
                 # Add site_id if available (based on working example)
-                if hasattr(self.client, 'config') and hasattr(self.client.config, 'site'):
+                if hasattr(self.client, "config") and hasattr(self.client.config, "site"):
                     params["site_id"] = self.client.config.site
-                
+
                 self.logger.debug(f"Verification attempt {retry + 1}/{max_retries} with params: {params}")
-                
+
                 # Check if downtime was created
                 result = self.client.get("domain-types/downtime/collections/all", params=params)
-                
+
                 if result.get("success"):
                     downtimes = result["data"].get("value", [])
                     if len(downtimes) > 0:
                         self.logger.info(f"Downtime verification successful after {retry + 1} attempts")
                         return True
-                
+
                 # Wait 5 seconds before next retry (except on last attempt)
                 if retry < max_retries - 1:
                     self.logger.debug(f"Verification attempt {retry + 1} failed, retrying in 5 seconds...")
                     await asyncio.sleep(5)
-                    
+
             except Exception as e:
                 self.logger.warning(f"Error during verification attempt {retry + 1}: {e}")
                 if retry < max_retries - 1:
                     await asyncio.sleep(5)
-        
+
         self.logger.warning(f"Downtime verification failed after {max_retries} attempts")
         return False
