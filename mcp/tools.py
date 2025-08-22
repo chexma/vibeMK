@@ -1331,6 +1331,146 @@ def get_discovery_tools() -> List[Dict[str, Any]]:
     ]
 
 
+def get_service_group_tools() -> List[Dict[str, Any]]:
+    """Service group management tools"""
+    return [
+        {
+            "name": "vibemk_create_service_group",
+            "description": "🔧 Create service group - Create a new service group for organizing services",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Service group name (letters, numbers, hyphens, underscores only)",
+                    },
+                    "alias": {
+                        "type": "string",
+                        "description": "Human-readable description/alias for the service group",
+                    },
+                },
+                "required": ["name", "alias"],
+            },
+        },
+        {
+            "name": "vibemk_list_service_groups",
+            "description": "📋 List service groups - Show all configured service groups",
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vibemk_get_service_group",
+            "description": "🔍 Get service group details - Show detailed information about a specific service group",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Service group name to retrieve",
+                    }
+                },
+                "required": ["name"],
+            },
+        },
+        {
+            "name": "vibemk_update_service_group",
+            "description": "📝 Update service group - Modify an existing service group's alias",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Service group name to update",
+                    },
+                    "alias": {
+                        "type": "string",
+                        "description": "New alias/description for the service group",
+                    },
+                },
+                "required": ["name", "alias"],
+            },
+        },
+        {
+            "name": "vibemk_delete_service_group",
+            "description": "🗑️ Delete service group - Remove a service group from CheckMK",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Service group name to delete",
+                    }
+                },
+                "required": ["name"],
+            },
+        },
+        {
+            "name": "vibemk_bulk_create_service_groups",
+            "description": "🔧 Bulk create service groups - Create multiple service groups at once",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "description": "List of service groups to create",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Service group name"},
+                                "alias": {"type": "string", "description": "Service group alias"},
+                            },
+                            "required": ["name", "alias"],
+                        },
+                    }
+                },
+                "required": ["entries"],
+            },
+        },
+        {
+            "name": "vibemk_bulk_update_service_groups",
+            "description": "📝 Bulk update service groups - Update multiple service groups at once",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "description": "List of service groups to update",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Service group name"},
+                                "attributes": {
+                                    "type": "object",
+                                    "properties": {
+                                        "alias": {"type": "string", "description": "New alias for the service group"}
+                                    },
+                                    "required": ["alias"],
+                                },
+                            },
+                            "required": ["name", "attributes"],
+                        },
+                    }
+                },
+                "required": ["entries"],
+            },
+        },
+        {
+            "name": "vibemk_bulk_delete_service_groups",
+            "description": "🗑️ Bulk delete service groups - Delete multiple service groups at once",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "description": "List of service group names to delete",
+                        "items": {"type": "string"},
+                    }
+                },
+                "required": ["entries"],
+            },
+        },
+    ]
+
+
 def get_all_tools() -> List[Dict[str, Any]]:
     """Get all available tools"""
     tools = []
@@ -1353,4 +1493,5 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_host_group_rules_tools())
     tools.extend(get_downtime_tools())
     tools.extend(get_discovery_tools())
+    tools.extend(get_service_group_tools())
     return tools

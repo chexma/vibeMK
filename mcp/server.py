@@ -38,6 +38,7 @@ from handlers.metrics import MetricsHandler
 from handlers.monitoring import MonitoringHandler
 from handlers.passwords import PasswordsHandler
 from handlers.rules import RulesHandler
+from handlers.service_groups import ServiceGroupHandler
 from handlers.services import ServiceHandler
 from handlers.tags import TagsHandler
 from handlers.timeperiods import TimePeriodsHandler
@@ -83,6 +84,7 @@ class CheckMKMCPServer:
         downtime_handler = DowntimeHandler(self.client)
         acknowledgement_handler = AcknowledgementHandler(self.client)
         discovery_handler = DiscoveryHandler(self.client)
+        service_group_handler = ServiceGroupHandler(self.client)
 
         # Define tool-to-handler mapping with vibemk_ prefix
         self.handlers = {
@@ -204,6 +206,15 @@ class CheckMKMCPServer:
             "vibemk_get_discovery_result": discovery_handler,
             "vibemk_wait_for_discovery": discovery_handler,
             "vibemk_get_discovery_background_job": discovery_handler,
+            # Service group management
+            "vibemk_create_service_group": service_group_handler,
+            "vibemk_list_service_groups": service_group_handler,
+            "vibemk_get_service_group": service_group_handler,
+            "vibemk_update_service_group": service_group_handler,
+            "vibemk_delete_service_group": service_group_handler,
+            "vibemk_bulk_create_service_groups": service_group_handler,
+            "vibemk_bulk_update_service_groups": service_group_handler,
+            "vibemk_bulk_delete_service_groups": service_group_handler,
         }
 
         # Add placeholder handlers for remaining unimplemented tools

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2025-08-22
+
+### Added
+- **Complete Service Group Management System** - Create, manage, and organize service groups
+  - `vibemk_create_service_group` - Create new service groups with name and alias
+  - `vibemk_list_service_groups` - List all configured service groups with details
+  - `vibemk_get_service_group` - Get detailed information about specific service groups
+  - `vibemk_update_service_group` - Update service group aliases and configurations
+  - `vibemk_delete_service_group` - Remove service groups from CheckMK
+  - `vibemk_bulk_create_service_groups` - Create multiple service groups efficiently
+  - `vibemk_bulk_update_service_groups` - Update multiple service groups at once
+  - `vibemk_bulk_delete_service_groups` - Delete multiple service groups in bulk
+
+### Features
+- **Service Organization** - Logical grouping of services for better monitoring structure
+- **Bulk Operations** - Efficient management of multiple service groups simultaneously
+- **Input Validation** - Comprehensive name validation (letters, numbers, hyphens, underscores)
+- **Existence Checks** - Prevent duplicate creation and handle missing groups gracefully
+- **ETag Support** - Proper handling of concurrent updates with If-Match headers
+- **CheckMK Integration** - Full integration with CheckMK configuration activation workflow
+
+### Technical Improvements
+- Service group name pattern validation with regex
+- Structured error handling for API operations
+- Comprehensive response formatting with operation status
+- Integration with CheckMK REST API service_group_config endpoints
+
 ## [0.3.2] - 2025-08-22
 
 ### Added
