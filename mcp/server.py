@@ -28,6 +28,7 @@ from handlers.acknowledgements import AcknowledgementHandler
 from handlers.configuration import ConfigurationHandler
 from handlers.connection import ConnectionHandler
 from handlers.debug import DebugHandler
+from handlers.discovery import DiscoveryHandler
 from handlers.downtimes import DowntimeHandler
 from handlers.folders import FolderHandler
 from handlers.groups import GroupsHandler
@@ -81,6 +82,7 @@ class CheckMKMCPServer:
         host_group_rules_handler = HostGroupRulesHandler(self.client)
         downtime_handler = DowntimeHandler(self.client)
         acknowledgement_handler = AcknowledgementHandler(self.client)
+        discovery_handler = DiscoveryHandler(self.client)
 
         # Define tool-to-handler mapping with vibemk_ prefix
         self.handlers = {
@@ -100,6 +102,10 @@ class CheckMKMCPServer:
             "vibemk_delete_host": host_handler,
             "vibemk_move_host": host_handler,
             "vibemk_bulk_update_hosts": host_handler,
+            "vibemk_create_cluster_host": host_handler,
+            "vibemk_validate_host_config": host_handler,
+            "vibemk_compare_host_states": host_handler,
+            "vibemk_get_host_effective_attributes": host_handler,
             # Service management tools
             "vibemk_get_checkmk_services": service_handler,
             "vibemk_get_service_status": service_handler,
@@ -190,6 +196,14 @@ class CheckMKMCPServer:
             "vibemk_acknowledge_service_problem": acknowledgement_handler,
             "vibemk_list_acknowledgements": acknowledgement_handler,
             "vibemk_remove_acknowledgement": acknowledgement_handler,
+            # Discovery management
+            "vibemk_start_service_discovery": discovery_handler,
+            "vibemk_start_bulk_discovery": discovery_handler,
+            "vibemk_get_discovery_status": discovery_handler,
+            "vibemk_get_bulk_discovery_status": discovery_handler,
+            "vibemk_get_discovery_result": discovery_handler,
+            "vibemk_wait_for_discovery": discovery_handler,
+            "vibemk_get_discovery_background_job": discovery_handler,
         }
 
         # Add placeholder handlers for remaining unimplemented tools

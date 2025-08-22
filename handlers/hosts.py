@@ -1,8 +1,10 @@
 """
-Host management handlers
+Host management handlers with enhanced features for CheckMK integration
 """
 
-from typing import Any, Dict, List
+import json
+import time
+from typing import Any, Dict, List, Optional, Union
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
 from handlers.base import BaseHandler
@@ -33,6 +35,14 @@ class HostHandler(BaseHandler):
                 return await self._move_host(arguments)
             elif tool_name == "vibemk_bulk_update_hosts":
                 return await self._bulk_update_hosts(arguments)
+            elif tool_name == "vibemk_create_cluster_host":
+                return await self._create_cluster_host(arguments)
+            elif tool_name == "vibemk_validate_host_config":
+                return await self._validate_host_config(arguments)
+            elif tool_name == "vibemk_compare_host_states":
+                return await self._compare_host_states(arguments)
+            elif tool_name == "vibemk_get_host_effective_attributes":
+                return await self._get_host_effective_attributes(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
@@ -348,50 +358,123 @@ class HostHandler(BaseHandler):
         return self.info_response(f"Host Configuration: {host_name}", host)
 
     async def _create_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Create a new host"""
+        """Create a new host with enhanced validation"""
         host_name = arguments.get("host_name")
         folder = arguments.get("folder", "/")
         attributes = arguments.get("attributes", {})
 
-        if not host_name:
-            return self.error_response("Missing parameter", "host_name is required")
+        # Enhanced validation with comprehensive checks
+        validation_result = self._validate_host_creation_params(host_name, folder, attributes)
+        if validation_result:
+            return validation_result
+
+        # Check if host already exists
+        existing_host = self.client.get(f"objects/host_config/{host_name}")
+        if existing_host.get("success"):
+            return self.error_response(
+                "Host already exists", f"Host '{host_name}' already exists. Use update_host to modify it."
+            )
+
+        # Convert folder format if needed (~ for root per CheckMK API)
+        if folder == "/":
+            folder = "~"
 
         data = {"folder": folder, "host_name": host_name, "attributes": attributes}
 
         result = self.client.post("domain-types/host_config/collections/all", data=data)
 
         if result.get("success"):
+            # Enhanced success response with more details
+            attribute_count = len(attributes)
             return [
                 {
                     "type": "text",
                     "text": (
                         f"✅ **Host Created Successfully**\\n\\n"
-                        f"Host: {host_name}\\n"
-                        f"Folder: {folder}\\n\\n"
-                        f"⚠️ **Remember to activate changes!**"
+                        f"**Host:** {host_name}\\n"
+                        f"**Folder:** {folder}\\n"
+                        f"**Attributes Set:** {attribute_count}\\n\\n"
+                        f"📋 **Host Details:**\\n"
+                        + (
+                            f"• IP Address: {attributes.get('ipaddress', 'Not set')}\\n"
+                            if attributes.get("ipaddress")
+                            else ""
+                        )
+                        + (f"• Alias: {attributes.get('alias', 'Not set')}\\n" if attributes.get("alias") else "")
+                        + (f"• Site: {attributes.get('site', 'Default')}\\n" if attributes.get("site") else "")
+                        + f"\\n⚠️ **Remember to activate changes!**\\n\\n"
+                        f"💡 **Next Steps:**\\n"
+                        f"1️⃣ Use 'get_pending_changes' to review\\n"
+                        f"2️⃣ Use 'activate_changes' to apply configuration"
                     ),
                 }
             ]
         else:
-            return self.error_response("Host creation failed", f"Could not create host '{host_name}'")
+            error_details = result.get("data", {})
+            return self.error_response("Host creation failed", f"Could not create host '{host_name}': {error_details}")
 
     async def _update_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Update host configuration"""
+        """Update host configuration with flexible attribute management"""
         host_name = arguments.get("host_name")
         attributes = arguments.get("attributes", {})
+        update_mode = arguments.get("update_mode", "update")  # update, overwrite, remove
+        remove_attributes = arguments.get("remove_attributes", [])
 
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
 
-        data = {"attributes": attributes}
+        # Get current host configuration
+        current_config = self.client.get(f"objects/host_config/{host_name}")
+        if not current_config.get("success"):
+            return self.error_response("Host not found", f"Host '{host_name}' not found")
+
+        current_attributes = current_config["data"].get("extensions", {}).get("attributes", {})
+
+        # Apply different update modes for flexible configuration
+        if update_mode == "overwrite":
+            final_attributes = attributes.copy()
+        elif update_mode == "remove":
+            final_attributes = current_attributes.copy()
+            for attr in remove_attributes:
+                final_attributes.pop(attr, None)
+        else:  # update mode (default)
+            final_attributes = current_attributes.copy()
+            final_attributes.update(attributes)
+
+        # Compare with current state
+        changes = self._compare_attributes(current_attributes, final_attributes)
+        if not changes["has_changes"]:
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        f"ℹ️ **No Changes Required**\\n\\n"
+                        f"Host '{host_name}' is already in the desired state.\\n"
+                        f"No attribute changes detected."
+                    ),
+                }
+            ]
+
+        data = {"attributes": final_attributes}
         result = self.client.put(f"objects/host_config/{host_name}", data=data)
 
         if result.get("success"):
-            return self.success_response(
-                "Host Updated Successfully", {"host": host_name, "message": "Remember to activate changes!"}
-            )
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        f"✅ **Host Updated Successfully**\\n\\n"
+                        f"**Host:** {host_name}\\n"
+                        f"**Update Mode:** {update_mode}\\n\\n"
+                        f"📋 **Changes Applied:**\\n"
+                        + self._format_attribute_changes(changes)
+                        + f"\\n⚠️ **Remember to activate changes!**"
+                    ),
+                }
+            ]
         else:
-            return self.error_response("Host update failed", f"Could not update host '{host_name}'")
+            error_details = result.get("data", {})
+            return self.error_response("Host update failed", f"Could not update host '{host_name}': {error_details}")
 
     async def _delete_host(self, host_name: str) -> List[Dict[str, Any]]:
         """Delete a host"""
@@ -452,3 +535,277 @@ class HostHandler(BaseHandler):
             )
         else:
             return self.error_response("Bulk update failed", "Could not update hosts")
+
+    async def _create_cluster_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Create a cluster host with nodes"""
+        host_name = arguments.get("host_name")
+        folder = arguments.get("folder", "/")
+        nodes = arguments.get("nodes", [])
+        attributes = arguments.get("attributes", {})
+
+        if not host_name:
+            return self.error_response("Missing parameter", "host_name is required")
+
+        if not nodes:
+            return self.error_response("Missing parameter", "nodes list is required for cluster hosts")
+
+        # Convert folder format
+        if folder == "/":
+            folder = "~"
+
+        # Set cluster-specific attributes
+        cluster_attributes = attributes.copy()
+        cluster_attributes.update(
+            {"tag_agent": "no-agent", "nodes": nodes}  # Cluster hosts typically don't have agents
+        )
+
+        data = {"folder": folder, "host_name": host_name, "attributes": cluster_attributes}
+
+        result = self.client.post("domain-types/host_config/collections/all", data=data)
+
+        if result.get("success"):
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        f"✅ **Cluster Host Created Successfully**\\n\\n"
+                        f"**Cluster Host:** {host_name}\\n"
+                        f"**Folder:** {folder}\\n"
+                        f"**Nodes:** {', '.join(nodes)}\\n\\n"
+                        f"📋 **Cluster Configuration:**\\n"
+                        f"• Node Count: {len(nodes)}\\n"
+                        f"• Agent Type: No Agent (Cluster)\\n\\n"
+                        f"⚠️ **Remember to activate changes!**"
+                    ),
+                }
+            ]
+        else:
+            error_details = result.get("data", {})
+            return self.error_response(
+                "Cluster host creation failed", f"Could not create cluster host '{host_name}': {error_details}"
+            )
+
+    async def _validate_host_config(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Validate host configuration before applying changes"""
+        host_name = arguments.get("host_name")
+        attributes = arguments.get("attributes", {})
+        operation = arguments.get("operation", "create")
+
+        if not host_name:
+            return self.error_response("Missing parameter", "host_name is required")
+
+        validation_errors = []
+        warnings = []
+
+        # Host name validation
+        if not self._validate_host_name(host_name):
+            validation_errors.append("Invalid host name format")
+
+        # IP address validation
+        if "ipaddress" in attributes:
+            if not self._validate_ip_address(attributes["ipaddress"]):
+                validation_errors.append("Invalid IP address format")
+
+        # Folder validation
+        folder = arguments.get("folder", "/")
+        if not self._validate_folder_exists(folder):
+            warnings.append(f"Folder '{folder}' may not exist")
+
+        # Operation-specific validation
+        if operation == "create":
+            existing_host = self.client.get(f"objects/host_config/{host_name}")
+            if existing_host.get("success"):
+                validation_errors.append("Host already exists")
+
+        # Compile validation results
+        status = "valid" if not validation_errors else "invalid"
+
+        response_text = f"🔍 **Host Configuration Validation**\\n\\n"
+        response_text += f"**Host:** {host_name}\\n"
+        response_text += f"**Operation:** {operation}\\n"
+        response_text += f"**Status:** {'✅ Valid' if status == 'valid' else '❌ Invalid'}\\n\\n"
+
+        if validation_errors:
+            response_text += "🚨 **Errors:**\\n"
+            for error in validation_errors:
+                response_text += f"• {error}\\n"
+            response_text += "\\n"
+
+        if warnings:
+            response_text += "⚠️ **Warnings:**\\n"
+            for warning in warnings:
+                response_text += f"• {warning}\\n"
+            response_text += "\\n"
+
+        if status == "valid":
+            response_text += "✅ Configuration is valid and ready for deployment"
+
+        return [{"type": "text", "text": response_text}]
+
+    async def _compare_host_states(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Compare desired vs current host state"""
+        host_name = arguments.get("host_name")
+        desired_attributes = arguments.get("desired_attributes", {})
+
+        if not host_name:
+            return self.error_response("Missing parameter", "host_name is required")
+
+        # Get current configuration
+        current_config = self.client.get(f"objects/host_config/{host_name}")
+        if not current_config.get("success"):
+            return self.error_response("Host not found", f"Host '{host_name}' not found")
+
+        current_attributes = current_config["data"].get("extensions", {}).get("attributes", {})
+
+        # Compare states
+        comparison = self._compare_attributes(current_attributes, desired_attributes)
+
+        response_text = f"🔄 **Host State Comparison**\\n\\n"
+        response_text += f"**Host:** {host_name}\\n"
+        response_text += f"**Changes Required:** {'Yes' if comparison['has_changes'] else 'No'}\\n\\n"
+
+        if comparison["has_changes"]:
+            response_text += "📋 **Detected Changes:**\\n"
+            response_text += self._format_attribute_changes(comparison)
+        else:
+            response_text += "✅ Host is already in the desired state"
+
+        return [{"type": "text", "text": response_text}]
+
+    async def _get_host_effective_attributes(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get effective host attributes including inherited values"""
+        host_name = arguments.get("host_name")
+
+        if not host_name:
+            return self.error_response("Missing parameter", "host_name is required")
+
+        # Get host configuration
+        host_config = self.client.get(f"objects/host_config/{host_name}")
+        if not host_config.get("success"):
+            return self.error_response("Host not found", f"Host '{host_name}' not found")
+
+        host_data = host_config["data"]
+        extensions = host_data.get("extensions", {})
+        attributes = extensions.get("attributes", {})
+        folder_path = extensions.get("folder", "/")
+
+        # Get folder configuration for inherited attributes
+        folder_config = None
+        if folder_path != "/":
+            folder_config = self.client.get(f"objects/folder_config/{folder_path}")
+
+        effective_attributes = {}
+        inherited_attributes = {}
+
+        # Add folder attributes if available
+        if folder_config and folder_config.get("success"):
+            folder_attrs = folder_config["data"].get("extensions", {}).get("attributes", {})
+            inherited_attributes.update(folder_attrs)
+
+        # Host attributes override folder attributes
+        effective_attributes.update(inherited_attributes)
+        effective_attributes.update(attributes)
+
+        response_text = f"📋 **Effective Host Attributes**\\n\\n"
+        response_text += f"**Host:** {host_name}\\n"
+        response_text += f"**Folder:** {folder_path}\\n\\n"
+
+        if effective_attributes:
+            response_text += "🎯 **Effective Attributes:**\\n"
+            for key, value in effective_attributes.items():
+                source = "Host" if key in attributes else "Inherited"
+                response_text += f"• **{key}:** {value} _{source}_\\n"
+        else:
+            response_text += "ℹ️ No attributes configured"
+
+        return [{"type": "text", "text": response_text}]
+
+    def _validate_host_creation_params(
+        self, host_name: str, folder: str, attributes: Dict[str, Any]
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Validate parameters for host creation"""
+        if not host_name:
+            return self.error_response("Missing parameter", "host_name is required")
+
+        if not self._validate_host_name(host_name):
+            return self.error_response(
+                "Invalid host name", "Host name must contain only letters, numbers, hyphens, and underscores"
+            )
+
+        # Validate IP address if provided
+        if "ipaddress" in attributes and not self._validate_ip_address(attributes["ipaddress"]):
+            return self.error_response("Invalid IP address", "IP address format is invalid")
+
+        return None
+
+    def _validate_host_name(self, host_name: str) -> bool:
+        """Validate host name format"""
+        if not host_name:
+            return False
+
+        import re
+
+        # CheckMK host name pattern: letters, numbers, hyphens, underscores, dots
+        pattern = r"^[a-zA-Z0-9._-]+$"
+        return re.match(pattern, host_name) is not None
+
+    def _validate_ip_address(self, ip_address: str) -> bool:
+        """Validate IP address format"""
+        try:
+            import ipaddress
+
+            ipaddress.ip_address(ip_address)
+            return True
+        except ValueError:
+            return False
+
+    def _validate_folder_exists(self, folder: str) -> bool:
+        """Check if folder exists (basic validation)"""
+        try:
+            folder_path = folder if folder != "/" else "~"
+            result = self.client.get(f"objects/folder_config/{folder_path}")
+            return result.get("success", False)
+        except:
+            return False
+
+    def _compare_attributes(self, current: Dict[str, Any], desired: Dict[str, Any]) -> Dict[str, Any]:
+        """Compare current and desired attributes"""
+        changes = {"has_changes": False, "added": {}, "modified": {}, "removed": {}}
+
+        # Find added and modified attributes
+        for key, value in desired.items():
+            if key not in current:
+                changes["added"][key] = value
+                changes["has_changes"] = True
+            elif current[key] != value:
+                changes["modified"][key] = {"old": current[key], "new": value}
+                changes["has_changes"] = True
+
+        # Find removed attributes
+        for key in current:
+            if key not in desired:
+                changes["removed"][key] = current[key]
+                changes["has_changes"] = True
+
+        return changes
+
+    def _format_attribute_changes(self, changes: Dict[str, Any]) -> str:
+        """Format attribute changes for display"""
+        output = ""
+
+        if changes["added"]:
+            output += "**Added:**\\n"
+            for key, value in changes["added"].items():
+                output += f"• {key}: {value}\\n"
+
+        if changes["modified"]:
+            output += "**Modified:**\\n"
+            for key, change in changes["modified"].items():
+                output += f"• {key}: {change['old']} → {change['new']}\\n"
+
+        if changes["removed"]:
+            output += "**Removed:**\\n"
+            for key, value in changes["removed"].items():
+                output += f"• {key}: {value}\\n"
+
+        return output

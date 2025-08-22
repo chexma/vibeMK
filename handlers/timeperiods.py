@@ -98,7 +98,7 @@ class TimePeriodsHandler(BaseHandler):
                     start = range_item.get("start", "")
                     end = range_item.get("end", "")
                     time_display.append(f"{day.capitalize()}: {start}-{end}")
-            
+
             return [
                 {
                     "type": "text",
@@ -106,15 +106,16 @@ class TimePeriodsHandler(BaseHandler):
                         f"✅ **Time Period Created Successfully**\n\n"
                         f"Name: **{name}**\n"
                         f"Alias: {alias or name}\n"
-                        f"Active time ranges:\n"
-                        + "\n".join(f"  • {td}" for td in time_display) + "\n\n"
+                        f"Active time ranges:\n" + "\n".join(f"  • {td}" for td in time_display) + "\n\n"
                         f"⚠️ **Remember to activate changes!**"
                     ),
                 }
             ]
         else:
             error_msg = result.get("data", {}).get("detail", "Unknown error")
-            return self.error_response("Time period creation failed", f"Could not create time period '{name}': {error_msg}")
+            return self.error_response(
+                "Time period creation failed", f"Could not create time period '{name}': {error_msg}"
+            )
 
     async def _update_timeperiod(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Update an existing time period"""

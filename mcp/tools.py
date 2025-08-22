@@ -101,14 +101,25 @@ def get_host_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_update_host",
-            "description": "📝 Update host - Modify host configuration",
+            "description": "📝 Update host - Modify host configuration with flexible attribute management",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "host_name": {"type": "string", "description": "Name of the host"},
                     "attributes": {"type": "object", "description": "Updated attributes"},
+                    "update_mode": {
+                        "type": "string",
+                        "description": "Update mode: 'update' (merge), 'overwrite' (replace), 'remove' (delete attributes)",
+                        "enum": ["update", "overwrite", "remove"],
+                        "default": "update",
+                    },
+                    "remove_attributes": {
+                        "type": "array",
+                        "description": "List of attribute names to remove (used with remove mode)",
+                        "items": {"type": "string"},
+                    },
                 },
-                "required": ["host_name", "attributes"],
+                "required": ["host_name"],
             },
         },
         {
@@ -139,6 +150,57 @@ def get_host_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {"entries": {"type": "array", "description": "List of host update entries"}},
                 "required": ["entries"],
+            },
+        },
+        {
+            "name": "vibemk_create_cluster_host",
+            "description": "🏢 Create cluster host - Create a cluster host with multiple nodes",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Name of the cluster host"},
+                    "folder": {"type": "string", "description": "Folder path"},
+                    "nodes": {"type": "array", "description": "List of node hostnames for the cluster"},
+                    "attributes": {"type": "object", "description": "Additional host attributes"},
+                },
+                "required": ["host_name", "nodes"],
+            },
+        },
+        {
+            "name": "vibemk_validate_host_config",
+            "description": "✅ Validate host config - Validate host configuration before applying changes",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Name of the host to validate"},
+                    "attributes": {"type": "object", "description": "Host attributes to validate"},
+                    "operation": {"type": "string", "description": "Operation type (create, update)"},
+                    "folder": {"type": "string", "description": "Folder path"},
+                },
+                "required": ["host_name"],
+            },
+        },
+        {
+            "name": "vibemk_compare_host_states",
+            "description": "🔄 Compare host states - Compare current vs desired host configuration",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Name of the host"},
+                    "desired_attributes": {"type": "object", "description": "Desired host attributes"},
+                },
+                "required": ["host_name", "desired_attributes"],
+            },
+        },
+        {
+            "name": "vibemk_get_host_effective_attributes",
+            "description": "📋 Get effective host attributes - Show host attributes including inherited values",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Name of the host"},
+                },
+                "required": ["host_name"],
             },
         },
     ]
@@ -1174,6 +1236,101 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
     ]
 
 
+def get_discovery_tools() -> List[Dict[str, Any]]:
+    """Host discovery and service detection tools"""
+    return [
+        {
+            "name": "vibemk_start_service_discovery",
+            "description": "🔍 Start service discovery - Automatically detect services on a host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name to discover services on"},
+                    "mode": {
+                        "type": "string",
+                        "description": "Discovery mode: 'new', 'remove', 'fix_all', 'refresh', 'only_host_labels'",
+                        "default": "refresh",
+                        "enum": ["new", "remove", "fix_all", "refresh", "only_host_labels"],
+                    },
+                },
+                "required": ["host_name"],
+            },
+        },
+        {
+            "name": "vibemk_start_bulk_discovery",
+            "description": "🔍 Start bulk discovery - Discover services on multiple hosts simultaneously",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostnames": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of host names to discover services on",
+                    },
+                    "options": {
+                        "type": "object",
+                        "description": "Discovery options",
+                        "properties": {
+                            "monitor_undecided_services": {"type": "boolean", "default": True},
+                            "remove_vanished_services": {"type": "boolean", "default": True},
+                            "update_service_labels": {"type": "boolean", "default": True},
+                            "update_host_labels": {"type": "boolean", "default": True},
+                        },
+                    },
+                    "do_full_scan": {"type": "boolean", "description": "Perform full service scan", "default": True},
+                    "bulk_size": {
+                        "type": "integer",
+                        "description": "Number of hosts to process simultaneously",
+                        "default": 10,
+                    },
+                    "ignore_errors": {"type": "boolean", "description": "Continue on errors", "default": True},
+                },
+                "required": ["hostnames"],
+            },
+        },
+        {
+            "name": "vibemk_get_discovery_status",
+            "description": "📊 Get discovery status - Show current service discovery results for a host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"host_name": {"type": "string", "description": "Host name to check discovery status"}},
+                "required": ["host_name"],
+            },
+        },
+        {
+            "name": "vibemk_get_bulk_discovery_status",
+            "description": "📊 Get bulk discovery status - Show progress of a bulk discovery job",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"job_id": {"type": "string", "description": "Bulk discovery job ID"}},
+                "required": ["job_id"],
+            },
+        },
+        {
+            "name": "vibemk_wait_for_discovery",
+            "description": "⏳ Wait for discovery completion - Wait until service discovery finishes on a host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name to wait for discovery completion"}
+                },
+                "required": ["host_name"],
+            },
+        },
+        {
+            "name": "vibemk_get_discovery_background_job",
+            "description": "📋 Get discovery background job - Show last discovery job status on a host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name to check background job status"}
+                },
+                "required": ["host_name"],
+            },
+        },
+    ]
+
+
 def get_all_tools() -> List[Dict[str, Any]]:
     """Get all available tools"""
     tools = []
@@ -1195,4 +1352,5 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_debug_tools())
     tools.extend(get_host_group_rules_tools())
     tools.extend(get_downtime_tools())
+    tools.extend(get_discovery_tools())
     return tools

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-08-22
+
+### Added
+- **Enhanced Host Management System** - Advanced host operations with comprehensive validation
+  - `vibemk_validate_host_config` - Pre-deployment validation with IP and hostname checks
+  - `vibemk_compare_host_states` - Compare desired vs current host configuration  
+  - `vibemk_get_host_effective_attributes` - Show host attributes including folder inheritance
+  - `vibemk_create_cluster_host` - Create multi-node cluster hosts with automatic agent configuration
+
+### Enhanced
+- **Flexible Attribute Management** - Extended `vibemk_update_host` with multiple update modes
+  - `update` mode - Merge attributes with existing configuration (default)
+  - `overwrite` mode - Replace all attributes completely
+  - `remove` mode - Delete specific attributes by name
+- **Advanced Host Creation** - Enhanced `vibemk_create_host` with comprehensive validation
+  - Pre-creation existence checks to prevent duplicates
+  - Detailed success reports with attribute summaries
+  - Better folder path handling with CheckMK format conversion (/ → ~)
+  - Enhanced error reporting with structured feedback
+
+### Features
+- **State Management** - Desired state comparison and idempotency
+- **Inheritance System** - Folder attribute inheritance with source tracking
+- **Cluster Support** - Multi-node cluster host configurations with proper agent settings
+- **Validation Pipeline** - Comprehensive pre-deployment checks (hostname, IP, folder existence)
+- **Change Detection** - Granular change tracking (added/modified/removed attributes)
+
+### Technical Improvements
+- Enhanced error handling with specific CheckMK API error mapping
+- Improved type hints and documentation with enhanced structure
+- Modular validation helpers for reusable checks
+- Structured response formats for better user feedback
+
 ## [0.3.1] - 2025-08-21
 
 ### Added
