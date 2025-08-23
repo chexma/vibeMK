@@ -1,0 +1,27 @@
+# Some Tips for prompting
+
+Use this for your entries to minimize fictional input values and avoid automatic creation of objects. If in doubt, test all prompts in a test environment beforehand. Multiple checkmk instances can be connected.
+
+- Don´t activate changes automatically.
+- Ask if you are unsure.
+- Ask for relevant input values, don´t assume information.
+
+# Examples
+
+## Performance Metrics
+
+### 1
+Can you analyze the response_time metric of the “HTTPS Webservice” service of the host “www.google.de” for the last ten minutes in checkmk and display any anomalies? Focus on the most important things and give a brief explanation.
+
+### 2
+Can you compare the response_time metric of the “HTTPS Webservice” service of the host “www.google.de”  and host "www.heise.de" for the last ten minutes in checkmk and display any anomalies?
+
+## Rulesets 
+
+### 1
+Can you check if there are duplicate rules or rules that could be combined in the ruleset Filesystems (used space and growth) in checkmk ?
+
+
+## Folders
+
+create folders with the name and description of the airport codes of the ten largest countries in europe in checkmk, use the abbreviation for the id and the description. Don´t activate  the changes.

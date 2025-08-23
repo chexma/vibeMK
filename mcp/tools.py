@@ -516,6 +516,98 @@ def get_user_management_tools() -> List[Dict[str, Any]]:
     ]
 
 
+def get_user_roles_tools() -> List[Dict[str, Any]]:
+    """User roles management tools"""
+    return [
+        {
+            "name": "vibemk_list_user_roles",
+            "description": "👥 List user roles - Show all available user roles (built-in and custom)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "show_builtin": {
+                        "type": "boolean",
+                        "description": "Include built-in roles (admin, user, guest) in the list",
+                        "default": True,
+                    }
+                },
+            },
+        },
+        {
+            "name": "vibemk_show_user_role",
+            "description": "🔍 Show user role details - Display detailed information about a specific user role",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "role_id": {
+                        "type": "string",
+                        "description": "ID of the role to show details for",
+                    }
+                },
+                "required": ["role_id"],
+            },
+        },
+        {
+            "name": "vibemk_create_user_role",
+            "description": "➕ Create user role - Clone an existing role to create a new custom role",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "base_role_id": {
+                        "type": "string",
+                        "description": "Existing role ID to clone from (e.g., 'admin', 'user', 'guest')",
+                    },
+                    "new_role_id": {
+                        "type": "string",
+                        "description": "ID for the new role",
+                    },
+                    "new_alias": {
+                        "type": "string",
+                        "description": "Display name/alias for the new role",
+                    },
+                },
+                "required": ["base_role_id", "new_role_id"],
+            },
+        },
+        {
+            "name": "vibemk_update_user_role",
+            "description": "✏️ Update user role - Modify an existing user role's alias or permissions",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "role_id": {
+                        "type": "string",
+                        "description": "ID of the role to update",
+                    },
+                    "alias": {
+                        "type": "string",
+                        "description": "New display name/alias for the role",
+                    },
+                    "permissions": {
+                        "type": "object",
+                        "description": "Permission dictionary (permission_id: boolean)",
+                    },
+                },
+                "required": ["role_id"],
+            },
+        },
+        {
+            "name": "vibemk_delete_user_role",
+            "description": "🗑️ Delete user role - Remove a custom user role (built-in roles cannot be deleted)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "role_id": {
+                        "type": "string",
+                        "description": "ID of the custom role to delete",
+                    }
+                },
+                "required": ["role_id"],
+            },
+        },
+    ]
+
+
 def get_group_management_tools() -> List[Dict[str, Any]]:
     """Host and service group management tools"""
     return [
@@ -739,6 +831,76 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
                     "target_rule_id": {"type": "string", "description": "Target rule ID for before/after positioning"},
                 },
                 "required": ["rule_id"],
+            },
+        },
+    ]
+
+
+def get_ruleset_discovery_tools() -> List[Dict[str, Any]]:
+    """Ruleset search and discovery tools"""
+    return [
+        {
+            "name": "vibemk_search_rulesets",
+            "description": "🔍 Search rulesets - Find rulesets with filters (text, folder, name)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "fulltext": {
+                        "type": "string",
+                        "description": "Search all keys (name, title, help) for this text. Regex allowed.",
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "The folder in which to search for rules. Path delimiters can be ~, /, or \\",
+                    },
+                    "deprecated": {
+                        "type": "boolean",
+                        "description": "Only show deprecated rulesets",
+                        "default": False,
+                    },
+                    "used": {
+                        "type": "boolean",
+                        "description": "Only show used rulesets",
+                        "default": True,
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "A regex of the ruleset name",
+                    },
+                },
+            },
+        },
+        {
+            "name": "vibemk_show_ruleset",
+            "description": "📋 Show ruleset details - Display detailed information about a specific ruleset",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "ruleset_name": {
+                        "type": "string",
+                        "description": "The name of the ruleset (e.g., host_groups, host_contactgroups)",
+                    }
+                },
+                "required": ["ruleset_name"],
+            },
+        },
+        {
+            "name": "vibemk_list_rulesets",
+            "description": "📋 List all rulesets - Show all available rulesets with basic information",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of rulesets to return",
+                        "default": 50,
+                    },
+                    "show_deprecated": {
+                        "type": "boolean",
+                        "description": "Include deprecated rulesets in the list",
+                        "default": False,
+                    },
+                },
             },
         },
     ]
@@ -1481,6 +1643,7 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_configuration_tools())
     tools.extend(get_folder_tools())
     tools.extend(get_user_management_tools())
+    tools.extend(get_user_roles_tools())
     tools.extend(get_group_management_tools())
     tools.extend(get_advanced_monitoring_tools())
     tools.extend(get_rule_management_tools())
@@ -1494,4 +1657,5 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_downtime_tools())
     tools.extend(get_discovery_tools())
     tools.extend(get_service_group_tools())
+    tools.extend(get_ruleset_discovery_tools())
     return tools

@@ -64,7 +64,9 @@ Configure your LLM client (e.g., Claude Desktop) with:
 }
 ```
 
-📁 **More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)
+📁 **More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)  
+📸 **Visual Examples**: See `examples/Screenshots/` for example prompts and usage patterns  
+💡 **Advanced Usage**: See `examples/ExamplePrompts.md` for complex scenarios and tips
 
 ### 3. First Steps
 
@@ -147,6 +149,12 @@ run service discovery, activate all changes"
 "Show all critical problems, acknowledge the MySQL problem on db-01 
 with comment 'DBA is working on it'"
 ```
+
+### 📚 More Examples & Resources
+
+- **📸 Visual Examples**: Check `examples/Screenshots/` for real LLM conversation examples with screenshots
+- **💡 Advanced Prompts**: See `examples/ExamplePrompts.md` for complex scenarios, tips, and best practices  
+- **⚙️ Configuration Examples**: Browse `examples/llm_configs/` for different LLM client setups
 
 ## 🏗️ Architecture
 
@@ -249,7 +257,9 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 ### Documentation
 - 📖 [Complete Installation Guide](INSTALL.md) - CheckMK setup, user creation, troubleshooting
 - 📚 [Complete User Manual](USER_GUIDE.md)
-- 💡 [Practical Examples](EXAMPLES.md)
+- 💡 [Advanced Example Prompts](examples/ExamplePrompts.md) - Complex scenarios and best practices
+- 📸 [Visual Examples](examples/Screenshots/) - Real conversation screenshots and usage patterns  
+- ⚙️ [Configuration Examples](examples/llm_configs/) - LLM client setup examples
 
 ### Get Help
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/chexma/vibeMK/issues)

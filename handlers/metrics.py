@@ -105,9 +105,9 @@ class MetricsHandler(BaseHandler):
         }
 
         self.logger.debug(f"Requesting host metrics with data: {data}")
-        result = self.client.post("domain-types/metric/actions/get/invoke", data=data)
 
-        if result.get("success"):
+        try:
+            result = self.client.post("domain-types/metric/actions/get/invoke", data=data)
             metrics_data = result["data"]
 
             # Format metrics response
@@ -117,11 +117,25 @@ class MetricsHandler(BaseHandler):
                     "text": self._format_host_metrics_response(host_name, metric_name, metrics_data, time_range),
                 }
             ]
-        else:
-            error_data = result.get("data", {})
+        except CheckMKError as e:
+            # Handle host metrics request failure with detailed HTTP status analysis
+            http_status = getattr(e, "status_code", 0)
+            error_data = getattr(e, "error_data", {})
+            self.logger.debug(f"Host metrics request failed: HTTP {http_status}, {error_data}")
+
+            # Analyze specific HTTP status codes for better error messages
+            if http_status == 400:
+                error_msg = self._handle_400_error(error_data, host_name, "", metric_name)
+            elif http_status == 406:
+                error_msg = self._handle_406_error(error_data)
+            elif http_status == 415:
+                error_msg = self._handle_415_error(error_data)
+            else:
+                error_msg = f"HTTP {http_status}: {error_data.get('title', str(e))}"
+
             return self.error_response(
                 "Failed to retrieve host metrics",
-                f"Could not get metric '{metric_name}' for host '{host_name}': {error_data.get('title', str(error_data))}",
+                f"Could not get metric '{metric_name}' for host '{host_name}': {error_msg}",
             )
 
     async def _get_service_metrics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -189,9 +203,9 @@ class MetricsHandler(BaseHandler):
         }
 
         self.logger.debug(f"Requesting metrics with data: {data}")
-        result = self.client.post("domain-types/metric/actions/get/invoke", data=data)
 
-        if result.get("success"):
+        try:
+            result = self.client.post("domain-types/metric/actions/get/invoke", data=data)
             metrics_data = result["data"]
 
             # Format metrics response
@@ -203,10 +217,21 @@ class MetricsHandler(BaseHandler):
                     ),
                 }
             ]
-        else:
-            # Handle metrics request failure
-            error_data = result.get("data", {})
-            self.logger.debug(f"Metrics request failed: {error_data}")
+        except CheckMKError as e:
+            # Handle metrics request failure with detailed HTTP status analysis
+            http_status = getattr(e, "status_code", 0)
+            error_data = getattr(e, "error_data", {})
+            self.logger.debug(f"Metrics request failed: HTTP {http_status}, {error_data}")
+
+            # Analyze specific HTTP status codes for better error messages
+            if http_status == 400:
+                error_msg = self._handle_400_error(error_data, host_name, service_description, metric_name)
+            elif http_status == 406:
+                error_msg = self._handle_406_error(error_data)
+            elif http_status == 415:
+                error_msg = self._handle_415_error(error_data)
+            else:
+                error_msg = f"HTTP {http_status}: {error_data.get('title', str(e))}"
 
             # Try to get available metrics for helpful error message
             try:
@@ -215,32 +240,31 @@ class MetricsHandler(BaseHandler):
                     params={"service_description": service_description},
                 )
 
-                if service_result.get("success") and "extensions" in service_result.get("data", {}):
-                    extensions = service_result["data"]["extensions"]
-                    perf_data = extensions.get("perf_data", {})
+                extensions = service_result["data"]["extensions"]
+                perf_data = extensions.get("perf_data", {})
 
-                    if perf_data:
-                        available_metrics = list(perf_data.keys())
+                if perf_data:
+                    available_metrics = list(perf_data.keys())
 
-                        return [
-                            {
-                                "type": "text",
-                                "text": (
-                                    f"❌ **Metrics Request Failed**\\n\\n"
-                                    f"Service: {host_name}/{service_description}\\n"
-                                    f"Requested metric: {metric_name}\\n"
-                                    f"Error: {error_data.get('title', 'Unknown error')}\\n\\n"
-                                    f"✅ **Available Metrics:** {', '.join(available_metrics)}\\n\\n"
-                                    f"💡 **Suggestion:** Try one of these metric IDs instead"
-                                ),
-                            }
-                        ]
-            except Exception as e:
-                self.logger.debug(f"Service lookup for error message failed: {e}")
+                    return [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"❌ **Metrics Request Failed**\\n\\n"
+                                f"Service: {host_name}/{service_description}\\n"
+                                f"Requested metric: {metric_name}\\n"
+                                f"Error: {error_msg}\\n\\n"
+                                f"✅ **Available Metrics:** {', '.join(available_metrics)}\\n\\n"
+                                f"💡 **Suggestion:** Try one of these metric IDs instead"
+                            ),
+                        }
+                    ]
+            except Exception as e2:
+                self.logger.debug(f"Service lookup for error message failed: {e2}")
 
             return self.error_response(
                 "Failed to retrieve service metrics",
-                f"Could not get metrics for '{metric_name}' on '{host_name}/{service_description}': {error_data.get('title', str(error_data))}",
+                f"Could not get metrics for '{metric_name}' on '{host_name}/{service_description}': {error_msg}",
             )
 
     async def _get_custom_graph(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -257,16 +281,28 @@ class MetricsHandler(BaseHandler):
 
         data = {"time_range": time_data, "reduce": reduce_function, "custom_graph_id": custom_graph_id}
 
-        result = self.client.post("domain-types/metric/actions/get_custom_graph/invoke", data=data)
+        try:
+            result = self.client.post("domain-types/metric/actions/get_custom_graph/invoke", data=data)
+            metrics_data = result["data"]
+            return [
+                {"type": "text", "text": self._format_custom_graph_response(custom_graph_id, metrics_data, time_range)}
+            ]
+        except CheckMKError as e:
+            http_status = getattr(e, "status_code", 0)
+            error_data = getattr(e, "error_data", {})
 
-        if not result.get("success"):
+            if http_status == 400:
+                error_msg = self._handle_400_error(error_data, "", "", custom_graph_id)
+            elif http_status == 406:
+                error_msg = self._handle_406_error(error_data)
+            elif http_status == 415:
+                error_msg = self._handle_415_error(error_data)
+            else:
+                error_msg = f"HTTP {http_status}: {str(e)}"
+
             return self.error_response(
-                "Failed to retrieve custom graph", f"Could not get custom graph '{custom_graph_id}'"
+                "Failed to retrieve custom graph", f"Could not get custom graph '{custom_graph_id}': {error_msg}"
             )
-
-        metrics_data = result["data"]
-
-        return [{"type": "text", "text": self._format_custom_graph_response(custom_graph_id, metrics_data, time_range)}]
 
     async def _search_metrics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Search for metrics using filters"""
@@ -478,6 +514,41 @@ class MetricsHandler(BaseHandler):
 
         return response
 
+    def _handle_400_error(
+        self, error_data: Dict[str, Any], host_name: str, service_description: str, metric_name: str
+    ) -> str:
+        """Handle HTTP 400 Bad Request errors with specific diagnostics"""
+        title = error_data.get("title", "Bad Request")
+        detail = error_data.get("detail", "")
+
+        # Check for specific parameter validation issues
+        if "time_range" in detail or "start" in detail or "end" in detail:
+            return f"Time range parameter error: {detail}. Check that timestamps are in YYYY-MM-DD HH:MM:SS format"
+        elif "metric_id" in detail or metric_name in detail:
+            return f"Invalid metric ID '{metric_name}': {detail}. Metric may not exist for this service"
+        elif "host_name" in detail or host_name in detail:
+            return f"Host parameter error: {detail}. Host '{host_name}' may not exist"
+        elif "service_description" in detail or service_description in detail:
+            return f"Service parameter error: {detail}. Service '{service_description}' may not exist on host '{host_name}'"
+        elif "site" in detail:
+            return f"Site parameter error: {detail}. Check CheckMK site configuration"
+        else:
+            return f"Parameter validation failed: {title} - {detail}"
+
+    def _handle_406_error(self, error_data: Dict[str, Any]) -> str:
+        """Handle HTTP 406 Not Acceptable errors"""
+        title = error_data.get("title", "Not Acceptable")
+        detail = error_data.get("detail", "")
+
+        return f"Accept header issue: {title}. CheckMK API cannot satisfy the requested content type. Detail: {detail}"
+
+    def _handle_415_error(self, error_data: Dict[str, Any]) -> str:
+        """Handle HTTP 415 Unsupported Media Type errors"""
+        title = error_data.get("title", "Unsupported Media Type")
+        detail = error_data.get("detail", "")
+
+        return f"Content-Type issue: {title}. Request content type not supported by CheckMK API. Detail: {detail}"
+
     def _format_host_metrics_response(
         self, host_name: str, metric_name: str, metrics_data: Dict, time_range: str
     ) -> str:
@@ -521,3 +592,38 @@ class MetricsHandler(BaseHandler):
         response += f"💡 **Tip:** Use different time_range values (4h, 24h, 7d, 30d) for longer periods"
 
         return response
+
+    def _handle_400_error(
+        self, error_data: Dict[str, Any], host_name: str, service_description: str, metric_name: str
+    ) -> str:
+        """Handle HTTP 400 Bad Request errors with specific diagnostics"""
+        title = error_data.get("title", "Bad Request")
+        detail = error_data.get("detail", "")
+
+        # Check for specific parameter validation issues
+        if "time_range" in detail or "start" in detail or "end" in detail:
+            return f"Time range parameter error: {detail}. Check that timestamps are in YYYY-MM-DD HH:MM:SS format"
+        elif "metric_id" in detail or metric_name in detail:
+            return f"Invalid metric ID '{metric_name}': {detail}. Metric may not exist for this service"
+        elif "host_name" in detail or host_name in detail:
+            return f"Host parameter error: {detail}. Host '{host_name}' may not exist"
+        elif "service_description" in detail or service_description in detail:
+            return f"Service parameter error: {detail}. Service '{service_description}' may not exist on host '{host_name}'"
+        elif "site" in detail:
+            return f"Site parameter error: {detail}. Check CheckMK site configuration"
+        else:
+            return f"Parameter validation failed: {title} - {detail}"
+
+    def _handle_406_error(self, error_data: Dict[str, Any]) -> str:
+        """Handle HTTP 406 Not Acceptable errors"""
+        title = error_data.get("title", "Not Acceptable")
+        detail = error_data.get("detail", "")
+
+        return f"Accept header issue: {title}. CheckMK API cannot satisfy the requested content type. Detail: {detail}"
+
+    def _handle_415_error(self, error_data: Dict[str, Any]) -> str:
+        """Handle HTTP 415 Unsupported Media Type errors"""
+        title = error_data.get("title", "Unsupported Media Type")
+        detail = error_data.get("detail", "")
+
+        return f"Content-Type issue: {title}. Request content type not supported by CheckMK API. Detail: {detail}"

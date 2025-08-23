@@ -38,10 +38,12 @@ from handlers.metrics import MetricsHandler
 from handlers.monitoring import MonitoringHandler
 from handlers.passwords import PasswordsHandler
 from handlers.rules import RulesHandler
+from handlers.rulesets import RulesetsHandler
 from handlers.service_groups import ServiceGroupHandler
 from handlers.services import ServiceHandler
 from handlers.tags import TagsHandler
 from handlers.timeperiods import TimePeriodsHandler
+from handlers.user_roles import UserRolesHandler
 from handlers.users import UserHandler
 from mcp.tools import get_all_tools
 from utils import get_logger
@@ -74,8 +76,10 @@ class CheckMKMCPServer:
         folder_handler = FolderHandler(self.client)
         metrics_handler = MetricsHandler(self.client)
         user_handler = UserHandler(self.client)
+        user_roles_handler = UserRolesHandler(self.client)
         groups_handler = GroupsHandler(self.client)
         rules_handler = RulesHandler(self.client)
+        rulesets_handler = RulesetsHandler(self.client)
         tags_handler = TagsHandler(self.client)
         timeperiods_handler = TimePeriodsHandler(self.client)
         passwords_handler = PasswordsHandler(self.client)
@@ -148,6 +152,12 @@ class CheckMKMCPServer:
             "vibemk_delete_contact_group": user_handler,
             "vibemk_add_user_to_group": user_handler,
             "vibemk_remove_user_from_group": user_handler,
+            # User roles management
+            "vibemk_list_user_roles": user_roles_handler,
+            "vibemk_show_user_role": user_roles_handler,
+            "vibemk_create_user_role": user_roles_handler,
+            "vibemk_update_user_role": user_roles_handler,
+            "vibemk_delete_user_role": user_roles_handler,
             # Group management (host and service groups)
             "vibemk_get_host_groups": groups_handler,
             "vibemk_create_host_group": groups_handler,
@@ -164,6 +174,10 @@ class CheckMKMCPServer:
             "vibemk_update_rule": rules_handler,
             "vibemk_delete_rule": rules_handler,
             "vibemk_move_rule": rules_handler,
+            # Ruleset discovery and search
+            "vibemk_search_rulesets": rulesets_handler,
+            "vibemk_show_ruleset": rulesets_handler,
+            "vibemk_list_rulesets": rulesets_handler,
             # Tag management (host tags)
             "vibemk_get_host_tags": tags_handler,
             "vibemk_create_host_tag": tags_handler,

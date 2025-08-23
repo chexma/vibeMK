@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2025-08-23
+
+### Tested
+- **Cross-Version User Roles Compatibility** - Comprehensive testing across CheckMK versions
+  - Verified full compatibility of user roles management handler with CheckMK 2.3 and 2.4
+  - All CRUD operations (Create, Read, Update, Delete) work identically on both versions
+  - Documented permission count differences: Admin (576→580), User (446→448)
+  - Confirmed API endpoint stability and response structure consistency
+  - Enhanced cross-version testing methodology for future handler development
+
+### Technical Improvements
+- Complete test coverage for user roles handler across both CheckMK test instances
+- Validated seamless operation without code modifications between versions
+- Documented version differences for monitoring expansion in CheckMK 2.4
+
+## [0.3.5] - 2025-08-23
+
+### Fixed
+- **CheckMK Acknowledgement Handler** - Complete compatibility fix for both CheckMK 2.3 and 2.4
+  - Fixed version detection using API version endpoint with port fallback
+  - Unified endpoint usage: both versions use `domain-types/acknowledge/collections/host` and `domain-types/acknowledge/collections/service`
+  - Resolved HTTP 404 errors by removing incorrect legacy endpoint assumptions
+  - Proper handling of HTTP 422 responses for services not in problem state (correct behavior)
+
+### Enhanced
+- **Cross-Version Compatibility** - Seamless operation across CheckMK versions
+  - Automatic version detection (2.3 vs 2.4+) with fallback mechanisms
+  - Port-based version inference (8080 = 2.3, 8081 = 2.4+)
+  - CheckMK 2.4+ exclusive features (expire_on parameter) properly handled
+
+### Technical Improvements
+- Improved error handling with proper CheckMK API response interpretation
+- Enhanced logging for version detection and endpoint selection
+- Comprehensive test coverage against both CheckMK test instances
+- Updated documentation with working API endpoint patterns
+
 ## [0.3.3] - 2025-08-22
 
 ### Added
