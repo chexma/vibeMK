@@ -15,7 +15,8 @@ class TestMCPServer:
 
     @pytest.fixture
     def mcp_server(self):
-        """Create MCP server instance"""
+        """Create MCP server instance with proper test mode detection"""
+        # Create server with environment variables available
         with patch.dict(
             "os.environ",
             {
@@ -25,7 +26,20 @@ class TestMCPServer:
                 "CHECKMK_PASSWORD": "test_pass",
             },
         ):
-            return CheckMKMCPServer()
+            server = CheckMKMCPServer()
+            
+            # Replace the test handlers with proper Mock objects that _detect_test_mode will recognize
+            from unittest.mock import AsyncMock
+            server.connection_handler = AsyncMock()
+            server.host_handler = AsyncMock()
+            server.service_handler = AsyncMock()
+            server.monitoring_handler = AsyncMock()
+            server.configuration_handler = AsyncMock()
+            
+            # Mark as test mode to prevent initialization attempts
+            server._test_mode = True
+            
+            return server
 
     @pytest.mark.asyncio
     async def test_tools_list_request(self, mcp_server):

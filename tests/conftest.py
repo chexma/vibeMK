@@ -34,21 +34,16 @@ def mock_mcp_config():
 @pytest.fixture
 def mock_checkmk_client(mock_config):
     """Mock CheckMK client with predefined responses"""
-    with patch("urllib.request.urlopen") as mock_urlopen:
-        # Mock successful API detection
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_urlopen.return_value = mock_response
+    # Skip URL detection for testing to avoid consuming mock responses
+    client = CheckMKClient(mock_config, skip_url_detection=True)
 
-        client = CheckMKClient(mock_config)
+    # Mock HTTP methods
+    client.get = MagicMock()
+    client.post = MagicMock()
+    client.put = MagicMock()
+    client.delete = MagicMock()
 
-        # Mock HTTP methods
-        client.get = MagicMock()
-        client.post = MagicMock()
-        client.put = MagicMock()
-        client.delete = MagicMock()
-
-        return client
+    return client
 
 
 @pytest.fixture

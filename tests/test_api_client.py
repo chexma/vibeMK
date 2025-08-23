@@ -17,19 +17,14 @@ class TestCheckMKClient:
 
     def test_client_initialization(self, mock_config):
         """Test client initialization with config"""
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            # Mock successful API detection
-            mock_response = MagicMock()
-            mock_response.status = 200
-            mock_urlopen.return_value = mock_response
+        # Skip URL detection for testing
+        client = CheckMKClient(mock_config, skip_url_detection=True)
 
-            client = CheckMKClient(mock_config)
-
-            assert client.config == mock_config
-            assert client.api_base_url.startswith("http://test-checkmk.local:8080")
-            assert "Authorization" in client.headers
-            assert client.headers["Content-Type"] == "application/json"
-            assert client.headers["Accept"] == "application/json"
+        assert client.config == mock_config
+        assert client.api_base_url.startswith("http://test-checkmk.local:8080")
+        assert "Authorization" in client.headers
+        assert client.headers["Content-Type"] == "application/json"
+        assert client.headers["Accept"] == "application/json"
 
     def test_successful_get_request(self, mock_checkmk_client, mock_checkmk_responses):
         """Test successful GET request"""
@@ -56,18 +51,14 @@ class TestCheckMKClient:
     def test_authentication_error(self, mock_config):
         """Test authentication error handling"""
         with patch("urllib.request.urlopen") as mock_urlopen:
-            # Mock successful API detection first, then error
-            mock_response = MagicMock()
-            mock_response.status = 200
-
             # Mock 401 authentication error for the actual request
             error = urllib.error.HTTPError(url="test", code=401, msg="Unauthorized", hdrs={}, fp=None)
             error.read = MagicMock(return_value=b'{"title": "Unauthorized", "detail": "Invalid credentials"}')
 
-            # First call succeeds (API detection), second fails (actual request)
-            mock_urlopen.side_effect = [mock_response, error]
+            mock_urlopen.side_effect = error
 
-            client = CheckMKClient(mock_config)
+            # Skip URL detection for testing
+            client = CheckMKClient(mock_config, skip_url_detection=True)
 
             with pytest.raises(CheckMKAuthenticationError):
                 client.get("version")
@@ -75,11 +66,13 @@ class TestCheckMKClient:
     def test_connection_error(self, mock_config):
         """Test connection error handling"""
         with patch("urllib.request.urlopen") as mock_urlopen:
-            # Mock connection error for API detection
+            # Mock connection error for the request
             mock_urlopen.side_effect = urllib.error.URLError("Connection refused")
 
+            # Skip URL detection for testing
+            client = CheckMKClient(mock_config, skip_url_detection=True)
+
             with pytest.raises(CheckMKConnectionError):
-                client = CheckMKClient(mock_config)
                 client.get("version")
 
     def test_retry_mechanism(self, mock_config):
@@ -87,24 +80,26 @@ class TestCheckMKClient:
         mock_config.max_retries = 2
 
         with patch("urllib.request.urlopen") as mock_urlopen:
-            # First call succeeds (API detection), then fails, retries, succeeds
+            # Create a proper context manager mock for successful response
             mock_success_response = MagicMock()
             mock_success_response.status = 200
             mock_success_response.read.return_value = b'{"success": true, "data": {}}'
+            mock_success_response.__enter__.return_value = mock_success_response
+            mock_success_response.__exit__.return_value = False
 
             mock_error = urllib.error.HTTPError("test", 500, "Server Error", {}, None)
 
             mock_urlopen.side_effect = [
-                mock_success_response,  # API detection
                 mock_error,  # First request fails
                 mock_error,  # Retry fails
                 mock_success_response,  # Final retry succeeds
             ]
 
-            client = CheckMKClient(mock_config)
+            # Skip URL detection for testing
+            client = CheckMKClient(mock_config, skip_url_detection=True)
             result = client.get("version")
             assert result["success"] is True
-            assert mock_urlopen.call_count == 4  # API detection + 1 original + 2 retries
+            assert mock_urlopen.call_count == 3  # 1 original + 2 retries
 
     def test_url_encoding(self, mock_checkmk_client):
         """Test proper URL encoding for parameters"""
@@ -121,17 +116,17 @@ class TestCheckMKClient:
     def test_json_parsing_error(self, mock_config):
         """Test handling of invalid JSON responses"""
         with patch("urllib.request.urlopen") as mock_urlopen:
-            # Mock successful API detection, then invalid JSON response
-            mock_success_response = MagicMock()
-            mock_success_response.status = 200
-
+            # Mock invalid JSON response
             mock_invalid_response = MagicMock()
             mock_invalid_response.read.return_value = b'{"invalid": json}'
             mock_invalid_response.status = 200
+            mock_invalid_response.__enter__.return_value = mock_invalid_response
+            mock_invalid_response.__exit__.return_value = None
 
-            mock_urlopen.side_effect = [mock_success_response, mock_invalid_response]
+            mock_urlopen.return_value = mock_invalid_response
 
-            client = CheckMKClient(mock_config)
+            # Skip URL detection for testing
+            client = CheckMKClient(mock_config, skip_url_detection=True)
 
             with pytest.raises(CheckMKAPIError, match="Invalid JSON response"):
                 client.get("version")
@@ -141,8 +136,11 @@ class TestCheckMKClient:
         mock_config.timeout = 1  # Very short timeout
 
         with patch("urllib.request.urlopen") as mock_urlopen:
-            # Mock timeout during API detection
+            # Mock timeout during request
             mock_urlopen.side_effect = TimeoutError("Request timed out")
 
+            # Skip URL detection for testing
+            client = CheckMKClient(mock_config, skip_url_detection=True)
+
             with pytest.raises(CheckMKConnectionError, match="timeout"):
-                client = CheckMKClient(mock_config)
+                client.get("version")
