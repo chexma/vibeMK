@@ -12,267 +12,99 @@
 
 ## 🎯 Overview
 
-vibeMK enables complete management of your CheckMK monitoring environment directly through LLM interfaces using natural language. With **106+ available functions** and a completely refactored architecture, you can automate all important CheckMK operations efficiently and reliably.
+vibeMK enables complete management of your CheckMK monitoring environment directly through LLM interfaces using natural language.
+This project is in the alpha stage and under development. I accept no liability for any damage resulting from the use of this software.
 
-### ✨ Key Features
+### vibeMK - Current Features
 
-- 🖥️ **Host Management**: Create, configure, move, and delete hosts
-- ⚙️ **Service Management**: Service discovery, status monitoring, and configuration  
-- 🚨 **Problem Management**: View problems, acknowledge issues, and schedule downtimes
-- 📁 **Organization**: Folders, groups, and structured management
-- 👥 **User Management**: Manage users and contact groups
-- 🔄 **Configuration**: Activate changes and monitor system status
-- 📜 **Rule Management**: Configure monitoring rules and rulesets
-- 📊 **Enterprise Features**: BI, Agent Bakery, metrics (Enterprise Edition)
+## Live Monitoring ✅
+- **Host Status**: Real-time host state (UP/DOWN/UNREACHABLE) with hard state detection
+- **Service Status**: Live service monitoring (OK/WARNING/CRITICAL/UNKNOWN)
+- **Performance Metrics**: Retrieve metrics data with automatic discovery
+- **Current Problems**: Auto-detect all active monitoring issues
+
+## Downtime Management ✅
+- **Schedule Downtimes**: Create host/service downtimes with flexible duration parsing ("2h", "1h30m")
+- **List & Filter**: View all downtimes or filter for active ones only
+
+## Problem Management ✅
+- **Acknowledge Problems**: Set acknowledgements for host/service issues (sticky/persistent options)
+- **List Acknowledgements**: View all current problem acknowledgements
+- **Remove Acknowledgements**: Delete by pattern or individual removal
+
+## Configuration Management ✅
+- **Folders**: Create/delete monitoring folder structures
+- **Rules**: Create rules for 2000+ CheckMK ruleset types with proper format handling
+- **Time Periods**: Create custom notification schedules (business hours, 24/7, etc.)
+- **Host Groups**: Organize hosts into logical groups
+
+## User & Security ✅
+- **User Accounts**: Create/manage user accounts with role assignment
+- **Password Management**: Set passwords with policy enforcement
+- **Contact Groups**: Manage notification groups
+- **Host/Service Tags**: Comprehensive tagging system
 
 ## 🚀 Quick Start
 
-### 1. Installation
+```bash
+1. git clone https://github.com/chexma/vibeMK.git
+2. Edit the configuration file of your LLM Client, e.g. Claude Desktop - claude_desktop_config.json (See examples)
+3. Start your LLM Client
+4. CheckMK automation user setup (Administrator permissions or a customized role if changes are to be made, read-only if only analyses are to be performed.)
+5. voila - configure checkmk using natural language
+```
+**Complete Installation Guide**: See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions.
+**More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)  
+**Visual Examples**: See `examples/Screenshots/` for example prompts and usage patterns  
+
+
+## 💡 Practical Prompt Examples
 
 ```bash
-# Clone repository
-git clone https://github.com/chexma/vibeMK.git
-cd vibeMK
-
-# Ready to use! No dependencies needed - uses Python standard library only
-python main.py
-```
-
-📖 **Complete Installation Guide**: See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions including:
-- CheckMK automation user setup (Administrator role required)
-- LLM client configuration
-- Troubleshooting and testing
-
-### 2. Configuration Example
-
-Configure your LLM client (e.g., Claude Desktop) with:
-
-```json
-{
-  "mcpServers": {
-    "vibemk": {
-      "command": "python",
-      "args": ["/path/to/your/vibemk/main.py"],
-      "env": {
-        "CHECKMK_SERVER_URL": "https://your-checkmk-server.example.com",
-        "CHECKMK_SITE": "mysite",
-        "CHECKMK_USERNAME": "automation",
-        "CHECKMK_PASSWORD": "your-automation-password"
-      }
-    }
-  }
-}
-```
-
-📁 **More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)  
-📸 **Visual Examples**: See `examples/Screenshots/` for example prompts and usage patterns  
-💡 **Advanced Usage**: See `examples/ExamplePrompts.md` for complex scenarios and tips
-
-### 3. First Steps
-
-```bash
-# 1. Test connection
-debug_checkmk_connection
-
-# 2. List hosts
-get_checkmk_hosts
-
-# 3. Check current problems
-get_current_problems
-```
-
-## 📚 Available Functions
-
-### 🔍 Connection & Diagnostics (3 Functions)
-| Function | Description |
-|----------|-------------|
-| `debug_checkmk_connection` | Comprehensive connection diagnostics |
-| `test_all_endpoints` | Test all API endpoints |
-| `get_checkmk_version` | Display version and system information |
-
-### 🖥️ Host Management (8 Functions)
-| Function | Description |
-|----------|-------------|
-| `get_checkmk_hosts` | List hosts (with filtering) |
-| `get_host_status` | Get host status and state |
-| `get_host_details` | Detailed host information |
-| `get_host_config` | Display host configuration |
-| `create_host` | Create new host |
-| `delete_host` | Permanently remove host |
-| `update_host` | Modify host configuration |
-| `move_host` | Move host to different folder |
-
-### ⚙️ Service Management (6 Functions)
-| Function | Description |
-|----------|-------------|
-| `get_checkmk_services` | List services of a host |
-| `get_service_status` | Query service status |
-| `get_service_config` | Display service configuration |
-| `discover_services` | Discover services on host |
-| `get_service_discovery` | Show discovery results |
-| `bulk_discovery` | Bulk discovery for multiple hosts |
-
-### 🚨 Monitoring & Problems (5 Functions)
-| Function | Description |
-|----------|-------------|
-| `get_current_problems` | Display current problems |
-| `acknowledge_problem` | Mark problem as acknowledged |
-| `schedule_downtime` | Schedule maintenance window |
-| `remove_downtime` | End downtime early |
-| `reschedule_check` | Force immediate check |
-
-## 💡 Practical Examples
-
-### Daily Monitoring Routines
-
-```bash
-# Morning check
-"Show me all current problems and scheduled downtimes for today"
-
 # Add new server
-"Create a new host 'web-server-05' in folder '/servers/web' 
-with IP 192.168.1.105 and discover all services"
+"Create a new host 'web-server-05' in folder 'Servers' with IP 192.168.1.105 and discover all services"
 
 # Schedule maintenance
-"Schedule a 2-hour downtime for 'db-server-01' starting at 22:00 today 
-for database maintenance"
+"Schedule a 2-hour downtime for the service Check_MK on 'cephnode01' starting at 22:00 tomorrow for 'Debian Updates'"
+
+# Downtimes 
+"show me all current scheduled downtimes."
+
+# Metric analysis
+"Compare the “response_time” metric of the “HTTPS Webservice” service of the two hosts www.google.de and www.heise.de for the last ten minutes."
+
+# Ruleset analysis
+"analyze and compare the rulesets "Filesystems (used space and growth)" and see, if there are duplicates or if rules can be combined."
 ```
+**Advanced Usage**: See `examples/ExamplePrompts.md` for complex scenarios and tips
 
-### Automated Workflows
-
-```bash
-# Complete server setup
-"Create host 'app-server-03' in '/production/apps', IP 10.0.1.50,
-run service discovery, activate all changes"
-
-# Problem management
-"Show all critical problems, acknowledge the MySQL problem on db-01 
-with comment 'DBA is working on it'"
-```
-
-### 📚 More Examples & Resources
-
-- **📸 Visual Examples**: Check `examples/Screenshots/` for real LLM conversation examples with screenshots
-- **💡 Advanced Prompts**: See `examples/ExamplePrompts.md` for complex scenarios, tips, and best practices  
-- **⚙️ Configuration Examples**: Browse `examples/llm_configs/` for different LLM client setups
-
-## 🏗️ Architecture
-
-vibeMK features a clean, modular architecture:
-
-```
-vibeMK/
-├── main.py                     # Entry point
-├── config/                     # Configuration management
-│   ├── __init__.py
-│   └── settings.py
-├── api/                        # HTTP client and exceptions
-│   ├── __init__.py
-│   ├── client.py               # Robust HTTP client with retry logic
-│   └── exceptions.py           # Custom exception classes
-├── mcp/                        # MCP protocol handling
-│   ├── __init__.py
-│   ├── server.py              # MCP server implementation
-│   └── tools.py               # Tool definitions
-├── handlers/                   # Business logic handlers
-│   ├── __init__.py
-│   ├── base.py                # Base handler class
-│   ├── connection.py          # Connection & diagnostics
-│   ├── hosts.py              # Host management  
-│   ├── services.py           # Service management
-│   ├── monitoring.py         # Problem management
-│   └── configuration.py      # Configuration management
-└── utils/                      # Utilities
-    ├── __init__.py
-    └── logging.py             # Logging configuration
-```
+## 📚 Checkmk version compatibility
 
 | CheckMK Version | Compatibility | Features |
 |-----------------|---------------|----------|
-| **2.3.x** | ✅ Full | All features available |
-| **2.2.x** | ✅ Full | All features available |
-| **2.1.x** | ✅ Full | All features available |
-| **2.0.x** | ✅ Full | Basic REST API |
-| **1.6.x** | ⚠️ Limited | Web API only (legacy) |
+| **2.4.x** | ✅ Full     | All features available |
+| **2.3.x** | ✅ Full     | All features available |
+| **2.2.x** | ⚠️ Untested | |
+| **2.1.x** | ⚠️ Untested | |
+| **2.0.x** | ⚠️ Untested | |
+| **1.6.x** | 🔴 Unsupported| | 
 
-### Edition Support
+## Checkmk Edition Support
 
 - **Raw Edition**: Basic functions available
 - **Enterprise Edition**: All features including BI, Agent Bakery, Metrics
 - **Cloud Edition**: All Enterprise features
 
-## 🔍 Troubleshooting
+## Security considerations
 
-### Common Issues
+- Be aware of the potential security risks when you unleash AI on your checkmk
+- Use at your own risk
+- I accept no responsibility for actions performed by an AI
 
-#### Connection Errors
-```bash
-# Test command
-debug_checkmk_connection
-
-# Common solutions:
-# 1. Check server URL
-# 2. Test network connection: ping checkmk-server
-# 3. Check firewall rules
-```
-
-#### Authentication Errors
-```bash
-# Check automation user
-get_users
-
-# Validate permissions:
-# 1. User exists in CheckMK
-# 2. Password is correct
-# 3. User has API access
-```
-
-## 📚 Documentation
-
-- 📖 [Complete Installation Guide](INSTALL.md) - Step-by-step setup instructions
-- 📚 [Complete User Manual](USER_GUIDE.md)
-
-## 🤝 Contributing
-
-### Contribution Guidelines
-
-1. **Fork** the repository
-2. **Create branch**: `git checkout -b feature/new-feature`
-3. **Commit changes**: `git commit -m 'Add new feature'`
-4. **Push**: `git push origin feature/new-feature`
-5. **Create Pull Request**
-
-### Code Standards
-
-- **Python 3.8+** compatibility
-- **Use Type Hints**
-- **Async/Await** for I/O operations
-- **Comprehensive Error Handling**
-- **Unit Tests** for new features
-
-## 📄 License
+# 📄 License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
-
-### Documentation
-- 📖 [Complete Installation Guide](INSTALL.md) - CheckMK setup, user creation, troubleshooting
-- 📚 [Complete User Manual](USER_GUIDE.md)
-- 💡 [Advanced Example Prompts](examples/ExamplePrompts.md) - Complex scenarios and best practices
-- 📸 [Visual Examples](examples/Screenshots/) - Real conversation screenshots and usage patterns  
-- ⚙️ [Configuration Examples](examples/llm_configs/) - LLM client setup examples
-
-### Get Help
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/chexma/vibeMK/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/chexma/vibeMK/discussions)
-- 📧 **Email**: chexma@gmx.de
-
-### Community
-- 🌟 **Star** the repository if it's helpful
-- 🔄 **Fork** for your own customizations
-- 📢 **Share** with other CheckMK users
 
 ---
 
 **Happy Monitoring with CheckMK and LLMs!** 🎉
-
-*Automate your monitoring, save time, and focus on what matters.*# Test formatting fix
