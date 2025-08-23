@@ -24,24 +24,32 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest pytest-asyncio black isort mypy
+        # Install project in editable mode with dev dependencies
+        pip install -e ".[dev]"
         
     - name: Lint with black
       run: |
         black --check .
+      env:
+        PYTHONPATH: ${{ github.workspace }}
         
     - name: Sort imports with isort
       run: |
         isort --check-only --diff .
+      env:
+        PYTHONPATH: ${{ github.workspace }}
         
     - name: Type check with mypy
       run: |
         echo "mypy checks temporarily disabled for CI - type annotations need to be improved"
+      env:
+        PYTHONPATH: ${{ github.workspace }}
         
     - name: Test with pytest
       run: |
         pytest -v
       env:
+        PYTHONPATH: ${{ github.workspace }}
         CHECKMK_SERVER_URL: http://localhost:8080
         CHECKMK_SITE: test
         CHECKMK_USERNAME: automation
