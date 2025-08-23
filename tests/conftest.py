@@ -3,7 +3,7 @@ Pytest configuration and shared fixtures for vibeMK tests
 """
 
 from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -34,15 +34,21 @@ def mock_mcp_config():
 @pytest.fixture
 def mock_checkmk_client(mock_config):
     """Mock CheckMK client with predefined responses"""
-    client = CheckMKClient(mock_config)
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        # Mock successful API detection
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_urlopen.return_value = mock_response
 
-    # Mock HTTP methods
-    client.get = AsyncMock()
-    client.post = AsyncMock()
-    client.put = AsyncMock()
-    client.delete = AsyncMock()
+        client = CheckMKClient(mock_config)
 
-    return client
+        # Mock HTTP methods
+        client.get = MagicMock()
+        client.post = MagicMock()
+        client.put = MagicMock()
+        client.delete = MagicMock()
+
+        return client
 
 
 @pytest.fixture
