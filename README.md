@@ -15,30 +15,30 @@
 vibeMK enables complete management of your CheckMK monitoring environment directly through LLM interfaces using natural language.
 This project is in the alpha stage and under development. I accept no liability for any damage resulting from the use of this software.
 
-### vibeMK - Current Features
+## vibeMK - Current Features
 
-## Live Monitoring ✅
+### Live Monitoring ✅
 - **Host Status**: Real-time host state (UP/DOWN/UNREACHABLE) with hard state detection
 - **Service Status**: Live service monitoring (OK/WARNING/CRITICAL/UNKNOWN)
 - **Performance Metrics**: Retrieve metrics data with automatic discovery
 - **Current Problems**: Auto-detect all active monitoring issues
 
-## Downtime Management ✅
+### Downtime Management ✅
 - **Schedule Downtimes**: Create host/service downtimes with flexible duration parsing ("2h", "1h30m")
 - **List & Filter**: View all downtimes or filter for active ones only
 
-## Problem Management ✅
+### Problem Management ✅
 - **Acknowledge Problems**: Set acknowledgements for host/service issues (sticky/persistent options)
 - **List Acknowledgements**: View all current problem acknowledgements
 - **Remove Acknowledgements**: Delete by pattern or individual removal
 
-## Configuration Management ✅
+### Configuration Management ✅
 - **Folders**: Create/delete monitoring folder structures
 - **Rules**: Create rules for 2000+ CheckMK ruleset types with proper format handling
 - **Time Periods**: Create custom notification schedules (business hours, 24/7, etc.)
 - **Host Groups**: Organize hosts into logical groups
 
-## User & Security ✅
+### User & Security ✅
 - **User Accounts**: Create/manage user accounts with role assignment
 - **Password Management**: Set passwords with policy enforcement
 - **Contact Groups**: Manage notification groups
