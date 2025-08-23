@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vibemk"
-version = "0.3.8"
+version = "0.3.10"
 description = "vibeMK - CheckMK monitoring via LLM - MCP Server"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}

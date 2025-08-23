@@ -414,7 +414,7 @@ class HostHandler(BaseHandler):
             return self.error_response("Host creation failed", f"Could not create host '{host_name}': {error_details}")
 
     async def _update_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Update host configuration with flexible attribute management"""
+        """Update host configuration with proper CheckMK API compliance"""
         host_name = arguments.get("host_name")
         attributes = arguments.get("attributes", {})
         update_mode = arguments.get("update_mode", "update")  # update, overwrite, remove
@@ -423,58 +423,128 @@ class HostHandler(BaseHandler):
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
 
-        # Get current host configuration
+        # Validate specific attributes (alias, tag, ipaddress, site)
+        validation_errors = self._validate_host_update_attributes(attributes)
+        if validation_errors:
+            return self.error_response("Validation failed", "\\n".join(validation_errors))
+
+        # Get current host configuration with ETag for proper concurrency control
         current_config = self.client.get(f"objects/host_config/{host_name}")
         if not current_config.get("success"):
             return self.error_response("Host not found", f"Host '{host_name}' not found")
 
+        # Extract ETag for If-Match header (required by CheckMK API)
+        etag = current_config.get("headers", {}).get("ETag")
+        if not etag:
+            # Fallback: try legacy location or warn
+            etag = current_config["data"].get("extensions", {}).get("meta_data", {}).get("etag")
+            if not etag:
+                self.logger.debug("No ETag found in host config, this may cause issues with concurrent updates")
+
         current_attributes = current_config["data"].get("extensions", {}).get("attributes", {})
 
-        # Apply different update modes for flexible configuration
+        # Build proper CheckMK API request based on update mode
+        # Note: CheckMK 2.2.0p7+ does not support simultaneous use of attributes, update_attributes, and remove_attributes
         if update_mode == "overwrite":
-            final_attributes = attributes.copy()
+            # Use 'attributes' to completely replace all attributes
+            if remove_attributes:
+                return self.error_response(
+                    "Invalid combination",
+                    "Cannot use 'remove_attributes' with 'overwrite' mode. Use 'remove' mode instead.",
+                )
+            data = {"attributes": attributes}
+            operation_description = "Complete replacement of host attributes"
+
         elif update_mode == "remove":
-            final_attributes = current_attributes.copy()
-            for attr in remove_attributes:
-                final_attributes.pop(attr, None)
+            # Use 'remove_attributes' to remove specific attributes
+            if attributes:
+                return self.error_response(
+                    "Invalid combination", "Cannot specify 'attributes' with 'remove' mode. Use 'update' mode instead."
+                )
+            if not remove_attributes:
+                return self.error_response("Missing parameter", "remove_attributes is required for 'remove' mode")
+            data = {"remove_attributes": remove_attributes}
+            operation_description = f"Removing attributes: {', '.join(remove_attributes)}"
+
         else:  # update mode (default)
-            final_attributes = current_attributes.copy()
-            final_attributes.update(attributes)
+            # Use 'update_attributes' to merge with existing attributes
+            if remove_attributes:
+                return self.error_response(
+                    "Invalid combination",
+                    "Cannot use 'remove_attributes' with 'update' mode. Use 'remove' mode instead.",
+                )
+            data = {"update_attributes": attributes}
+            operation_description = "Merging with existing host attributes"
 
-        # Compare with current state
-        changes = self._compare_attributes(current_attributes, final_attributes)
-        if not changes["has_changes"]:
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"ℹ️ **No Changes Required**\\n\\n"
-                        f"Host '{host_name}' is already in the desired state.\\n"
-                        f"No attribute changes detected."
-                    ),
-                }
-            ]
+        # Prepare headers with ETag if available
+        headers = {}
+        if etag:
+            headers["If-Match"] = etag
 
-        data = {"attributes": final_attributes}
-        result = self.client.put(f"objects/host_config/{host_name}", data=data)
+        # Perform the update with proper error handling
+        try:
+            result = self.client.put(f"objects/host_config/{host_name}", data=data, headers=headers)
 
-        if result.get("success"):
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"✅ **Host Updated Successfully**\\n\\n"
-                        f"**Host:** {host_name}\\n"
-                        f"**Update Mode:** {update_mode}\\n\\n"
-                        f"📋 **Changes Applied:**\\n"
-                        + self._format_attribute_changes(changes)
-                        + f"\\n⚠️ **Remember to activate changes!**"
-                    ),
-                }
-            ]
-        else:
-            error_details = result.get("data", {})
-            return self.error_response("Host update failed", f"Could not update host '{host_name}': {error_details}")
+            if result.get("success"):
+                # Calculate what actually changed for better user feedback
+                if update_mode == "update":
+                    changes = self._compare_attributes(current_attributes, {**current_attributes, **attributes})
+                elif update_mode == "overwrite":
+                    changes = self._compare_attributes(current_attributes, attributes)
+                else:  # remove
+                    removed_attrs = {
+                        attr: current_attributes.get(attr) for attr in remove_attributes if attr in current_attributes
+                    }
+                    changes = {
+                        "has_changes": bool(removed_attrs),
+                        "removed": removed_attrs,
+                        "added": {},
+                        "modified": {},
+                    }
+
+                return [
+                    {
+                        "type": "text",
+                        "text": (
+                            f"✅ **Host Updated Successfully**\\n\\n"
+                            f"**Host:** {host_name}\\n"
+                            f"**Update Mode:** {update_mode}\\n"
+                            f"**Operation:** {operation_description}\\n\\n"
+                            f"📋 **Changes Applied:**\\n"
+                            + (
+                                self._format_attribute_changes(changes)
+                                if changes["has_changes"]
+                                else "No changes detected"
+                            )
+                            + f"\\n\\n⚠️ **Remember to activate changes!**\\n"
+                            f"💡 Use 'vibemk_activate_changes' to apply the configuration"
+                        ),
+                    }
+                ]
+            else:
+                error_details = result.get("data", {})
+                # Enhanced error handling for common CheckMK API issues
+                error_message = str(error_details)
+
+                if "ETag" in error_message or "If-Match" in error_message:
+                    return self.error_response(
+                        "Concurrent modification detected",
+                        f"Host '{host_name}' was modified by another process. Please retry the operation.",
+                    )
+                elif "400" in str(result.get("status", "")):
+                    return self.error_response(
+                        "Invalid request", f"CheckMK API validation failed for host '{host_name}': {error_details}"
+                    )
+                else:
+                    return self.error_response(
+                        "Host update failed", f"Could not update host '{host_name}': {error_details}"
+                    )
+
+        except Exception as e:
+            self.logger.exception(f"Host update operation failed for {host_name}")
+            return self.error_response(
+                "Update operation failed", f"Unexpected error updating host '{host_name}': {str(e)}"
+            )
 
     async def _delete_host(self, host_name: str) -> List[Dict[str, Any]]:
         """Delete a host"""
@@ -809,3 +879,68 @@ class HostHandler(BaseHandler):
                 output += f"• {key}: {value}\\n"
 
         return output
+
+    def _validate_host_update_attributes(self, attributes: Dict[str, Any]) -> List[str]:
+        """Validate host update attributes for common CheckMK attributes"""
+        errors = []
+
+        # Validate IP address
+        if "ipaddress" in attributes:
+            ip_address = attributes["ipaddress"]
+            if not self._validate_ip_address(ip_address):
+                errors.append(f"Invalid IP address format: '{ip_address}'")
+
+        # Validate site
+        if "site" in attributes:
+            site = attributes["site"]
+            if not isinstance(site, str) or not site.strip():
+                errors.append("Site must be a non-empty string")
+            elif not self._validate_site_name(site):
+                errors.append(
+                    f"Invalid site name format: '{site}'. Must contain only letters, numbers, and underscores"
+                )
+
+        # Validate alias
+        if "alias" in attributes:
+            alias = attributes["alias"]
+            if not isinstance(alias, str):
+                errors.append("Alias must be a string")
+            elif len(alias) > 255:
+                errors.append("Alias cannot be longer than 255 characters")
+
+        # Validate tag attributes (tags must be prefixed with 'tag_')
+        for key, value in attributes.items():
+            if key.startswith("tag_"):
+                tag_name = key[4:]  # Remove 'tag_' prefix
+                if not self._validate_tag_name(tag_name):
+                    errors.append(
+                        f"Invalid tag name: '{tag_name}'. Must contain only letters, numbers, and underscores"
+                    )
+                if not isinstance(value, str):
+                    errors.append(f"Tag value for '{key}' must be a string")
+            elif key in ["tag", "tags"]:
+                errors.append(f"Tag attributes must be prefixed with 'tag_'. Use 'tag_{key}' instead of '{key}'")
+
+        return errors
+
+    def _validate_site_name(self, site_name: str) -> bool:
+        """Validate CheckMK site name format"""
+        if not site_name:
+            return False
+
+        import re
+
+        # CheckMK site name pattern: letters, numbers, underscores
+        pattern = r"^[a-zA-Z0-9_]+$"
+        return re.match(pattern, site_name) is not None
+
+    def _validate_tag_name(self, tag_name: str) -> bool:
+        """Validate CheckMK tag name format"""
+        if not tag_name:
+            return False
+
+        import re
+
+        # CheckMK tag name pattern: letters, numbers, underscores
+        pattern = r"^[a-zA-Z0-9_]+$"
+        return re.match(pattern, tag_name) is not None

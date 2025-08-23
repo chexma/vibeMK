@@ -24,10 +24,19 @@ If in doubt, test all prompts in a test environment beforehand. Multiple checkmk
 
 ## Folders
 
-1. Create folders with the name and description of the airport codes of the ten largest countries in europe in checkmk, use the abbreviation for the id and the description. Don´t activate  the changes.
+1. Create folders with the name and description of the three character airport codes of the ten largest countries in europe in checkmk, use the code for the id and the name of the folders. Don´t activate the changes.
 
 2. Delete the folder that is exactly called Servers, if there is none, stop.
 
 ## Downtimes
 
 1. Show all configured host and service downtimes
+
+## Tags / Tag groups
+
+1. Add a new tag group called location with the following tags:
+location_cologne:Cologne
+location_newyork:NewYork
+location_shanghai:Shanghai
+
+2. Add a new tag to the tag group location: location_saopaulo:Sao Paulo

@@ -1,6 +1,6 @@
 # vibeMK Screenshots
 
-This document showcases the capabilities of vibeMK through visual examples of its functionality.
+This document showcases the capabilities of vibeMK.
 
 ## Downtime Management
 
@@ -22,3 +22,8 @@ This document showcases the capabilities of vibeMK through visual examples of it
 
 ### Compare Rulesets
 ![Compare Rulesets](Images/compare_rulesets.png)
+
+## Tag Management
+
+### Add Tag to Tag Group
+![Add Tag to Tag Group](Images/add_tag_to_taggroup.png)

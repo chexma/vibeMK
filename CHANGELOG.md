@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.10] - 2025-08-23
+### Added
+- Enhanced Host Attribute Updates for ipaddress, alias and tags
+
 ## [0.3.9] - 2025-08-23
-### Changed
+### Changed  
 - Version increment
 
 ## [0.3.6] - 2025-08-23

@@ -177,6 +177,7 @@ class CheckMKClient:
                     "data": parsed_data,
                     "success": True,
                     "raw_content": response_data,  # Keep raw content for view API parsing
+                    "headers": dict(response.headers),  # Include response headers for ETag support
                 }
 
                 logger.debug(f"Response: {response.status}")
