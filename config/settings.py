@@ -67,4 +67,4 @@ class MCPConfig:
 
     protocol_version: str = "2024-11-05"
     server_name: str = "vibeMK"
-    server_version: str = "0.1.0"
+    server_version: str = "0.3.8"

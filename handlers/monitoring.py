@@ -58,40 +58,85 @@ class MonitoringHandler(BaseHandler):
 
     async def _get_current_problems(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get current problems (hosts and services with issues)"""
-        params = {}
-        if host_name := arguments.get("host_name"):
-            params["host_name"] = host_name
-
-        # Query for host problems (state != 0)
-        host_params = dict(params)
-        host_params["query"] = '{"op": "!=", "left": "state", "right": "0"}'
-        host_result = self.client.get("domain-types/host/collections/all", params=host_params)
-
-        # Query for service problems (state != 0)
-        service_params = dict(params)
-        service_params["query"] = '{"op": "!=", "left": "state", "right": "0"}'
-        service_result = self.client.get("domain-types/service/collections/all", params=service_params)
-
+        target_host = arguments.get("host_name")
         problems = []
 
-        # Process host problems
-        if host_result.get("success"):
-            hosts = host_result["data"].get("value", [])
-            for host in hosts[:10]:  # Limit display
-                host_name = host.get("id", "Unknown")
-                state = host.get("extensions", {}).get("state", 0)
-                state_name = {1: "DOWN", 2: "UNREACHABLE"}.get(state, f"STATE({state})")
-                problems.append(f"🖥️ HOST: {host_name} - {state_name}")
+        try:
+            # First get list of all hosts to check their live status
+            host_list_result = self.client.get("domain-types/host_config/collections/all")
 
-        # Process service problems
-        if service_result.get("success"):
-            services = service_result["data"].get("value", [])
-            for service in services[:20]:  # Limit display
-                host_name = service.get("extensions", {}).get("host_name", "Unknown")
-                description = service.get("extensions", {}).get("description", "Unknown")
-                state = service.get("extensions", {}).get("state", 0)
-                state_name = {1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN"}.get(state, f"STATE({state})")
-                problems.append(f"🔧 SERVICE: {host_name}/{description} - {state_name}")
+            if host_list_result.get("success"):
+                hosts = host_list_result["data"].get("value", [])
+
+                # Filter to specific host if requested
+                if target_host:
+                    hosts = [h for h in hosts if h.get("id") == target_host]
+
+                # Check each host's live status using the documented endpoint
+                for host in hosts[:20]:  # Limit processing
+                    host_name = host.get("id", "Unknown")
+
+                    # Get live host status with columns parameter (as documented in CLAUDE.md)
+                    host_status = self.client.get(
+                        f"objects/host/{host_name}",
+                        params={"columns": ["state", "hard_state", "state_type", "plugin_output"]},
+                    )
+
+                    if host_status.get("success"):
+                        extensions = host_status["data"].get("extensions", {})
+                        state = extensions.get("state", 0)
+                        hard_state = extensions.get("hard_state", 0)
+                        state_type = extensions.get("state_type", 0)
+
+                        # Use hard_state if state_type = 1 (hard state), otherwise soft state
+                        current_state = hard_state if state_type == 1 else state
+
+                        # Only include hosts with problems (state != 0)
+                        if current_state != 0:
+                            state_name = {1: "DOWN", 2: "UNREACHABLE"}.get(current_state, f"STATE({current_state})")
+                            problems.append(f"🖥️ HOST: {host_name} - {state_name}")
+
+            # Get list of all services to check their live status
+            service_list_result = self.client.get("domain-types/service/collections/all")
+
+            if service_list_result.get("success"):
+                services = service_list_result["data"].get("value", [])
+
+                # Filter to specific host if requested
+                if target_host:
+                    services = [s for s in services if s.get("extensions", {}).get("host_name") == target_host]
+
+                # Check each service's live status using the documented endpoint
+                for service in services[:50]:  # Limit processing
+                    service_ext = service.get("extensions", {})
+                    host_name = service_ext.get("host_name", "Unknown")
+                    description = service_ext.get("description", "Unknown")
+
+                    if host_name != "Unknown" and description != "Unknown":
+                        # Get live service status using show_service action (as documented in CLAUDE.md)
+                        service_status = self.client.get(
+                            f"objects/host/{host_name}/actions/show_service/invoke",
+                            params={"service_description": description},
+                        )
+
+                        if service_status.get("success"):
+                            extensions = service_status["data"].get("extensions", {})
+                            state = extensions.get("state", 0)
+                            state_type = extensions.get("state_type", 0)
+
+                            # For services, use state directly (hard_state may not be available in service API)
+                            current_state = state
+
+                            # Only include services with problems (state != 0)
+                            if current_state != 0:
+                                state_name = {1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN"}.get(
+                                    current_state, f"STATE({current_state})"
+                                )
+                                problems.append(f"🔧 SERVICE: {host_name}/{description} - {state_name}")
+
+        except Exception as e:
+            self.logger.error(f"Error getting current problems: {e}")
+            return self.error_response("Error retrieving problems", str(e))
 
         if not problems:
             return [{"type": "text", "text": "✅ No current problems found"}]

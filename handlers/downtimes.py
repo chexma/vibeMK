@@ -26,6 +26,8 @@ class DowntimeHandler(BaseHandler):
                 return await self._delete_downtime(arguments)
             elif tool_name == "vibemk_get_active_downtimes":
                 return await self._get_active_downtimes(arguments)
+            elif tool_name == "vibemk_check_host_downtime_status":
+                return await self._check_host_downtime_status(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
@@ -546,61 +548,137 @@ class DowntimeHandler(BaseHandler):
         except (ValueError, TypeError):
             return 0.0
 
+    def _get_time_only(self, timestamp) -> str:
+        """Extract time-only format (HH:MM) from various timestamp formats"""
+        try:
+            if isinstance(timestamp, str):
+                dt = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                return dt.strftime("%H:%M")
+            elif isinstance(timestamp, (int, float)):
+                dt = datetime.datetime.fromtimestamp(timestamp)
+                return dt.strftime("%H:%M")
+            else:
+                # Fallback: try to extract from formatted string
+                timestamp_str = self._format_timestamp(timestamp)
+                return timestamp_str.split()[-1] if " " in timestamp_str else timestamp_str[:5]
+        except (ValueError, TypeError, AttributeError):
+            return str(timestamp)[:5]  # Return first 5 chars as fallback
+
     def _format_downtimes_list(self, downtimes: List[Dict], host_filter: str = None) -> str:
-        """Format downtimes list for display"""
+        """Format downtimes list for display, clearly distinguishing host downtimes vs service downtimes"""
         if not downtimes:
             filter_text = f" for host '{host_filter}'" if host_filter else ""
             return f"📋 **No Downtimes Found**\n\nNo active downtimes{filter_text}"
 
         filter_text = f" for host '{host_filter}'" if host_filter else ""
         response = f"📋 **Downtimes List{filter_text}**\n\n"
-        response += f"Found {len(downtimes)} downtimes:\n\n"
 
-        for i, downtime in enumerate(downtimes[:10], 1):  # Limit to 10 for readability
+        # Separate host downtimes from service downtimes
+        host_downtimes = []
+        service_downtimes = []
+
+        for downtime in downtimes[:30]:  # Increased limit for better visibility
             extensions = downtime.get("extensions", {})
+            # Handle different API response formats for is_service
+            is_service_raw = extensions.get("is_service", 0)
+            is_service = is_service_raw == 1 or is_service_raw == "yes" or is_service_raw == "1"
 
-            downtime_id = downtime.get("id", "Unknown")
-            host_name = extensions.get("host_name", "Unknown")
-            comment = extensions.get("comment", "No comment")
-            is_service = extensions.get("is_service", 0) == 1
-            is_pending = extensions.get("is_pending", 0) == 1
-
-            # Format times (handle both Unix timestamps and ISO format)
-            start_time = extensions.get("start_time", 0)
-            end_time = extensions.get("end_time", 0)
-            start_str = self._format_timestamp(start_time)
-            end_str = self._format_timestamp(end_time)
-
-            # Status
-            if is_pending:
-                status = "🟡 Pending"
+            if is_service:
+                service_downtimes.append(downtime)
             else:
-                now = datetime.datetime.now().timestamp()
-                start_unix = self._timestamp_to_unix(start_time)
-                end_unix = self._timestamp_to_unix(end_time)
+                host_downtimes.append(downtime)
 
-                if start_unix <= now <= end_unix:
-                    status = "🔴 Active"
-                elif now < start_unix:
-                    status = "🟡 Scheduled"
-                else:
-                    status = "✅ Completed"
+        # Show summary counts
+        total_count = len(host_downtimes) + len(service_downtimes)
+        response += f"Found {total_count} downtimes: "
+        response += f"**{len(host_downtimes)} Host-Level** + **{len(service_downtimes)} Service-Level**\n\n"
 
-            response += f"**{i}. Downtime #{downtime_id}**\n"
-            response += f"   Host: {host_name}\n"
-            response += f"   Type: {'Service' if is_service else 'Host'}\n"
-            response += f"   Status: {status}\n"
-            response += f"   Start: {start_str}\n"
-            response += f"   End: {end_str}\n"
-            response += f"   Comment: {comment}\n"
+        # Section 1: HOST DOWNTIMES (suppress all host and service alerts)
+        if host_downtimes:
+            response += "🏠 **HOST DOWNTIMES** (suppress ALL alerts for these hosts)\n"
+            response += "=" * 60 + "\n\n"
 
-            if is_service and extensions.get("service_description"):
-                response += f"   Service: {extensions.get('service_description')}\n"
+            # Group host downtimes by host
+            host_grouped = {}
+            for downtime in host_downtimes:
+                extensions = downtime.get("extensions", {})
+                host_name = extensions.get("host_name", "Unknown")
 
-            response += "\n"
+                if host_name not in host_grouped:
+                    host_grouped[host_name] = []
+                host_grouped[host_name].append(downtime)
 
-        if len(downtimes) > 10:
-            response += f"... and {len(downtimes) - 10} more downtimes\n"
+            for host_name, host_dt_list in sorted(host_grouped.items()):
+                response += (
+                    f"**{host_name}** ({len(host_dt_list)} host downtime{'s' if len(host_dt_list) != 1 else ''})\n"
+                )
+                for downtime in host_dt_list:
+                    extensions = downtime.get("extensions", {})
+                    downtime_id = downtime.get("id", "Unknown")
+                    comment = extensions.get("comment", "No comment")
+
+                    start_time = extensions.get("start_time", 0)
+                    end_time = extensions.get("end_time", 0)
+                    start_time_only = self._get_time_only(start_time)
+                    end_time_only = self._get_time_only(end_time)
+
+                    response += f"  • Downtime #{downtime_id}: {start_time_only} - {end_time_only}\n"
+                    response += f'    Comment: "{comment}"\n'
+                    response += f"    **Effect**: Host DOWN/UNREACHABLE + ALL service alerts suppressed\n\n"
+
+        # Section 2: SERVICE DOWNTIMES (only suppress specific service alerts)
+        if service_downtimes:
+            response += "🔧 **SERVICE DOWNTIMES** (suppress only specific service alerts)\n"
+            response += "=" * 60 + "\n\n"
+
+            # Group service downtimes by host, then by service
+            service_grouped = {}
+            for downtime in service_downtimes:
+                extensions = downtime.get("extensions", {})
+                host_name = extensions.get("host_name", "Unknown")
+                service_description = extensions.get("service_description", "Unknown Service")
+
+                if host_name not in service_grouped:
+                    service_grouped[host_name] = {}
+                if service_description not in service_grouped[host_name]:
+                    service_grouped[host_name][service_description] = []
+
+                service_grouped[host_name][service_description].append(downtime)
+
+            for host_name, services_dict in sorted(service_grouped.items()):
+                response += f"**{host_name}** ({len(services_dict)} service{'s' if len(services_dict) != 1 else ''} with downtimes)\n"
+
+                for service_name, service_dt_list in sorted(services_dict.items()):
+                    response += f"  📋 **{service_name}** ({len(service_dt_list)} downtime{'s' if len(service_dt_list) != 1 else ''})\n"
+
+                    for downtime in service_dt_list:
+                        extensions = downtime.get("extensions", {})
+                        downtime_id = downtime.get("id", "Unknown")
+                        comment = extensions.get("comment", "No comment")
+
+                        start_time = extensions.get("start_time", 0)
+                        end_time = extensions.get("end_time", 0)
+                        start_time_only = self._get_time_only(start_time)
+                        end_time_only = self._get_time_only(end_time)
+
+                        response += f"    • Downtime #{downtime_id}: {start_time_only} - {end_time_only}\n"
+                        response += f'      Comment: "{comment}"\n'
+                        response += (
+                            f"      **Effect**: Only '{service_name}' alerts suppressed, host alerts STILL FIRE\n\n"
+                        )
+
+                response += "\n"  # Extra space between hosts
+
+        # Show additional context if needed
+        if len(downtimes) > 30:
+            response += f"... and {len(downtimes) - 30} more downtimes (showing first 30)\n\n"
+
+        # Add helpful footer explaining the distinction
+        response += "💡 **Key Distinction:**\n"
+        response += "   • **Host Downtimes**: Suppress both host alerts (DOWN/UNREACHABLE) AND all service alerts\n"
+        response += (
+            "   • **Service Downtimes**: Suppress only the specific service alerts, host alerts continue to fire\n"
+        )
 
         response += "💡 **Tip:** Use `vibemk_delete_downtime` with downtime ID to cancel a downtime"
         return response
@@ -655,6 +733,264 @@ class DowntimeHandler(BaseHandler):
 
         response += "💡 **Info:** These downtimes are currently suppressing alerts"
         return response
+
+    async def _get_host_downtime_status(self, host_name: str) -> Dict[str, Any]:
+        """
+        Get detailed downtime status for a specific host using precise CheckMK queries.
+        This method properly distinguishes between host-level and service-level downtimes
+        using the CheckMK Livestatus query format for maximum accuracy.
+
+        Returns:
+            Dict containing:
+            - has_host_downtime: bool - True if the host object itself has a downtime
+            - has_service_downtimes: bool - True if any services on the host have downtimes
+            - host_downtime_count: int - Number of host-level downtimes
+            - service_downtime_count: int - Number of service-level downtimes
+            - active_host_downtimes: List[Dict] - Active host downtimes
+            - active_service_downtimes: List[Dict] - Active service downtimes
+        """
+        try:
+            # Query 1: Get host-level downtimes only (is_service = 0)
+            host_query = {
+                "op": "and",
+                "expr": [
+                    {"op": "=", "left": "host_name", "right": host_name},
+                    {"op": "=", "left": "is_service", "right": "0"},
+                ],
+            }
+
+            # Query 2: Get service-level downtimes only (is_service = 1)
+            service_query = {
+                "op": "and",
+                "expr": [
+                    {"op": "=", "left": "host_name", "right": host_name},
+                    {"op": "=", "left": "is_service", "right": "1"},
+                ],
+            }
+
+            # Execute both queries in parallel for better performance
+            import json
+
+            host_params = {"query": json.dumps(host_query)}
+            service_params = {"query": json.dumps(service_query)}
+
+            # Get host downtimes
+            host_result = self.client.get("domain-types/downtime/collections/all", params=host_params)
+            if not host_result.get("success"):
+                raise Exception(
+                    f"Failed to query host downtimes: {host_result.get('data', {}).get('title', 'Unknown error')}"
+                )
+
+            # Get service downtimes
+            service_result = self.client.get("domain-types/downtime/collections/all", params=service_params)
+            if not service_result.get("success"):
+                raise Exception(
+                    f"Failed to query service downtimes: {service_result.get('data', {}).get('title', 'Unknown error')}"
+                )
+
+            # Process results
+            host_downtimes = host_result["data"].get("value", [])
+            service_downtimes = service_result["data"].get("value", [])
+
+            now = datetime.datetime.now().timestamp()
+            active_host_downtimes = []
+            active_service_downtimes = []
+
+            # Filter for currently active host downtimes
+            for downtime in host_downtimes:
+                if self._is_downtime_active(downtime, now):
+                    active_host_downtimes.append(downtime)
+
+            # Filter for currently active service downtimes
+            for downtime in service_downtimes:
+                if self._is_downtime_active(downtime, now):
+                    active_service_downtimes.append(downtime)
+
+            return {
+                "has_host_downtime": len(active_host_downtimes) > 0,
+                "has_service_downtimes": len(active_service_downtimes) > 0,
+                "host_downtime_count": len(active_host_downtimes),
+                "service_downtime_count": len(active_service_downtimes),
+                "active_host_downtimes": active_host_downtimes,
+                "active_service_downtimes": active_service_downtimes,
+                "total_host_downtimes": len(host_downtimes),
+                "total_service_downtimes": len(service_downtimes),
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error getting host downtime status for {host_name}: {e}")
+            return {
+                "has_host_downtime": False,
+                "has_service_downtimes": False,
+                "host_downtime_count": 0,
+                "service_downtime_count": 0,
+                "active_host_downtimes": [],
+                "active_service_downtimes": [],
+                "error": str(e),
+            }
+
+    def _is_downtime_active(self, downtime: Dict[str, Any], current_timestamp: float) -> bool:
+        """
+        Check if a downtime is currently active based on its start and end times.
+
+        Args:
+            downtime: Downtime object from CheckMK API
+            current_timestamp: Current Unix timestamp to compare against
+
+        Returns:
+            True if the downtime is currently active, False otherwise
+        """
+        try:
+            extensions = downtime.get("extensions", {})
+            start_time = extensions.get("start_time", 0)
+            end_time = extensions.get("end_time", 0)
+
+            # Handle different timestamp formats from CheckMK API
+            if isinstance(start_time, str):
+                try:
+                    start_time_dt = datetime.datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                    start_time = start_time_dt.timestamp()
+                except (ValueError, AttributeError):
+                    try:
+                        start_time = float(start_time)
+                    except (ValueError, TypeError):
+                        return False
+
+            if isinstance(end_time, str):
+                try:
+                    end_time_dt = datetime.datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                    end_time = end_time_dt.timestamp()
+                except (ValueError, AttributeError):
+                    try:
+                        end_time = float(end_time)
+                    except (ValueError, TypeError):
+                        return False
+
+            # Check if current time is within the downtime window
+            return start_time <= current_timestamp <= end_time
+
+        except Exception as e:
+            self.logger.warning(f"Error checking downtime active status: {e}")
+            return False
+
+    async def _check_host_downtime_status(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Check the downtime status for a specific host, properly distinguishing between
+        host-level downtimes and service-level downtimes.
+        """
+        host_name = arguments.get("host_name")
+        if not host_name:
+            return self.error_response("Missing parameter", "host_name is required")
+
+        # Get detailed downtime status
+        status = await self._get_host_downtime_status(host_name)
+
+        if "error" in status:
+            return self.error_response("Error checking downtime status", status["error"])
+
+        # Build response message
+        response = f"🔍 **Downtime Status for Host: {host_name}**\n\n"
+
+        # Host-level downtime status
+        if status["has_host_downtime"]:
+            response += f"🏠 **Host Object Downtime:** ✅ **YES** - Host is covered by {status['host_downtime_count']} active host-level downtime(s)\n"
+        else:
+            response += f"🏠 **Host Object Downtime:** ❌ **NO** - Host object has no active downtimes\n"
+
+        # Service-level downtime status
+        if status["has_service_downtimes"]:
+            response += f"🔧 **Service Downtimes:** ✅ **YES** - {status['service_downtime_count']} service(s) on this host have active downtimes\n"
+        else:
+            response += f"🔧 **Service Downtimes:** ❌ **NO** - No services on this host have active downtimes\n"
+
+        response += "\n"
+
+        # Summary interpretation with clear distinction
+        if status["has_host_downtime"]:
+            response += "🎯 **CRITICAL DISTINCTION:** This host HAS host-level downtimes.\n"
+            response += "   ✅ Host alerts (host DOWN, UNREACHABLE) are SUPPRESSED\n"
+            response += "   ✅ All service alerts on this host are also SUPPRESSED\n"
+            response += "   📊 Alert Status: HOST and SERVICE alerts both suppressed\n"
+        elif status["has_service_downtimes"]:
+            response += "⚠️ **CRITICAL DISTINCTION:** This host has NO host-level downtimes.\n"
+            response += "   ❌ Host alerts (host DOWN, UNREACHABLE) will FIRE normally\n"
+            response += "   ✅ Only specific service alerts are suppressed by service downtimes\n"
+            response += "   📊 Alert Status: HOST alerts ACTIVE, some SERVICE alerts suppressed\n"
+            response += "   💡 To suppress host alerts, you need a separate HOST downtime\n"
+        else:
+            response += "🔴 **NO DOWNTIMES:** This host has neither host nor service downtimes.\n"
+            response += "   ❌ Host alerts (host DOWN, UNREACHABLE) will FIRE normally\n"
+            response += "   ❌ All service alerts will FIRE normally\n"
+            response += "   📊 Alert Status: ALL alerts are ACTIVE\n"
+
+        response += "\n"
+
+        # Details section
+        if status["active_host_downtimes"]:
+            response += "📋 **Active Host Downtimes:**\n"
+            for downtime in status["active_host_downtimes"]:
+                extensions = downtime.get("extensions", {})
+                comment = extensions.get("comment", "No comment")
+                response += f"   • Downtime #{downtime.get('id')}: {comment}\n"
+            response += "\n"
+
+        if status["active_service_downtimes"]:
+            response += "📋 **Active Service Downtimes:**\n"
+            for downtime in status["active_service_downtimes"]:
+                extensions = downtime.get("extensions", {})
+                service = extensions.get("service_description", "Unknown")
+                comment = extensions.get("comment", "No comment")
+                response += f"   • Service '{service}' (#{downtime.get('id')}): {comment}\n"
+            response += "\n"
+
+        response += "💡 **Usage:** This tool helps distinguish between host-level and service-level downtimes\n"
+        response += "   for proper alerting analysis and downtime troubleshooting."
+
+        return [{"type": "text", "text": response}]
+
+    async def has_host_level_downtime(self, host_name: str) -> bool:
+        """
+        Simple method to check if a host has HOST-level downtimes (not service downtimes).
+        This can be used by other handlers that need to know if host alerts are suppressed.
+
+        Args:
+            host_name: Name of the host to check
+
+        Returns:
+            True if the host has active HOST-level downtimes, False otherwise
+        """
+        try:
+            # Use precise query to get only host-level downtimes
+            import json
+
+            host_query = {
+                "op": "and",
+                "expr": [
+                    {"op": "=", "left": "host_name", "right": host_name},
+                    {"op": "=", "left": "is_service", "right": "0"},
+                ],
+            }
+
+            host_params = {"query": json.dumps(host_query)}
+            host_result = self.client.get("domain-types/downtime/collections/all", params=host_params)
+
+            if not host_result.get("success"):
+                self.logger.warning(f"Failed to query host downtimes for {host_name}")
+                return False
+
+            host_downtimes = host_result["data"].get("value", [])
+            current_time = datetime.datetime.now().timestamp()
+
+            # Check if any host downtime is currently active
+            for downtime in host_downtimes:
+                if self._is_downtime_active(downtime, current_time):
+                    return True
+
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Error checking host-level downtime for {host_name}: {e}")
+            return False
 
     async def _get_current_downtimes(
         self, host_name: str, service_descriptions: List[str], comment: str = None

@@ -76,3 +76,8 @@ llm_config.json
 checkmk_config.json
 test_credentials.json
 openapi-swagger-ui.yaml
+
+# Claude development documentation (private, not for repository)
+claude.md
+*/claude.md
+**/claude.md

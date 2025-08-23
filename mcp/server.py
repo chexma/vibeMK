@@ -207,6 +207,7 @@ class CheckMKMCPServer:
             "vibemk_list_downtimes": downtime_handler,
             "vibemk_get_active_downtimes": downtime_handler,
             "vibemk_delete_downtime": downtime_handler,
+            "vibemk_check_host_downtime_status": downtime_handler,
             # Acknowledgement management
             "vibemk_acknowledge_host_problem": acknowledgement_handler,
             "vibemk_acknowledge_service_problem": acknowledgement_handler,

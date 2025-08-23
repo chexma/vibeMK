@@ -1395,6 +1395,20 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
                 "required": ["downtime_id"],
             },
         },
+        {
+            "name": "vibemk_check_host_downtime_status",
+            "description": "🔍 Check host downtime status - Distinguish between host-level and service-level downtimes",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {
+                        "type": "string",
+                        "description": "Host name to check downtime status for",
+                    }
+                },
+                "required": ["host_name"],
+            },
+        },
     ]
 
 
