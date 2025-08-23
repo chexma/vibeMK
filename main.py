@@ -20,7 +20,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
 
-from config import CheckMKConfig
 from mcp.server import CheckMKMCPServer
 from utils import setup_logging
 
@@ -28,13 +27,13 @@ from utils import setup_logging
 async def main():
     """Main entry point for vibeMK"""
 
-    # Load config to determine debug mode
-    config = CheckMKConfig.from_env()
+    # Setup logging with debug mode if LOGFILE is specified for better troubleshooting
+    import os
 
-    # Setup logging
-    setup_logging(debug=config.debug)
+    debug_mode = bool(os.environ.get("LOGFILE"))  # Enable debug logging when file logging is active
+    setup_logging(debug=debug_mode)
 
-    # Create and run server
+    # Create and run server (CheckMK config loaded on first tool call)
     server = CheckMKMCPServer()
     await server.run()
 

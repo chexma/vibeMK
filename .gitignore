@@ -81,3 +81,7 @@ openapi-swagger-ui.yaml
 claude.md
 */claude.md
 **/claude.md
+
+# My ignores
+recommendations.md
+.gitignore

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "vibeMK": {
+      "command": "python3",
+      "args": ["/path/to/vibeMK/main.py"],
+      "env": {
+        "CHECKMK_SERVER_URL": "http://localhost:8080",
+        "CHECKMK_SITE": "cmk", 
+        "CHECKMK_USERNAME": "automation",
+        "CHECKMK_PASSWORD": "your_password_here",
+        "LOGFILE": "/Users/youruser/Desktop/vibemk_debug.log"
+      }
+    }
+  }
+}

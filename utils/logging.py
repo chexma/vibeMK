@@ -3,12 +3,13 @@ Logging configuration for vibeMK
 """
 
 import logging
+import os
 import sys
-from typing import Optional
+from typing import List, Optional
 
 
 def setup_logging(level: Optional[str] = None, debug: bool = False) -> None:
-    """Setup logging configuration"""
+    """Setup logging configuration with optional file logging"""
 
     # Determine log level
     if debug:
@@ -18,11 +19,59 @@ def setup_logging(level: Optional[str] = None, debug: bool = False) -> None:
     else:
         log_level = logging.INFO
 
-    # Configure root logger
+    # Setup log handlers
+    handlers: List[logging.Handler] = []
+
+    # Always add stderr handler for console output
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+    handlers.append(console_handler)
+
+    # Add file handler if LOGFILE environment variable is set
+    logfile = os.environ.get("LOGFILE")
+    if logfile:
+        try:
+            # Ensure log directory exists
+            log_dir = os.path.dirname(logfile)
+            if log_dir and not os.path.exists(log_dir):
+                os.makedirs(log_dir, exist_ok=True)
+
+            file_handler = logging.FileHandler(logfile, mode="a", encoding="utf-8")
+            file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+            handlers.append(file_handler)
+
+            # Log to console that file logging is enabled
+            console_handler.emit(
+                logging.LogRecord(
+                    name="vibeMK.logging",
+                    level=logging.INFO,
+                    pathname="",
+                    lineno=0,
+                    msg=f"File logging enabled: {logfile}",
+                    args=(),
+                    exc_info=None,
+                )
+            )
+        except Exception as e:
+            # If file logging fails, log error to console and continue
+            console_handler.emit(
+                logging.LogRecord(
+                    name="vibeMK.logging",
+                    level=logging.ERROR,
+                    pathname="",
+                    lineno=0,
+                    msg=f"Failed to setup file logging ({logfile}): {e}",
+                    args=(),
+                    exc_info=None,
+                )
+            )
+
+    # Configure root logger with all handlers
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stderr)],
+        handlers=handlers,
+        force=True,  # Force reconfiguration if already configured
     )
 
     # Suppress urllib3 debug logs unless in debug mode

@@ -62,6 +62,23 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 explicit_package_bases = true
+# Enhanced strict mode settings
+disallow_any_unimported = true
+disallow_any_expr = false  # Allow Any in expressions for gradual typing
+disallow_any_decorated = true
+disallow_any_explicit = false  # Allow explicit Any usage
+disallow_any_generics = true
+disallow_subclassing_any = true
+warn_unreachable = true
+warn_no_return = true
+warn_redundant_casts = true
+show_error_codes = true
+# Ignore missing imports for external libraries
+ignore_missing_imports = true
+# Specific module configurations
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false  # Allow untyped tests during migration
 
 [tool.isort]
 profile = "black"

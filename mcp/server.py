@@ -55,15 +55,52 @@ class CheckMKMCPServer:
     """vibeMK MCP Server for CheckMK integration"""
 
     def __init__(self):
-        self.config = CheckMKConfig.from_env()
         self.mcp_config = MCPConfig()
 
-        # Validate configuration
-        self.config.validate()
+        # Defer CheckMK configuration validation until first API call
+        self.config = None
+        self.client = None
+        self.handlers = None
+        self._initialized = False
 
-        # Setup client and handlers
-        self.client = CheckMKClient(self.config)
-        self._setup_handlers()
+    def _ensure_initialized(self):
+        """Initialize CheckMK connection and handlers on first use"""
+        if self._initialized:
+            logger.debug("CheckMK connection already initialized")
+            return
+
+        logger.info("Initializing CheckMK connection for first tool call...")
+
+        try:
+            # Load and validate CheckMK configuration
+            logger.debug("Loading CheckMK configuration from environment...")
+            self.config = CheckMKConfig.from_env()
+            logger.info(
+                f"CheckMK config loaded: {self.config.server_url} site={self.config.site} user={self.config.username}"
+            )
+
+            logger.debug("Validating CheckMK configuration...")
+            self.config.validate()
+            logger.info("CheckMK configuration validated successfully")
+
+            # Setup client and handlers
+            logger.debug("Creating CheckMK API client...")
+            self.client = CheckMKClient(self.config)
+            logger.info("CheckMK API client created")
+
+            logger.debug("Setting up tool handlers...")
+            self._setup_handlers()
+            logger.info(f"All handlers initialized: {len(self.handlers)} tools available")
+
+            self._initialized = True
+            logger.info("CheckMK connection initialization complete")
+
+        except Exception as e:
+            # Log error with full traceback but don't crash the server
+            logger.exception(f"Failed to initialize CheckMK connection: {e}")
+            logger.error("This is usually due to missing environment variables or unreachable CheckMK server")
+            # Raise the error so it can be handled in the tool call
+            raise
 
     def _setup_handlers(self):
         """Initialize all handlers"""
@@ -253,9 +290,9 @@ class CheckMKMCPServer:
 
         try:
             if method == "initialize":
-                return await self._handle_initialize(request_id)
+                return await self._handle_initialize(request)
             elif method == "notifications/initialized":
-                return None
+                return None  # No response needed for notifications
             elif method == "tools/list":
                 return await self._handle_tools_list(request_id)
             elif method == "tools/call":
@@ -267,21 +304,38 @@ class CheckMKMCPServer:
             logger.exception(f"Error handling request {method}")
             return self._error_response(request_id, -32603, f"Internal error: {str(e)}")
 
-    async def _handle_initialize(self, request_id: str) -> Dict[str, Any]:
+    async def _handle_initialize(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle initialization request"""
-        return {
+        request_id = request.get("id")
+        params = request.get("params", {})
+
+        logger.info(f"Initialize request received from client, ID: {request_id}")
+        logger.debug(f"Initialize params: {params}")
+
+        # Use client's protocol version if provided, otherwise use our default
+        client_protocol_version = params.get("protocolVersion", self.mcp_config.protocol_version)
+        logger.info(
+            f"Protocol version negotiation: client={client_protocol_version}, server={self.mcp_config.protocol_version}"
+        )
+
+        response = {
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {
-                "protocolVersion": self.mcp_config.protocol_version,
+                "protocolVersion": client_protocol_version,  # Echo client's version for compatibility
                 "capabilities": {"tools": {}},
                 "serverInfo": {"name": self.mcp_config.server_name, "version": self.mcp_config.server_version},
             },
         }
+        logger.info(f"Initialize response prepared: {response}")
+        return response
 
     async def _handle_tools_list(self, request_id: str) -> Dict[str, Any]:
         """Handle tools list request"""
-        return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": get_all_tools()}}
+        logger.info(f"Tools list request received, ID: {request_id}")
+        tools = get_all_tools()
+        logger.info(f"Returning {len(tools)} tools in response")
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
 
     async def _handle_tools_call(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle tool call request"""
@@ -290,7 +344,26 @@ class CheckMKMCPServer:
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
 
-        logger.debug(f"Tool call: {tool_name} with args: {arguments}")
+        logger.info(f"Tool call request: {tool_name} with {len(arguments)} arguments")
+        logger.debug(f"Tool call request ID: {request_id}, args: {arguments}")
+
+        try:
+            # Initialize CheckMK connection on first tool call
+            self._ensure_initialized()
+        except Exception as e:
+            # Return configuration error to user
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"❌ **CheckMK Configuration Error**\n\n{str(e)}\n\nPlease set the required environment variables:\n- CHECKMK_SERVER_URL\n- CHECKMK_SITE\n- CHECKMK_USERNAME\n- CHECKMK_PASSWORD",
+                        }
+                    ]
+                },
+            }
 
         # Find appropriate handler
         handler = self.handlers.get(tool_name)
@@ -326,33 +399,51 @@ class CheckMKMCPServer:
     async def run(self):
         """Main server loop"""
         logger.info(f"Starting vibeMK Server {self.mcp_config.server_version}")
-        logger.info(f"CheckMK Server: {self.config.server_url}")
-        logger.info(f"API Base URL: {self.client.api_base_url}")
+        logger.info("CheckMK connection will be initialized on first tool call")
+        logger.info("Server ready to accept MCP requests on stdin")
 
         while True:
             try:
+                # Log that we're waiting for input
+                logger.debug("Waiting for input on stdin...")
                 line = sys.stdin.readline()
+
                 if not line:
+                    logger.info("No input received, stdin closed - shutting down")
                     break
 
                 line = line.strip()
                 if not line:
+                    logger.debug("Empty line received, continuing")
                     continue
+
+                logger.debug(f"Received request: {line[:100]}...")
 
                 try:
                     request = json.loads(line)
-                except json.JSONDecodeError:
-                    logger.warning(f"Invalid JSON received: {line}")
+                    logger.debug(f"Parsed JSON request, method: {request.get('method')}")
+                except json.JSONDecodeError as json_err:
+                    logger.error(f"Invalid JSON received: {line[:200]}... - Error: {json_err}")
                     continue
 
                 response = await self.handle_request(request)
 
                 if response is not None:
-                    print(json.dumps(response, ensure_ascii=False), flush=True)
+                    response_str = json.dumps(response, ensure_ascii=False)
+                    logger.debug(f"Sending response: {response_str[:100]}...")
+                    print(response_str, flush=True)
+                else:
+                    logger.debug("No response to send")
 
             except KeyboardInterrupt:
-                logger.info("Server stopped by user")
+                logger.info("Server stopped by user (KeyboardInterrupt)")
+                break
+            except EOFError:
+                logger.info("EOF reached, exiting gracefully")
                 break
             except Exception as e:
-                logger.exception("Error in main loop")
-                break
+                # Log the error with full traceback for debugging
+                logger.exception(f"Unexpected error in main loop (continuing): {e}")
+                continue
+
+        logger.info("vibeMK Server shutdown complete")

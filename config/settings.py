@@ -65,6 +65,6 @@ class CheckMKConfig:
 class MCPConfig:
     """MCP server configuration"""
 
-    protocol_version: str = "2024-11-05"
+    protocol_version: str = "2024-11-05"  # Keep stable version for now
     server_name: str = "vibeMK"
-    server_version: str = "0.3.8"
+    server_version: str = "0.3.9"

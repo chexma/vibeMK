@@ -36,6 +36,9 @@ from api.exceptions import (
 )
 from config import CheckMKConfig
 
+# Avoid conflict with built-in 'types' module - comment out for now
+# from checkmk_types.checkmk_types import CheckMKAPIResponse
+
 logger = logging.getLogger(__name__)
 
 

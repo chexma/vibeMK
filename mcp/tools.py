@@ -1285,15 +1285,15 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
                     "host_name": {"type": "string", "description": "Host name to schedule downtime for"},
                     "start_time": {
                         "type": "string",
-                        "description": "Start time (ISO format, 'now', or relative like '+1h'). Default: now",
+                        "description": "Start time - supports natural language: '22:00 today', 'tomorrow at 14:00', 'monday at 09:00', '2024-08-23 at 22:00', 'in 2 hours', 'now', or ISO format. Default: now",
                     },
                     "end_time": {
                         "type": "string",
-                        "description": "End time (ISO format or relative like '+2h'). Optional if duration specified",
+                        "description": "End time - supports natural language: '23:30 today', 'tomorrow at 16:00', 'monday at 17:00', or relative like '+2h'. Optional if duration specified",
                     },
                     "duration": {
-                        "type": "integer",
-                        "description": "Downtime duration in minutes. Default: 60",
+                        "type": ["integer", "string"],
+                        "description": "Downtime duration - supports natural language: '2h', '1h30m', '90m' or minutes as integer. Default: 60",
                         "minimum": 1,
                     },
                     "comment": {
@@ -1323,15 +1323,15 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
                     },
                     "start_time": {
                         "type": "string",
-                        "description": "Start time (ISO format, 'now', or relative like '+1h'). Default: now",
+                        "description": "Start time - supports natural language: '22:00 today', 'tomorrow at 14:00', 'monday at 09:00', '2024-08-23 at 22:00', 'in 2 hours', 'now', or ISO format. Default: now",
                     },
                     "end_time": {
                         "type": "string",
-                        "description": "End time (ISO format or relative like '+2h'). Optional if duration specified",
+                        "description": "End time - supports natural language: '23:30 today', 'tomorrow at 16:00', 'monday at 17:00', or relative like '+2h'. Optional if duration specified",
                     },
                     "duration": {
-                        "type": "integer",
-                        "description": "Downtime duration in minutes. Default: 60",
+                        "type": ["integer", "string"],
+                        "description": "Downtime duration - supports natural language: '2h', '1h30m', '90m' or minutes as integer. Default: 60",
                         "minimum": 1,
                     },
                     "comment": {
