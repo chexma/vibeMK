@@ -26,7 +26,9 @@ class HostHandler(BaseHandler):
             elif tool_name == "vibemk_get_host_config":
                 return await self._get_host_config(arguments.get("host_name"))
             elif tool_name == "vibemk_create_host":
-                return await self._create_host(arguments)
+                return await self._create_host_smart(arguments)
+            elif tool_name == "vibemk_bulk_create_hosts":
+                return await self._bulk_create_hosts(arguments)
             elif tool_name == "vibemk_update_host":
                 return await self._update_host(arguments)
             elif tool_name == "vibemk_delete_host":
@@ -357,6 +359,26 @@ class HostHandler(BaseHandler):
         host = result["data"]
         return self.info_response(f"Host Configuration: {host_name}", host)
 
+    async def _create_host_smart(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Smart host creation that automatically detects single vs multiple hosts and routes to appropriate API"""
+
+        # Check if this is multiple hosts mode (has 'hosts' array)
+        if "hosts" in arguments and arguments["hosts"]:
+            # Multiple hosts - route to bulk creation API
+            bulk_arguments = {"entries": arguments["hosts"], "bake_agent": arguments.get("bake_agent", False)}
+            self.logger.info(f"Detected {len(arguments['hosts'])} hosts - routing to bulk creation API")
+            return await self._bulk_create_hosts(bulk_arguments)
+
+        # Single host mode - route to individual creation API
+        elif "host_name" in arguments:
+            self.logger.info(f"Detected single host '{arguments['host_name']}' - routing to individual creation API")
+            return await self._create_host(arguments)
+
+        else:
+            return self.error_response(
+                "Invalid parameters", "Must provide either 'host_name' (single mode) or 'hosts' array (multiple mode)"
+            )
+
     async def _create_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Create a new host with enhanced validation"""
         host_name = arguments.get("host_name")
@@ -368,12 +390,16 @@ class HostHandler(BaseHandler):
         if validation_result:
             return validation_result
 
-        # Check if host already exists
-        existing_host = self.client.get(f"objects/host_config/{host_name}")
-        if existing_host.get("success"):
-            return self.error_response(
-                "Host already exists", f"Host '{host_name}' already exists. Use update_host to modify it."
-            )
+        # Check if host already exists (handle 404 properly for non-existent hosts)
+        try:
+            existing_host = self.client.get(f"objects/host_config/{host_name}")
+            if existing_host.get("success"):
+                return self.error_response(
+                    "Host already exists", f"Host '{host_name}' already exists. Use update_host to modify it."
+                )
+        except CheckMKNotFoundError:
+            # Host doesn't exist - this is expected for new host creation
+            pass
 
         # Convert folder format if needed (~ for root per CheckMK API)
         if folder == "/":
@@ -412,6 +438,133 @@ class HostHandler(BaseHandler):
         else:
             error_details = result.get("data", {})
             return self.error_response("Host creation failed", f"Could not create host '{host_name}': {error_details}")
+
+    async def _bulk_create_hosts(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Create multiple hosts using CheckMK's bulk create API"""
+        entries = arguments.get("entries", [])
+        bake_agent = arguments.get("bake_agent", False)
+
+        if not entries:
+            return self.error_response("Missing parameter", "entries list is required")
+
+        # Validate each entry
+        validation_errors = []
+        for i, entry in enumerate(entries):
+            host_name = entry.get("host_name")
+            folder = entry.get("folder", "/")
+            attributes = entry.get("attributes", {})
+
+            # Validate individual host entry
+            if not host_name:
+                validation_errors.append(f"Entry {i+1}: host_name is required")
+            elif not self._validate_host_name(host_name):
+                validation_errors.append(f"Entry {i+1}: Invalid host name '{host_name}'")
+
+            # Validate IP address if provided
+            if "ipaddress" in attributes and not self._validate_ip_address(attributes["ipaddress"]):
+                validation_errors.append(f"Entry {i+1}: Invalid IP address '{attributes['ipaddress']}'")
+
+        if validation_errors:
+            return self.error_response(
+                "Validation failed", "Bulk host creation validation errors:\\n• " + "\\n• ".join(validation_errors)
+            )
+
+        # Convert folder format for each entry (~ for root per CheckMK API)
+        processed_entries = []
+        for entry in entries:
+            processed_entry = entry.copy()
+            if processed_entry.get("folder", "/") == "/":
+                processed_entry["folder"] = "~"
+            processed_entries.append(processed_entry)
+
+        # Prepare the API request data
+        data = {"entries": processed_entries}
+
+        # Add bake_agent parameter if specified (goes in request body, not params)
+        if bake_agent:
+            data["bake_agent"] = True
+
+        # Make the bulk create API call
+        try:
+            result = self.client.post("domain-types/host_config/actions/bulk-create/invoke", data=data)
+
+            if result.get("success"):
+                # Extract created hosts information
+                created_hosts = []
+                success_count = 0
+
+                # Check if response contains details about created hosts
+                response_data = result.get("data", {})
+                if isinstance(response_data, dict) and "value" in response_data:
+                    created_hosts_data = response_data["value"]
+                    if isinstance(created_hosts_data, list):
+                        success_count = len(created_hosts_data)
+                        for host_data in created_hosts_data[:10]:  # Show first 10
+                            host_id = host_data.get("id", "Unknown")
+                            folder_path = host_data.get("extensions", {}).get("folder", "/")
+                            created_hosts.append(f"• {host_id} (Folder: {folder_path})")
+                    else:
+                        success_count = len(entries)  # Fallback
+                else:
+                    success_count = len(entries)  # Fallback if no detailed response
+
+                # Build success response
+                response_text = f"✅ **Bulk Host Creation Successful**\\n\\n"
+                response_text += f"**Hosts Created:** {success_count}/{len(entries)}\\n"
+
+                if bake_agent:
+                    response_text += f"**Agent Baking:** Enabled (process started in background)\\n"
+
+                response_text += f"\\n📋 **Created Hosts:**\\n"
+
+                if created_hosts:
+                    response_text += "\\n".join(created_hosts)
+                    if len(entries) > 10:
+                        response_text += f"\\n... and {len(entries) - 10} more hosts"
+                else:
+                    # Fallback: show requested host names
+                    for i, entry in enumerate(entries[:10]):
+                        host_name = entry.get("host_name", f"Host-{i+1}")
+                        folder = entry.get("folder", "/")
+                        response_text += f"• {host_name} (Folder: {folder})\\n"
+                    if len(entries) > 10:
+                        response_text += f"... and {len(entries) - 10} more hosts\\n"
+
+                response_text += f"\\n⚠️ **Remember to activate changes!**\\n\\n"
+                response_text += f"💡 **Next Steps:**\\n"
+                response_text += f"1️⃣ Use 'get_pending_changes' to review all changes\\n"
+                response_text += f"2️⃣ Use 'activate_changes' to apply configuration\\n"
+
+                if bake_agent:
+                    response_text += f"3️⃣ Monitor agent baking progress in CheckMK GUI"
+
+                return [{"type": "text", "text": response_text}]
+
+            else:
+                # Handle API errors
+                error_details = result.get("data", {})
+                error_message = str(error_details)
+
+                # Check for specific error conditions
+                if "already exists" in error_message.lower():
+                    return self.error_response(
+                        "Duplicate host error", f"One or more hosts already exist. Details: {error_details}"
+                    )
+                elif "validation" in error_message.lower() or "400" in str(result.get("status", "")):
+                    return self.error_response(
+                        "Validation error", f"CheckMK validation failed for bulk host creation: {error_details}"
+                    )
+                elif "permission" in error_message.lower() or "403" in str(result.get("status", "")):
+                    return self.error_response(
+                        "Permission error",
+                        "Insufficient permissions for bulk host creation. Required: 'wato.edit' and optionally 'wato.manage_hosts'",
+                    )
+                else:
+                    return self.error_response("Bulk creation failed", f"Could not create hosts: {error_details}")
+
+        except Exception as e:
+            self.logger.exception("Bulk host creation failed")
+            return self.error_response("Operation failed", f"Unexpected error during bulk host creation: {str(e)}")
 
     async def _update_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Update host configuration with proper CheckMK API compliance"""

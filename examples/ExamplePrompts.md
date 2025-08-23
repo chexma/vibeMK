@@ -24,7 +24,7 @@ If in doubt, test all prompts in a test environment beforehand. Multiple checkmk
 
 ## Folders
 
-1. Create folders with the name and description of the three character airport codes of the ten largest countries in europe in checkmk, use the code for the id and the name of the folders. Don´t activate the changes.
+1. Create folders with the name and description of the three character airport codes of the ten largest countries in europe in checkmk, use the exact airport code for the id and the name of the folders. Don´t activate the changes.
 
 2. Delete the folder that is exactly called Servers, if there is none, stop.
 

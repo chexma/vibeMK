@@ -88,15 +88,89 @@ def get_host_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_create_host",
-            "description": "➕ Create host - Add a new host to monitoring",
+            "description": "➕ Create host(s) - Add one or multiple hosts to monitoring (automatically uses bulk API for multiple hosts)",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "host_name": {"type": "string", "description": "Name of the new host"},
-                    "folder": {"type": "string", "description": "Folder path"},
-                    "attributes": {"type": "object", "description": "Host attributes (ipaddress, etc.)"},
+                    "host_name": {"type": "string", "description": "Name of the new host (single host mode)"},
+                    "folder": {"type": "string", "description": "Folder path (single host mode)"},
+                    "attributes": {
+                        "type": "object",
+                        "description": "Host attributes - ipaddress, etc. (single host mode)",
+                    },
+                    "hosts": {
+                        "type": "array",
+                        "description": "List of hosts to create (multiple hosts mode - automatically uses bulk API)",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "host_name": {"type": "string", "description": "Name of the new host"},
+                                "folder": {"type": "string", "description": "Folder path"},
+                                "attributes": {
+                                    "type": "object",
+                                    "description": "Host attributes (ipaddress, alias, etc.)",
+                                },
+                            },
+                            "required": ["host_name", "folder", "attributes"],
+                        },
+                        "minItems": 1,
+                    },
+                    "bake_agent": {
+                        "type": "boolean",
+                        "description": "Whether to bake agents after creation (bulk mode only)",
+                        "default": False,
+                    },
                 },
-                "required": ["host_name", "folder", "attributes"],
+                "oneOf": [
+                    {
+                        "description": "Single host mode",
+                        "required": ["host_name", "folder", "attributes"],
+                        "not": {"required": ["hosts"]},
+                    },
+                    {
+                        "description": "Multiple hosts mode (uses bulk API automatically)",
+                        "required": ["hosts"],
+                        "not": {
+                            "anyOf": [
+                                {"required": ["host_name"]},
+                                {"required": ["folder"]},
+                                {"required": ["attributes"]},
+                            ]
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            "name": "vibemk_bulk_create_hosts",
+            "description": "➕ Bulk create hosts - Create multiple hosts in a single operation",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "description": "List of hosts to create",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "host_name": {"type": "string", "description": "Name of the new host"},
+                                "folder": {"type": "string", "description": "Folder path where host will be created"},
+                                "attributes": {
+                                    "type": "object",
+                                    "description": "Host attributes (ipaddress, alias, site, tags, etc.)",
+                                },
+                            },
+                            "required": ["host_name", "folder", "attributes"],
+                        },
+                        "minItems": 1,
+                    },
+                    "bake_agent": {
+                        "type": "boolean",
+                        "description": "Whether to bake agents after creation (CheckMK Enterprise Edition only)",
+                        "default": False,
+                    },
+                },
+                "required": ["entries"],
             },
         },
         {
