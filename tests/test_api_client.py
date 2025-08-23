@@ -61,8 +61,8 @@ class TestCheckMKClient:
             mock_response.status = 200
 
             # Mock 401 authentication error for the actual request
-            error = urllib.error.HTTPError(url="test", code=401, msg="Unauthorized", hdrs={}, fp=MagicMock())
-            error.read.return_value = b'{"title": "Unauthorized", "detail": "Invalid credentials"}'
+            error = urllib.error.HTTPError(url="test", code=401, msg="Unauthorized", hdrs={}, fp=None)
+            error.read = MagicMock(return_value=b'{"title": "Unauthorized", "detail": "Invalid credentials"}')
 
             # First call succeeds (API detection), second fails (actual request)
             mock_urlopen.side_effect = [mock_response, error]
