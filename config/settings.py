@@ -46,13 +46,13 @@ class CheckMKConfig:
             raise ValueError("CHECKMK_PASSWORD is required")
         if not self.site:
             raise ValueError("CHECKMK_SITE is required")
-        
+
         # Validate numeric fields
         if self.timeout <= 0:
             raise ValueError("timeout must be positive")
         if self.max_retries < 0:
             raise ValueError("max_retries must be non-negative")
-        
+
         # Normalize URL
         self.server_url = self._normalize_url(self.server_url)
 
@@ -60,15 +60,15 @@ class CheckMKConfig:
         """Normalize server URL"""
         if not url:
             return url
-        
+
         # Add http:// if no protocol specified
-        if not url.startswith(('http://', 'https://')):
+        if not url.startswith(("http://", "https://")):
             url = f"http://{url}"
-        
+
         # Remove trailing slash for consistency
-        if url.endswith('/') and len(url) > 1:
-            url = url.rstrip('/')
-        
+        if url.endswith("/") and len(url) > 1:
+            url = url.rstrip("/")
+
         return url
 
     def __repr__(self) -> str:
@@ -92,15 +92,15 @@ class CheckMKConfig:
         server_url = os.environ.get("CHECKMK_SERVER_URL")
         if not server_url:
             raise ValueError("CHECKMK_SERVER_URL is required")
-        
+
         site = os.environ.get("CHECKMK_SITE")
         if not site:
             raise ValueError("CHECKMK_SITE is required")
-            
+
         username = os.environ.get("CHECKMK_USERNAME")
         if not username:
             raise ValueError("CHECKMK_USERNAME is required")
-            
+
         password = os.environ.get("CHECKMK_PASSWORD")
         if not password:
             raise ValueError("CHECKMK_PASSWORD is required")
@@ -111,9 +111,9 @@ class CheckMKConfig:
                 return default
             # Invalid values should return default, not False
             lower_value = value.lower()
-            if lower_value in ('true', '1', 'yes', 'on'):
+            if lower_value in ("true", "1", "yes", "on"):
                 return True
-            elif lower_value in ('false', '0', 'no', 'off'):
+            elif lower_value in ("false", "0", "no", "off"):
                 return False
             else:
                 return default  # Return default for invalid values
@@ -162,8 +162,8 @@ class MCPConfig:
     def server_name(self) -> str:
         """Alias for name for backward compatibility"""
         return self.name
-    
-    @property 
+
+    @property
     def server_version(self) -> str:
         """Alias for version for backward compatibility"""
         return self.version

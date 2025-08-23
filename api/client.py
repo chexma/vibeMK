@@ -50,7 +50,7 @@ class CheckMKClient:
         self.config = config
         self._setup_headers()
         self._ssl_context = self._create_ssl_context()
-        
+
         if skip_url_detection:
             # For testing - use first pattern without detection
             self.api_base_url = f"{self.config.server_url}/cmk/check_mk/api/1.0"
@@ -250,7 +250,7 @@ class CheckMKClient:
         # Handle timeout errors specifically - don't retry timeouts
         if isinstance(error, (TimeoutError, OSError)) and "timeout" in str(error).lower():
             raise CheckMKConnectionError(f"Request timeout: {str(error)}")
-        
+
         # Handle TimeoutError specifically (might not contain "timeout" in message)
         if isinstance(error, TimeoutError):
             raise CheckMKConnectionError(f"Request timeout: {str(error)}")

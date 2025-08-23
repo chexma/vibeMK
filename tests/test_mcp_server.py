@@ -27,18 +27,19 @@ class TestMCPServer:
             },
         ):
             server = CheckMKMCPServer()
-            
+
             # Replace the test handlers with proper Mock objects that _detect_test_mode will recognize
             from unittest.mock import AsyncMock
+
             server.connection_handler = AsyncMock()
             server.host_handler = AsyncMock()
             server.service_handler = AsyncMock()
             server.monitoring_handler = AsyncMock()
             server.configuration_handler = AsyncMock()
-            
+
             # Mark as test mode to prevent initialization attempts
             server._test_mode = True
-            
+
             return server
 
     @pytest.mark.asyncio

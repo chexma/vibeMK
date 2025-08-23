@@ -85,3 +85,6 @@ claude.md
 # My ignores
 recommendations.md
 .gitignore
+pytest.errors
+.claude/agents/
+/tmp/

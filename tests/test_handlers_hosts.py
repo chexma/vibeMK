@@ -46,9 +46,7 @@ class TestHostHandler:
         assert len(result) == 1
         assert "test-server-01" in result[0]["text"]
         # The current implementation uses host_config endpoint and doesn't support filters
-        host_handler.client.get.assert_called_with(
-            "domain-types/host_config/collections/all", params={}
-        )
+        host_handler.client.get.assert_called_with("domain-types/host_config/collections/all", params={})
 
     @pytest.mark.asyncio
     async def test_get_host_status_success(self, host_handler, mock_checkmk_responses):
@@ -98,7 +96,7 @@ class TestHostHandler:
         # Setup mocks - first check for existing host (should fail), then create succeeds
         check_response = {"success": False, "data": {}}  # Host doesn't exist
         create_response = {"success": True, "data": {"id": "new-test-server"}}
-        
+
         host_handler.client.get.return_value = check_response
         host_handler.client.post.return_value = create_response
 
@@ -129,7 +127,7 @@ class TestHostHandler:
         """Test host creation with missing required parameters"""
         # Setup mock for host existence check - host doesn't exist
         host_handler.client.get.return_value = {"success": False, "data": {}}
-        
+
         # Execute without required parameters
         result = await host_handler.handle(
             "vibemk_create_host",
@@ -149,7 +147,7 @@ class TestHostHandler:
                 "folder": "/test"
             },
         )
-        
+
         # Verify error response for missing host_name
         assert len(result_invalid) == 1
         assert "❌" in result_invalid[0]["text"]

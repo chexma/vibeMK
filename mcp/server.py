@@ -65,7 +65,7 @@ class CheckMKMCPServer:
         self.handlers = None
         self._initialized = False
         self._test_mode = False  # Track if we're in test mode
-        
+
         # Create mock handler objects for test compatibility
         # These will be replaced with real handlers during _ensure_initialized()
         self._create_test_handlers()
@@ -82,11 +82,12 @@ class CheckMKMCPServer:
 
     def _create_test_handlers(self):
         """Create test-compatible handler objects with mock handle methods"""
+
         # Create simple objects with handle method for test compatibility
         class TestHandler:
             async def handle(self, tool_name: str, arguments: dict) -> list:
                 return [{"type": "text", "text": "✅ Test handler response"}]
-        
+
         # Initialize all handler attributes with test handlers
         self.connection_handler = TestHandler()
         self.host_handler = TestHandler()
@@ -139,6 +140,7 @@ class CheckMKMCPServer:
         }
         # Simplified mapping - all tools go to test handlers
         from mcp.tools import get_all_tools
+
         tool_definitions = get_all_tools()
         for tool in tool_definitions:
             tool_name = tool["name"]
@@ -150,9 +152,10 @@ class CheckMKMCPServer:
         """Detect if handlers are being mocked (indicating test mode)"""
         # Check if any handler has been mocked (has _mock_name attribute)
         import unittest.mock
-        for handler_name in ['connection_handler', 'host_handler', 'service_handler']:
+
+        for handler_name in ["connection_handler", "host_handler", "service_handler"]:
             handler = getattr(self, handler_name, None)
-            if hasattr(handler, '_mock_name') or isinstance(handler, unittest.mock.Mock):
+            if hasattr(handler, "_mock_name") or isinstance(handler, unittest.mock.Mock):
                 return True
         return False
 
@@ -379,10 +382,10 @@ class CheckMKMCPServer:
         # Validate request structure first
         if not isinstance(request, dict):
             return self._error_response(None, -32600, "Invalid Request: must be an object")
-        
+
         method = request.get("method")
         request_id = request.get("id")
-        
+
         # Check for required fields per JSON-RPC 2.0 spec
         if "method" not in request:
             return self._error_response(request_id, -32600, "Invalid Request: missing required field 'method'")
@@ -455,7 +458,7 @@ class CheckMKMCPServer:
             logger.debug("Test mode detected - setting up test handlers")
             self._test_mode = True
             # Still need to set up handlers dictionary in test mode
-            if not hasattr(self, 'handlers') or self.handlers is None:
+            if not hasattr(self, "handlers") or self.handlers is None:
                 self._setup_test_handlers()
         else:
             try:
