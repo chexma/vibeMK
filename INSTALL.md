@@ -121,6 +121,7 @@ Open config file
 ```
 
 **Windows**:
+This file does not exist by default. You can create it by going in Claude Desktop to Settings > Developer > Edit config. Or just create the file yourself.
 ```
 %APPDATA%\Claude\claude_desktop_config.json
 ```
@@ -156,6 +157,7 @@ echo "Python Path: $(which python3)"
         "CHECKMK_USERNAME": "vibemk",
         "CHECKMK_PASSWORD": "Your_real_API_key_here",
         "CHECKMK_VERIFY_SSL": "true",
+        "PYTHONIOENCODING": "utf-8"
       }
     }
   }
@@ -176,7 +178,8 @@ echo "Python Path: $(which python3)"
         "CHECKMK_PASSWORD": "cmk_api_key_here",
         "CHECKMK_VERIFY_SSL": "true",
         "CHECKMK_TIMEOUT": "30",
-        "CHECKMK_MAX_RETRIES": "3"
+        "CHECKMK_MAX_RETRIES": "3",
+        "PYTHONIOENCODING": "utf-8"
       }
     }
   }
