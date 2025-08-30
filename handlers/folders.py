@@ -79,6 +79,9 @@ class FolderHandler(BaseHandler):
         if not folder or not title:
             return self.error_response("Missing parameters", "folder and title are required")
 
+        # Convert folder name to lowercase for consistency
+        folder = folder.lower()
+
         # Validate and convert parent folder path
         parent_validation = validate_folder_path(parent, "create")
         if not parent_validation["is_valid"]:

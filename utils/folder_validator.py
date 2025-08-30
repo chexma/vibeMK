@@ -35,8 +35,8 @@ class FolderValidator:
             validation_errors.append("Folder path cannot be empty")
             return False, "", validation_errors, ""
 
-        # Clean the input path
-        folder_path = folder_path.strip()
+        # Clean the input path and convert to lowercase for consistency
+        folder_path = folder_path.strip().lower()
 
         # Handle root folder special case
         if folder_path in ["/", "~", ""]:
@@ -143,6 +143,9 @@ class FolderValidator:
         """
         if not folder_path or folder_path in ["/", "~"]:
             return "~"
+
+        # Convert to lowercase for consistency
+        folder_path = folder_path.lower()
 
         # Handle already converted paths
         if folder_path.startswith("~"):
