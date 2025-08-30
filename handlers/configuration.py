@@ -30,6 +30,26 @@ class ConfigurationHandler(BaseHandler):
 
     async def _activate_changes(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Activate pending configuration changes"""
+
+        # Check if activation is disabled by configuration
+        if self.client.config.never_activate_changes:
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        "🚫 **Change Activation Disabled**\n\n"
+                        "Configuration changes activation has been disabled by the `NEVER_ACTIVATE_CHANGES` setting.\n\n"
+                        "**Reason:** This is typically used in development or testing environments to prevent "
+                        "accidental activation of configuration changes.\n\n"
+                        "**To enable activation:**\n"
+                        "• Remove the `NEVER_ACTIVATE_CHANGES` environment variable, or\n"
+                        "• Set `NEVER_ACTIVATE_CHANGES=false`\n\n"
+                        "**Current configuration:** `NEVER_ACTIVATE_CHANGES=true`\n\n"
+                        "💡 **Note:** You can still view pending changes using `get_pending_changes`."
+                    ),
+                }
+            ]
+
         sites = arguments.get("sites", [])
         force = arguments.get("force_foreign_changes", False)
 

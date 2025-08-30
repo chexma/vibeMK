@@ -157,6 +157,7 @@ echo "Python Path: $(which python3)"
         "CHECKMK_USERNAME": "vibemk",
         "CHECKMK_PASSWORD": "Your_real_API_key_here",
         "CHECKMK_VERIFY_SSL": "true",
+        "NEVER_ACTIVATE_CHANGES": "false",
         "PYTHONIOENCODING": "utf-8"
       }
     }
@@ -179,6 +180,7 @@ echo "Python Path: $(which python3)"
         "CHECKMK_VERIFY_SSL": "true",
         "CHECKMK_TIMEOUT": "30",
         "CHECKMK_MAX_RETRIES": "3",
+        "NEVER_ACTIVATE_CHANGES": "false",
         "PYTHONIOENCODING": "utf-8"
       }
     }
@@ -190,6 +192,26 @@ echo "Python Path: $(which python3)"
 - Use absolute paths for main.py!
 - Insert real API key!
 - Use `python3` command (no virtual environment needed)
+
+### 5.4 Environment Variables Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHECKMK_SERVER_URL` | *required* | CheckMK server URL (e.g., `https://monitoring.company.com`) |
+| `CHECKMK_SITE` | *required* | CheckMK site name (e.g., `cmk`, `production`) |
+| `CHECKMK_USERNAME` | *required* | Automation user account name |
+| `CHECKMK_PASSWORD` | *required* | Automation user password/API key |
+| `CHECKMK_VERIFY_SSL` | `true` | Enable SSL certificate verification |
+| `CHECKMK_TIMEOUT` | `30` | Request timeout in seconds |
+| `CHECKMK_MAX_RETRIES` | `3` | Maximum number of retry attempts |
+| `NEVER_ACTIVATE_CHANGES` | `false` | **Safety feature**: Disable change activation |
+| `PYTHONIOENCODING` | - | Set to `utf-8` for Windows compatibility |
+
+**🚫 Safety Feature - NEVER_ACTIVATE_CHANGES:**
+- Set to `true` to prevent accidental activation of configuration changes
+- Useful for development/testing environments  
+- When enabled, `activate_changes` will only display an informational message
+- Changes can still be viewed with `get_pending_changes`
 
 ## 🧪 Step 6: Test Installation
 

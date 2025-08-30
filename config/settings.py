@@ -34,6 +34,7 @@ class CheckMKConfig:
     timeout: int = 30
     max_retries: int = 3
     debug: bool = False
+    never_activate_changes: bool = False
 
     def __post_init__(self):
         """Post-initialization validation and normalization"""
@@ -82,7 +83,8 @@ class CheckMKConfig:
             f"verify_ssl={self.verify_ssl}, "
             f"timeout={self.timeout}, "
             f"max_retries={self.max_retries}, "
-            f"debug={self.debug})"
+            f"debug={self.debug}, "
+            f"never_activate_changes={self.never_activate_changes})"
         )
 
     @classmethod
@@ -136,6 +138,7 @@ class CheckMKConfig:
             timeout=safe_int(os.environ.get("CHECKMK_TIMEOUT"), 30),
             max_retries=safe_int(os.environ.get("CHECKMK_MAX_RETRIES"), 3),
             debug=safe_bool(os.environ.get("CHECKMK_DEBUG"), False),
+            never_activate_changes=safe_bool(os.environ.get("NEVER_ACTIVATE_CHANGES"), False),
         )
 
     def validate(self) -> None:
