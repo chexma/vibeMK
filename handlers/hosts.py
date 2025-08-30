@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
 from handlers.base import BaseHandler
+from utils.folder_validator import validate_folder_path
 
 
 class HostHandler(BaseHandler):
@@ -366,13 +367,33 @@ class HostHandler(BaseHandler):
         if "hosts" in arguments and arguments["hosts"]:
             # Multiple hosts - route to bulk creation API
             bulk_arguments = {"entries": arguments["hosts"], "bake_agent": arguments.get("bake_agent", False)}
-            self.logger.info(f"Detected {len(arguments['hosts'])} hosts - routing to bulk creation API")
-            return await self._bulk_create_hosts(bulk_arguments)
+            self.logger.info(f"Smart routing detected {len(arguments['hosts'])} hosts - routing to bulk creation API")
+            
+            # Get the bulk creation result
+            result = await self._bulk_create_hosts(bulk_arguments)
+            
+            # Add routing information to the response
+            if result and result[0].get("type") == "text":
+                original_text = result[0]["text"]
+                routing_info = f"\\n\\n🤖 **Smart Routing Applied:** Multiple hosts detected → Bulk Creation API\\n📡 **API Endpoint:** POST domain-types/host_config/actions/bulk-create/invoke"
+                result[0]["text"] = original_text + routing_info
+            
+            return result
 
         # Single host mode - route to individual creation API
         elif "host_name" in arguments:
-            self.logger.info(f"Detected single host '{arguments['host_name']}' - routing to individual creation API")
-            return await self._create_host(arguments)
+            self.logger.info(f"Smart routing detected single host '{arguments['host_name']}' - routing to individual creation API")
+            
+            # Get the individual creation result
+            result = await self._create_host(arguments)
+            
+            # Add routing information to the response
+            if result and result[0].get("type") == "text":
+                original_text = result[0]["text"]
+                routing_info = f"\\n\\n🤖 **Smart Routing Applied:** Single host detected → Individual Creation API\\n📡 **API Endpoint:** POST domain-types/host_config/collections/all"
+                result[0]["text"] = original_text + routing_info
+            
+            return result
 
         else:
             return self.error_response(
@@ -401,9 +422,12 @@ class HostHandler(BaseHandler):
             # Host doesn't exist - this is expected for new host creation
             pass
 
-        # Convert folder format if needed (~ for root per CheckMK API)
-        if folder == "/":
-            folder = "~"
+        # Validate and convert folder format using the new validator
+        folder_validation = validate_folder_path(folder, "create")
+        if not folder_validation['is_valid']:
+            return self.error_response("Invalid folder path", folder_validation['error_message'])
+        
+        folder = folder_validation['checkmk_path']
 
         data = {"folder": folder, "host_name": host_name, "attributes": attributes}
 
@@ -418,7 +442,7 @@ class HostHandler(BaseHandler):
                     "text": (
                         f"✅ **Host Created Successfully**\\n\\n"
                         f"**Host:** {host_name}\\n"
-                        f"**Folder:** {folder}\\n"
+                        f"**Folder:** {folder_validation['display_path']} ({folder})\\n"
                         f"**Attributes Set:** {attribute_count}\\n\\n"
                         f"📋 **Host Details:**\\n"
                         + (
