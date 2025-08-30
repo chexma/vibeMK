@@ -81,24 +81,24 @@ class FolderHandler(BaseHandler):
 
         # Validate and convert parent folder path
         parent_validation = validate_folder_path(parent, "create")
-        if not parent_validation['is_valid']:
-            return self.error_response("Invalid parent folder", parent_validation['error_message'])
-        
-        parent_checkmk = parent_validation['checkmk_path']
+        if not parent_validation["is_valid"]:
+            return self.error_response("Invalid parent folder", parent_validation["error_message"])
+
+        parent_checkmk = parent_validation["checkmk_path"]
 
         # Validate folder name (single folder name, not a path)
         if "/" in folder or "~" in folder:
             return self.error_response(
-                "Invalid folder name", 
-                "Folder name cannot contain path separators. Use 'parent' parameter for folder hierarchy."
+                "Invalid folder name",
+                "Folder name cannot contain path separators. Use 'parent' parameter for folder hierarchy.",
             )
 
         # Build the full path for validation
         full_path = f"{parent_validation['display_path']}/{folder}".replace("//", "/")
         path_validation = validate_folder_path(full_path, "create")
-        
-        if not path_validation['is_valid']:
-            return self.error_response("Invalid folder path", path_validation['error_message'])
+
+        if not path_validation["is_valid"]:
+            return self.error_response("Invalid folder path", path_validation["error_message"])
 
         data = {
             "name": folder,
@@ -139,11 +139,11 @@ class FolderHandler(BaseHandler):
 
         # Validate and convert folder path using the new validator
         path_validation = validate_folder_path(folder, "delete")
-        
-        if not path_validation['is_valid']:
-            return self.error_response("Invalid folder path", path_validation['error_message'])
 
-        encoded_folder = path_validation['checkmk_path']
+        if not path_validation["is_valid"]:
+            return self.error_response("Invalid folder path", path_validation["error_message"])
+
+        encoded_folder = path_validation["checkmk_path"]
         params = {"delete_mode": delete_mode}
         result = self.client.delete(f"objects/folder_config/{encoded_folder}", params=params)
 
@@ -179,11 +179,11 @@ class FolderHandler(BaseHandler):
 
         # Validate and convert folder path
         path_validation = validate_folder_path(folder, "update")
-        
-        if not path_validation['is_valid']:
-            return self.error_response("Invalid folder path", path_validation['error_message'])
 
-        encoded_folder = path_validation['checkmk_path']
+        if not path_validation["is_valid"]:
+            return self.error_response("Invalid folder path", path_validation["error_message"])
+
+        encoded_folder = path_validation["checkmk_path"]
 
         data = {}
         if title:
@@ -225,16 +225,16 @@ class FolderHandler(BaseHandler):
 
         # Validate source folder path
         source_validation = validate_folder_path(folder, "move")
-        if not source_validation['is_valid']:
-            return self.error_response("Invalid source folder path", source_validation['error_message'])
+        if not source_validation["is_valid"]:
+            return self.error_response("Invalid source folder path", source_validation["error_message"])
 
         # Validate destination folder path
         dest_validation = validate_folder_path(destination, "general")
-        if not dest_validation['is_valid']:
-            return self.error_response("Invalid destination folder path", dest_validation['error_message'])
+        if not dest_validation["is_valid"]:
+            return self.error_response("Invalid destination folder path", dest_validation["error_message"])
 
-        encoded_folder = source_validation['checkmk_path']
-        destination_checkmk = dest_validation['checkmk_path']
+        encoded_folder = source_validation["checkmk_path"]
+        destination_checkmk = dest_validation["checkmk_path"]
 
         data = {"destination": destination_checkmk}
         result = self.client.post(f"objects/folder_config/{encoded_folder}/actions/move/invoke", data=data)
@@ -268,28 +268,31 @@ class FolderHandler(BaseHandler):
 
         # Validate and convert folder path
         path_validation = validate_folder_path(folder, "general")
-        
-        if not path_validation['is_valid']:
-            return self.error_response("Invalid folder path", path_validation['error_message'])
 
-        encoded_folder = path_validation['checkmk_path']
+        if not path_validation["is_valid"]:
+            return self.error_response("Invalid folder path", path_validation["error_message"])
+
+        encoded_folder = path_validation["checkmk_path"]
         result = self.client.get(f"objects/folder_config/{encoded_folder}/collections/hosts")
 
         if not result.get("success"):
             error_data = result.get("data", {})
             error_msg = error_data.get("detail", "Unknown error") if isinstance(error_data, dict) else str(error_data)
-            return self.error_response("Failed to retrieve folder hosts", f"Could not access folder '{path_validation['display_path']}': {error_msg}")
+            return self.error_response(
+                "Failed to retrieve folder hosts",
+                f"Could not access folder '{path_validation['display_path']}': {error_msg}",
+            )
 
         hosts = result["data"].get("value", [])
         if not hosts:
             return [
                 {
-                    "type": "text", 
+                    "type": "text",
                     "text": (
                         f"📁 **Folder '{path_validation['display_path']}' is empty**\n\n"
                         f"⚙️ **API Path:** {encoded_folder}\n\n"
                         f"No hosts found in this folder."
-                    )
+                    ),
                 }
             ]
 
@@ -306,7 +309,8 @@ class FolderHandler(BaseHandler):
                 "type": "text",
                 "text": (
                     f"📁 **Hosts in Folder '{path_validation['display_path']}'** ({len(hosts)} total"
-                    + (", showing first 50" if len(hosts) > 50 else "") + "):\n\n" 
+                    + (", showing first 50" if len(hosts) > 50 else "")
+                    + "):\n\n"
                     + f"⚙️ **API Path:** {encoded_folder}\n\n"
                     + "\n".join(host_list)
                 ),

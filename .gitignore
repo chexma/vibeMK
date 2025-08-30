@@ -88,3 +88,4 @@ recommendations.md
 pytest.errors
 .claude/agents/
 /tmp/
+/plan
