@@ -19,6 +19,8 @@ class ConfigurationHandler(BaseHandler):
                 return await self._activate_changes(arguments)
             elif tool_name == "vibemk_get_pending_changes":
                 return await self._get_pending_changes()
+            elif tool_name == "vibemk_checkmk_rules_guide":
+                return self._rules_guide()
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
@@ -183,3 +185,82 @@ class ConfigurationHandler(BaseHandler):
                 ),
             }
         ]
+
+    def _rules_guide(self) -> List[Dict[str, Any]]:
+        """Return comprehensive CheckMK rule management guide for LLM context."""
+        guide = """# CheckMK Rule Management Guide
+
+## Regelreihenfolge (KRITISCH)
+
+CheckMK wertet Regeln nach diesen Prinzipien aus:
+1. **Erste passende Regel gewinnt** — Regeln werden von oben nach unten durchsucht, sobald eine Regel matched, wird sie angewendet.
+2. **Subfolder-Regeln gewinnen IMMER gegen Root-Folder-Regeln** — eine Regel in `/muenchen/mue-0/` wird vor einer Regel in `/` (Root) ausgewertet, egal welche Position sie hat.
+3. **Innerhalb eines Ordners**: Position #0 (top) gewinnt gegen Position #5.
+
+### Konsequenzen
+- Neue Regeln für einen Host IMMER im Ordner des Hosts anlegen (nicht in Root `~`).
+- Bevor eine neue Regel angelegt wird: `vibemk_get_ruleset` aufrufen und prüfen ob bereits eine Regel für diesen Host existiert.
+- Wenn eine Regel existiert: lieber **updaten** (vibemk_update_rule) als eine neue anlegen — sonst entstehen zwei konkurrierende Regeln.
+- Nach Anlegen einer neuen Regel: Reihenfolge prüfen, ggf. mit vibemk_move_rule nach oben verschieben.
+
+## value_raw — Python-Literal (kein JSON!)
+
+CheckMK-Regelwerte sind Python-Dicts mit Tuples. JSON kennt keine Tuples → immer `value_raw` als Python-String verwenden:
+
+```python
+# RICHTIG (value_raw als String):
+"{'levels': ('perc_used', (80.0, 90.0))}"
+"{'levels_swap': ('perc_used', (30.0, 50.0)), 'levels_virtual': ('perc_used', (90.0, 95.0))}"
+
+# FALSCH (JSON / rule_config → API 400):
+{"levels": ["perc_used", [80.0, 90.0]]}  # Listen statt Tuples → Fehler
+```
+
+## Memory-Linux Parameter-Keys
+
+Für `checkgroup_parameters:memory_linux`:
+- `levels_virtual` — Total virtual memory (das was CheckMK als "Total virtual memory" anzeigt)
+- `levels_ram` — Physischer RAM
+- `levels_swap` — Swap-Auslastung
+- `levels_committed` — Committed memory
+
+**NICHT** `levels` (existiert nicht in diesem Ruleset → HTTP 400).
+
+## Interface Speed (checkgroup_parameters:interfaces)
+
+Für "expected speed" WARN-Meldungen:
+- Ruleset: `checkgroup_parameters:interfaces` (NICHT `checkgroup_parameters:if`)
+- Wert: `{'speed': 1000000000}` (bits/s, nicht Mbit/s)
+- Typische Werte: 1 GBit/s = 1_000_000_000, 10 GBit/s = 10_000_000_000
+- `vibemk_set_interface_params` mit `expected_speed_mbit` macht die Konvertierung automatisch.
+- Nur activate_changes nötig, keine Service Discovery.
+
+## Aktivierung — Workflow
+
+1. Regel anlegen/ändern (vibemk_create_rule / vibemk_update_rule / vibemk_set_*)
+2. Änderungen aktivieren (vibemk_activate_changes) — ETag wird automatisch geholt
+3. Warten bis der nächste Check-Zyklus läuft (normalerweise 1 Minute)
+4. Ergebnis prüfen (vibemk_get_service_status oder Check-MK-UI)
+
+**INTERN:** vibemk holt den ETag automatisch von `pending_changes` — manuelles ETag-Management nicht nötig.
+
+## Prozess-Monitoring (inventory_processes_rules)
+
+Nach Anlegen einer Prozess-Regel:
+1. Regel aktivieren (activate_changes)
+2. **Service Discovery ausführen** — erst dann erscheint der neue "Process X"-Service
+3. Ohne Discovery: Regel existiert, Service aber nicht sichtbar
+
+`vibemk_set_process_thresholds` macht Aktivierung + Discovery automatisch.
+
+## Häufige Fehler
+
+| Fehler | Ursache | Lösung |
+|--------|---------|--------|
+| HTTP 400 | value_raw enthält Listen statt Tuples | value_raw als Python-Literal-String |
+| Regel greift nicht | Root-Regel vs. Subfolder-Regel | Regel in Host-Ordner anlegen |
+| Regel greift nicht (2) | Falsche Reihenfolge | vibemk_move_rule + top_of_folder |
+| Memory-Check zeigt alte Werte | Check noch nicht gelaufen | 1-2 Minuten warten nach Aktivierung |
+| Interface WARN bleibt | Falsches Ruleset | checkgroup_parameters:interfaces (nicht :if) |
+"""
+        return [{"type": "text", "text": guide}]

@@ -25,6 +25,7 @@ from typing import Any, Dict, Optional
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
 from handlers.acknowledgements import AcknowledgementHandler
+from handlers.agents import AgentHandler
 from handlers.configuration import ConfigurationHandler
 from handlers.connection import ConnectionHandler
 from handlers.debug import DebugHandler
@@ -32,6 +33,10 @@ from handlers.discovery import DiscoveryHandler
 from handlers.downtimes import DowntimeHandler
 from handlers.folders import FolderHandler
 from handlers.groups import GroupsHandler
+from handlers.active_checks import ActiveChecksHandler
+from handlers.audit_log import AuditLogHandler
+from handlers.aux_tags import AuxTagsHandler
+from handlers.event_console import EventConsoleHandler
 from handlers.host_group_rules import HostGroupRulesHandler
 from handlers.hosts import HostHandler
 from handlers.metrics import MetricsHandler
@@ -41,6 +46,8 @@ from handlers.rules import RulesHandler
 from handlers.rulesets import RulesetsHandler
 from handlers.service_groups import ServiceGroupHandler
 from handlers.services import ServiceHandler
+from handlers.service_params import ServiceParamsHandler
+from handlers.sites import SitesHandler
 from handlers.tags import TagsHandler
 from handlers.timeperiods import TimePeriodsHandler
 from handlers.user_roles import UserRolesHandler
@@ -131,11 +138,13 @@ class CheckMKMCPServer:
             "vibemk_update_host": self.host_handler,
             "vibemk_delete_host": self.host_handler,
             "vibemk_move_host": self.host_handler,
+            "vibemk_rename_host": self.host_handler,
             "vibemk_bulk_update_hosts": self.host_handler,
             "vibemk_create_cluster_host": self.host_handler,
             "vibemk_validate_host_config": self.host_handler,
             "vibemk_compare_host_states": self.host_handler,
             "vibemk_get_host_effective_attributes": self.host_handler,
+            "vibemk_clone_host": self.host_handler,
             # Add all other tools from the real _setup_handlers mapping...
             # For now, map all tools to test handlers to ensure basic functionality
         }
@@ -221,8 +230,15 @@ class CheckMKMCPServer:
         self.host_group_rules_handler = HostGroupRulesHandler(self.client)
         self.downtime_handler = DowntimeHandler(self.client)
         self.acknowledgement_handler = AcknowledgementHandler(self.client)
+        self.active_checks_handler = ActiveChecksHandler(self.client)
+        self.event_console_handler = EventConsoleHandler(self.client)
+        self.aux_tags_handler = AuxTagsHandler(self.client)
+        self.audit_log_handler = AuditLogHandler(self.client)
+        self.sites_handler = SitesHandler(self.client)
+        self.service_params_handler = ServiceParamsHandler(self.client)
         self.discovery_handler = DiscoveryHandler(self.client)
         self.service_group_handler = ServiceGroupHandler(self.client)
+        self.agent_handler = AgentHandler(self.client)
 
         # Define tool-to-handler mapping with vibemk_ prefix
         self.handlers = {
@@ -242,11 +258,13 @@ class CheckMKMCPServer:
             "vibemk_update_host": self.host_handler,
             "vibemk_delete_host": self.host_handler,
             "vibemk_move_host": self.host_handler,
+            "vibemk_rename_host": self.host_handler,
             "vibemk_bulk_update_hosts": self.host_handler,
             "vibemk_create_cluster_host": self.host_handler,
             "vibemk_validate_host_config": self.host_handler,
             "vibemk_compare_host_states": self.host_handler,
             "vibemk_get_host_effective_attributes": self.host_handler,
+            "vibemk_clone_host": self.host_handler,
             # Service management tools
             "vibemk_get_checkmk_services": self.service_handler,
             "vibemk_get_service_status": self.service_handler,
@@ -260,9 +278,11 @@ class CheckMKMCPServer:
             "vibemk_reschedule_check": self.monitoring_handler,
             "vibemk_get_comments": self.monitoring_handler,
             "vibemk_add_comment": self.monitoring_handler,
+            "vibemk_delete_comment": self.monitoring_handler,
             # Configuration management
             "vibemk_activate_changes": self.configuration_handler,
             "vibemk_get_pending_changes": self.configuration_handler,
+            "vibemk_checkmk_rules_guide": self.configuration_handler,
             # Folder management
             "vibemk_get_folders": self.folder_handler,
             "vibemk_create_folder": self.folder_handler,
@@ -343,6 +363,7 @@ class CheckMKMCPServer:
             "vibemk_get_active_downtimes": self.downtime_handler,
             "vibemk_delete_downtime": self.downtime_handler,
             "vibemk_check_host_downtime_status": self.downtime_handler,
+            "vibemk_modify_downtime": self.downtime_handler,
             # Acknowledgement management
             "vibemk_acknowledge_host_problem": self.acknowledgement_handler,
             "vibemk_acknowledge_service_problem": self.acknowledgement_handler,
@@ -365,6 +386,46 @@ class CheckMKMCPServer:
             "vibemk_bulk_create_service_groups": self.service_group_handler,
             "vibemk_bulk_update_service_groups": self.service_group_handler,
             "vibemk_bulk_delete_service_groups": self.service_group_handler,
+            # Active checks
+            "vibemk_create_http_check": self.active_checks_handler,
+            "vibemk_create_tcp_check": self.active_checks_handler,
+            "vibemk_create_icmp_check": self.active_checks_handler,
+            "vibemk_create_custom_check": self.active_checks_handler,
+            "vibemk_create_dns_check": self.active_checks_handler,
+            "vibemk_create_smtp_check": self.active_checks_handler,
+            "vibemk_create_ftp_check": self.active_checks_handler,
+            "vibemk_create_ldap_check": self.active_checks_handler,
+            "vibemk_create_smb_check": self.active_checks_handler,
+            "vibemk_create_mkevents_check": self.active_checks_handler,
+            "vibemk_create_inventory_check": self.active_checks_handler,
+            "vibemk_list_active_checks": self.active_checks_handler,
+            "vibemk_delete_active_check": self.active_checks_handler,
+            # Event Console
+            "vibemk_get_events": self.event_console_handler,
+            "vibemk_acknowledge_event": self.event_console_handler,
+            "vibemk_change_event_state": self.event_console_handler,
+            "vibemk_delete_events": self.event_console_handler,
+            # Aux tags
+            "vibemk_get_aux_tags": self.aux_tags_handler,
+            "vibemk_create_aux_tag": self.aux_tags_handler,
+            "vibemk_update_aux_tag": self.aux_tags_handler,
+            "vibemk_delete_aux_tag": self.aux_tags_handler,
+            # Audit log
+            "vibemk_get_audit_log": self.audit_log_handler,
+            # Sites
+            "vibemk_get_sites": self.sites_handler,
+            "vibemk_login_site": self.sites_handler,
+            "vibemk_logout_site": self.sites_handler,
+            # Service params / thresholds
+            "vibemk_set_process_thresholds": self.service_params_handler,
+            "vibemk_set_interface_params": self.service_params_handler,
+            "vibemk_set_memory_thresholds": self.service_params_handler,
+            "vibemk_list_process_rules": self.service_params_handler,
+            "vibemk_delete_service_param_rule": self.service_params_handler,
+            # Agent bakery (CEE/Cloud)
+            "vibemk_bake_agents": self.agent_handler,
+            "vibemk_baking_status": self.agent_handler,
+            "vibemk_download_agent_by_host": self.agent_handler,
         }
 
         # Add placeholder handlers for remaining unimplemented tools

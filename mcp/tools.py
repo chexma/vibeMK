@@ -218,6 +218,18 @@ def get_host_tools() -> List[Dict[str, Any]]:
             },
         },
         {
+            "name": "vibemk_rename_host",
+            "description": "✏️ Rename host - Rename a host in CheckMK (starts a background job)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Current host name"},
+                    "new_name": {"type": "string", "description": "New host name (FQDN)"},
+                },
+                "required": ["host_name", "new_name"],
+            },
+        },
+        {
             "name": "vibemk_bulk_update_hosts",
             "description": "🔄 Bulk update hosts - Update multiple hosts at once",
             "inputSchema": {
@@ -381,7 +393,12 @@ def get_configuration_tools() -> List[Dict[str, Any]]:
     return [
         {
             "name": "vibemk_activate_changes",
-            "description": "🔄 Activate changes - Deploy pending configuration changes",
+            "description": (
+                "🔄 Activate changes - Deploy pending configuration changes. "
+                "INTERN: vibemk holt den ETag automatisch von pending_changes vor der Aktivierung — "
+                "manuelles ETag-Management ist nicht nötig. "
+                "Nach Aktivierung warten bis der nächste Check-Zyklus läuft bevor Ergebnisse sichtbar sind."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -728,39 +745,6 @@ def get_group_management_tools() -> List[Dict[str, Any]]:
             "description": "🔧 List service groups - Show all service groups",
             "inputSchema": {"type": "object", "properties": {}},
         },
-        {
-            "name": "vibemk_create_service_group",
-            "description": "➕ Create service group - Add new service group",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Group name"},
-                    "alias": {"type": "string", "description": "Display alias"},
-                },
-                "required": ["name", "alias"],
-            },
-        },
-        {
-            "name": "vibemk_update_service_group",
-            "description": "📝 Update service group - Modify service group properties",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Group name"},
-                    "alias": {"type": "string", "description": "Display alias"},
-                },
-                "required": ["name"],
-            },
-        },
-        {
-            "name": "vibemk_delete_service_group",
-            "description": "🗑️ Delete service group - Remove service group",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"name": {"type": "string", "description": "Group name to delete"}},
-                "required": ["name"],
-            },
-        },
     ]
 
 
@@ -794,20 +778,32 @@ def get_advanced_monitoring_tools() -> List[Dict[str, Any]]:
             },
         },
         {
+            "name": "vibemk_delete_comment",
+            "description": "🗑️ Delete comment - Remove a host or service comment by ID or query",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "delete_type": {
+                        "type": "string",
+                        "description": "Deletion mode: 'by_id' (requires comment_id) or 'by_query' (requires host_name)",
+                        "default": "by_id",
+                    },
+                    "comment_id": {"type": "integer", "description": "Comment ID (for delete_type=by_id)"},
+                    "host_name": {"type": "string", "description": "Host name (for delete_type=by_query)"},
+                    "service_description": {
+                        "type": "string",
+                        "description": "Service description (optional, for delete_type=by_query)",
+                    },
+                    "site_id": {"type": "string", "description": "Site ID (defaults to configured site)"},
+                },
+            },
+        },
+        {
             "name": "vibemk_get_downtimes",
             "description": "⏰ List downtimes - Show scheduled downtimes",
             "inputSchema": {
                 "type": "object",
                 "properties": {"host_name": {"type": "string", "description": "Filter by host name"}},
-            },
-        },
-        {
-            "name": "vibemk_delete_downtime",
-            "description": "🗑️ Delete downtime - Remove scheduled downtime",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"downtime_id": {"type": "string", "description": "Downtime ID"}},
-                "required": ["downtime_id"],
             },
         },
         {
@@ -839,41 +835,85 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_get_ruleset",
-            "description": "📋 Get ruleset - Show specific ruleset configuration",
+            "description": (
+                "📋 Regeln eines Rulesets auflisten — mit optionalem Hostname-Filter. "
+                "Zeigt Rule-IDs für vibemk_delete_rule."
+            ),
             "inputSchema": {
                 "type": "object",
-                "properties": {"ruleset_name": {"type": "string", "description": "Ruleset name"}},
+                "properties": {
+                    "ruleset_name": {
+                        "type": "string",
+                        "description": "Ruleset-Name (z.B. 'active_checks:http', 'host_label_rules')",
+                    },
+                    "hostname": {
+                        "type": "string",
+                        "description": "Nur Regeln für diesen Host anzeigen (optional)",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max. Anzahl Regeln (default: 50)",
+                    },
+                },
                 "required": ["ruleset_name"],
             },
         },
         {
             "name": "vibemk_create_rule",
-            "description": "➕ Create rule - Add new monitoring rule",
+            "description": (
+                "➕ Create rule - Add new monitoring rule. "
+                "REGELREIHENFOLGE: CheckMK wertet Regeln von oben nach unten aus — erste passende Regel gewinnt. "
+                "Subfolder-Regeln werden VOR Root-Folder-Regeln ausgewertet. "
+                "Neue Regel IMMER im Ordner des Hosts anlegen (nicht in Root '~'), sonst greifen vorhandene "
+                "Subfolder-Regeln trotzdem zuerst! "
+                "WICHTIG value_raw: Muss ein Python-Literal sein (mit Tuples!), kein JSON. "
+                "Nutze 'value_raw' als String direkt (z.B. \"{'levels': ('perc_used', (80.0, 90.0))}\") "
+                "statt 'rule_config' (JSON kennt keine Tuples → API 400). "
+                "Für dedizierte Tools (Memory, Prozesse, Interface) bitte vibemk_set_* Tools nutzen."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "ruleset_name": {"type": "string", "description": "Ruleset name"},
-                    "rule_config": {"type": "object", "description": "Rule configuration"},
-                    "conditions": {"type": "object", "description": "Rule conditions"},
+                    "value_raw": {
+                        "type": "string",
+                        "description": (
+                            "Python-Literal als String (bevorzugt). "
+                            "Beispiel: \"{'levels': ('perc_used', (80.0, 90.0))}\" — Tuples bleiben Tuples."
+                        ),
+                    },
+                    "rule_config": {
+                        "type": "object",
+                        "description": "Rule config als JSON-Objekt (Fallback, verlustbehaftet — Tuples werden zu Listen!)",
+                    },
+                    "conditions": {"type": "object", "description": "Rule conditions (host_name etc.)"},
                     "comment": {"type": "string", "description": "Rule comment"},
                     "folder": {"type": "string", "description": "Target folder", "default": "/"},
-                    "position": {
-                        "type": "string",
-                        "description": "Rule position: top, bottom, before, after",
-                        "default": "top",
-                    },
                 },
-                "required": ["ruleset_name", "rule_config"],
+                "required": ["ruleset_name"],
             },
         },
         {
             "name": "vibemk_update_rule",
-            "description": "📝 Update rule - Modify existing monitoring rule",
+            "description": (
+                "📝 Update rule - Modify existing monitoring rule. "
+                "WICHTIG: Nutze 'value_raw' als Python-Literal-String statt 'rule_config' "
+                "wenn der Wert Tuples enthält (z.B. CheckMK-Schwellwerte). "
+                "Tipp: Beim Aktualisieren bestehender Regeln (statt neue anlegen) wird das Reihenfolge-Problem "
+                "vermieden — vorhandene Position bleibt erhalten."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "rule_id": {"type": "string", "description": "Rule ID"},
-                    "rule_config": {"type": "object", "description": "Rule configuration"},
+                    "value_raw": {
+                        "type": "string",
+                        "description": "Python-Literal als String (bevorzugt, z.B. \"{'levels': ('perc_used', (80.0, 90.0))}\")",
+                    },
+                    "rule_config": {
+                        "type": "object",
+                        "description": "Rule config als JSON-Objekt (Fallback, verlustbehaftet)",
+                    },
                     "conditions": {"type": "object", "description": "Rule conditions"},
                     "comment": {"type": "string", "description": "Rule comment"},
                     "disabled": {"type": "boolean", "description": "Disable rule"},
@@ -892,17 +932,34 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_move_rule",
-            "description": "🔄 Move rule - Change rule position in ruleset",
+            "description": (
+                "🔄 Move rule - Change rule position within its folder. "
+                "REGELREIHENFOLGE: CheckMK evaluiert von oben nach unten, erste Match gewinnt. "
+                "top_of_folder = höchste Priorität im Ordner. "
+                "WICHTIG: Subfolder-Regeln gewinnen IMMER gegen Root-Ordner-Regeln, egal welche Position. "
+                "Deshalb immer im Host-Ordner anlegen/verschieben, nicht in Root."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "rule_id": {"type": "string", "description": "Rule ID"},
+                    "rule_id": {"type": "string", "description": "Rule ID to move"},
                     "position": {
                         "type": "string",
-                        "description": "Position: top, bottom, before, after",
-                        "default": "top",
+                        "description": (
+                            "Position enum: top_of_folder (default), bottom_of_folder, "
+                            "before_specific_rule, after_specific_rule. "
+                            "Short aliases top/bottom/before/after are also accepted."
+                        ),
+                        "default": "top_of_folder",
                     },
-                    "target_rule_id": {"type": "string", "description": "Target rule ID for before/after positioning"},
+                    "folder": {
+                        "type": "string",
+                        "description": "Folder path (e.g. '~muenchen~mue-0') for top_of_folder/bottom_of_folder. Defaults to root '~'.",
+                    },
+                    "target_rule_id": {
+                        "type": "string",
+                        "description": "Target rule ID for before_specific_rule / after_specific_rule",
+                    },
                 },
                 "required": ["rule_id"],
             },
@@ -1483,6 +1540,33 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
                 "required": ["host_name"],
             },
         },
+        {
+            "name": "vibemk_modify_downtime",
+            "description": "✏️ Modify downtime - Extend or shorten an active downtime's end time",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "downtime_id": {
+                        "type": "integer",
+                        "description": "Downtime ID to modify (use vibemk_list_downtimes to find it)",
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "New end time in ISO 8601 format, e.g. '2026-06-09T18:00:00Z'",
+                    },
+                    "comment": {"type": "string", "description": "New comment (optional)"},
+                    "host_name": {
+                        "type": "string",
+                        "description": "Host name for query-based modification (alternative to downtime_id)",
+                    },
+                    "service_description": {
+                        "type": "string",
+                        "description": "Service description (optional, narrows query-based modification)",
+                    },
+                },
+                "required": ["end_time"],
+            },
+        },
     ]
 
 
@@ -1721,6 +1805,1114 @@ def get_service_group_tools() -> List[Dict[str, Any]]:
     ]
 
 
+def get_active_check_tools() -> List[Dict[str, Any]]:
+    """Active check creation tools (HTTP, TCP, ICMP, custom)"""
+    return [
+        {
+            "name": "vibemk_create_http_check",
+            "description": (
+                "🌐 HTTP/HTTPS-Check für einen Host anlegen (active_checks:http). "
+                "Unterstützt URL-Modus (Inhaltsprüfung, Auth, Timing) und Zertifikat-Modus."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "Host für den die Regel gilt (CheckMK-Hostname)",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Servicename im Monitoring (z.B. 'HTTP Main', 'API Health')",
+                    },
+                    "uri": {
+                        "type": "string",
+                        "description": "URL-Pfad oder vollständige URL (default: '/')",
+                    },
+                    "port": {"type": "integer", "description": "HTTP-Port (default: 80 bzw. 443 bei SSL)"},
+                    "ssl": {"type": "boolean", "description": "HTTPS/SSL verwenden (default: false)"},
+                    "virt_host": {
+                        "type": "string",
+                        "description": "Virtual-Host-Header (wenn abweichend vom Hostname)",
+                    },
+                    "direct_address": {
+                        "type": "string",
+                        "description": "Direkte IP/Hostname-Adresse statt Hostnamen (optional)",
+                    },
+                    "proxy_address": {
+                        "type": "string",
+                        "description": "HTTP-Proxy Adresse (optional, z.B. 'proxy.intern')",
+                    },
+                    "proxy_port": {
+                        "type": "integer",
+                        "description": "HTTP-Proxy Port (default: 80)",
+                    },
+                    "address_family": {
+                        "type": "string",
+                        "description": "IP-Version: 'ipv4' oder 'ipv6' (optional)",
+                    },
+                    "expect_string": {
+                        "type": "string",
+                        "description": "Fester String der im Response-Body enthalten sein muss (z.B. 'ok', 'healthy')",
+                    },
+                    "expect_regex": {
+                        "type": "string",
+                        "description": "Regulärer Ausdruck der im Response-Body matchen muss (z.B. '\"status\":\\s*\"ok\"')",
+                    },
+                    "expect_response": {
+                        "type": "string",
+                        "description": "Erwarteter HTTP-Status-String (z.B. 'HTTP/1.1 200', 'HTTP/1.1 404')",
+                    },
+                    "method": {
+                        "type": "string",
+                        "description": "HTTP-Methode: GET, POST, HEAD, PUT, DELETE, OPTIONS, CONNECT (default: GET)",
+                    },
+                    "no_body": {
+                        "type": "boolean",
+                        "description": "Nur Header laden, keinen Body abrufen (default: false)",
+                    },
+                    "onredirect": {
+                        "type": "string",
+                        "description": "Redirect-Verhalten: 'ok', 'warning', 'critical', 'follow', 'sticky', 'stickyport'",
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "description": "Timeout in Sekunden (optional)",
+                    },
+                    "response_time_warn": {
+                        "type": "number",
+                        "description": "Warn-Schwelle Antwortzeit in Sekunden (z.B. 2.0)",
+                    },
+                    "response_time_crit": {
+                        "type": "number",
+                        "description": "Krit-Schwelle Antwortzeit in Sekunden (z.B. 5.0)",
+                    },
+                    "extended_perfdata": {
+                        "type": "boolean",
+                        "description": "Erweiterte Performance-Daten (Größe, Headersize) sammeln (default: false)",
+                    },
+                    "auth_user": {
+                        "type": "string",
+                        "description": "HTTP-Basic-Auth Benutzername (optional)",
+                    },
+                    "auth_password": {
+                        "type": "string",
+                        "description": "HTTP-Basic-Auth Passwort (optional)",
+                    },
+                    "cert_mode": {
+                        "type": "boolean",
+                        "description": "Zertifikat-Ablauf prüfen statt URL (default: false)",
+                    },
+                    "cert_days_warn": {
+                        "type": "integer",
+                        "description": "Warn-Tage vor Zertifikat-Ablauf (default: 14, nur bei cert_mode)",
+                    },
+                    "cert_days_crit": {
+                        "type": "integer",
+                        "description": "Krit-Tage vor Zertifikat-Ablauf (default: 7, nur bei cert_mode)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_create_tcp_check",
+            "description": (
+                "🔌 TCP-Port-Check für einen Host anlegen. Prüft Erreichbarkeit, optionalen "
+                "Response-Inhalt und SSL-Zertifikat."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "port": {"type": "integer", "description": "TCP-Port (z.B. 8080)"},
+                    "name": {"type": "string", "description": "Optionaler Servicename"},
+                    "ssl": {
+                        "type": "boolean",
+                        "description": "SSL/TLS verwenden (default: false)",
+                    },
+                    "cert_days_warn": {
+                        "type": "integer",
+                        "description": "Warn-Tage vor Zertifikat-Ablauf (nur bei ssl=true)",
+                    },
+                    "cert_days_crit": {
+                        "type": "integer",
+                        "description": "Krit-Tage vor Zertifikat-Ablauf (nur bei ssl=true)",
+                    },
+                    "expect": {
+                        "type": "string",
+                        "description": "String der in der TCP-Antwort erwartet wird (z.B. 'SSH-2.0', 'Connection refused')",
+                    },
+                    "refuse_state": {
+                        "type": "string",
+                        "description": "Status wenn Port nicht erreichbar: 'ok', 'warn', 'crit' (default: 'crit')",
+                    },
+                    "mismatch_state": {
+                        "type": "string",
+                        "description": "Status wenn expect-String nicht matcht: 'ok', 'warn', 'crit'",
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "description": "Timeout in Sekunden (optional)",
+                    },
+                    "response_time_warn": {
+                        "type": "number",
+                        "description": "Warn-Schwelle Antwortzeit in Sekunden",
+                    },
+                    "response_time_crit": {
+                        "type": "number",
+                        "description": "Krit-Schwelle Antwortzeit in Sekunden",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname", "port"],
+            },
+        },
+        {
+            "name": "vibemk_create_icmp_check",
+            "description": (
+                "🏓 ICMP/PING-Check für einen Host anlegen. Prüft Erreichbarkeit, "
+                "Paketverlust und Round-Trip-Zeit."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "name": {"type": "string", "description": "Servicename (default: 'PING')"},
+                    "packets": {"type": "integer", "description": "Anzahl Pakete (default: 5)"},
+                    "timeout": {"type": "number", "description": "Timeout in Sekunden (default: 20)"},
+                    "explicit_address": {
+                        "type": "string",
+                        "description": "Ziel-IP oder Hostname statt Hostnamen anpingen (optional)",
+                    },
+                    "rta_warn_ms": {
+                        "type": "number",
+                        "description": "Warn-Schwelle Round-Trip-Zeit in Millisekunden (z.B. 200)",
+                    },
+                    "rta_crit_ms": {
+                        "type": "number",
+                        "description": "Krit-Schwelle Round-Trip-Zeit in Millisekunden (z.B. 500)",
+                    },
+                    "loss_warn_percent": {
+                        "type": "number",
+                        "description": "Warn-Schwelle Paketverlust in Prozent (z.B. 20)",
+                    },
+                    "loss_crit_percent": {
+                        "type": "number",
+                        "description": "Krit-Schwelle Paketverlust in Prozent (z.B. 100)",
+                    },
+                    "min_pings": {
+                        "type": "integer",
+                        "description": "Minimale Anzahl empfangener Pings für gültiges Ergebnis (optional)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_create_custom_check",
+            "description": (
+                "🔧 Custom Nagios-Plugin-Check für einen Host anlegen. "
+                "Bindet ein beliebiges Nagios-kompatibles Plugin ein."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "service_description": {"type": "string", "description": "Servicename im Monitoring"},
+                    "command_line": {
+                        "type": "string",
+                        "description": "Plugin-Kommando (z.B. '$USER1$/check_smtp -H $HOSTNAME$ -t 5')",
+                    },
+                    "command_name": {
+                        "type": "string",
+                        "description": "Optionaler interner Name des Kommandos",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (default: '~')"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (wird im WATO angezeigt). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname", "service_description", "command_line"],
+            },
+        },
+        {
+            "name": "vibemk_create_dns_check",
+            "description": (
+                "🔎 DNS-Check für einen Host anlegen. Prüft ob ein Hostname auflösbar ist "
+                "und ob die Antwortzeit im Limit liegt."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Host für den die Regel gilt"},
+                    "lookup_hostname": {
+                        "type": "string",
+                        "description": "Hostname der aufgelöst werden soll (default: wie hostname)",
+                    },
+                    "dns_server": {
+                        "type": "string",
+                        "description": "DNS-Server IP (optional, default: Systemstandard)",
+                    },
+                    "expected_addresses": {
+                        "type": "string",
+                        "description": "Erwartete IP-Adresse(n) — einzelne IP oder kommagetrennte Liste (optional)",
+                    },
+                    "expect_all_addresses": {
+                        "type": "boolean",
+                        "description": "Alle expected_addresses müssen zurückgeliefert werden (default: false)",
+                    },
+                    "response_time_warn": {
+                        "type": "number",
+                        "description": "Warn-Schwelle in Sekunden (default: 0.2)",
+                    },
+                    "response_time_crit": {
+                        "type": "number",
+                        "description": "Krit-Schwelle in Sekunden (default: 0.3)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_create_smtp_check",
+            "description": (
+                "📧 SMTP-Check für einen Host anlegen. Prüft SMTP-Dienst, optional STARTTLS "
+                "und Zertifikat-Ablauf."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "name": {"type": "string", "description": "Servicename (default: 'SMTP')"},
+                    "starttls": {
+                        "type": "boolean",
+                        "description": "STARTTLS verwenden und Zertifikat prüfen (default: false)",
+                    },
+                    "check_cert": {
+                        "type": "boolean",
+                        "description": "Nur Zertifikat prüfen ohne STARTTLS (default: false)",
+                    },
+                    "cert_days_warn": {
+                        "type": "integer",
+                        "description": "Warn-Tage vor Zertifikat-Ablauf (default: 14, bei starttls oder check_cert)",
+                    },
+                    "cert_days_crit": {
+                        "type": "integer",
+                        "description": "Krit-Tage vor Zertifikat-Ablauf (default: 7)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_create_ftp_check",
+            "description": "📁 FTP-Check für einen Host anlegen. Prüft ob ein FTP-Port erreichbar ist.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "port": {"type": "integer", "description": "FTP-Port (default: 21)"},
+                    "timeout": {"type": "integer", "description": "Timeout in Sekunden (optional)"},
+                    "passive": {
+                        "type": "boolean",
+                        "description": "Passiver FTP-Modus (optional)",
+                    },
+                    "refuse_state": {
+                        "type": "string",
+                        "description": "Status wenn Verbindung abgelehnt: 'crit', 'warn', 'ok' (default: 'crit')",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_create_ldap_check",
+            "description": (
+                "🗂️ LDAP-Check für einen Host anlegen. Prüft LDAP-Dienst und Antwortzeit."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "name": {"type": "string", "description": "Servicename (default: 'LDAP')"},
+                    "base_dn": {
+                        "type": "string",
+                        "description": "LDAP Base-DN (z.B. 'DC=example,DC=com')",
+                    },
+                    "bind_dn": {
+                        "type": "string",
+                        "description": "Bind-DN für Authentifizierung (optional)",
+                    },
+                    "password": {"type": "string", "description": "LDAP-Passwort (optional)"},
+                    "port": {"type": "integer", "description": "LDAP-Port (optional, default: 389)"},
+                    "attribute": {
+                        "type": "string",
+                        "description": "LDAP-Attribut oder Filter-String (optional, z.B. '(objectclass=*)')",
+                    },
+                    "response_time_warn_ms": {
+                        "type": "number",
+                        "description": "Warn-Schwelle in Millisekunden (default: 500)",
+                    },
+                    "response_time_crit_ms": {
+                        "type": "number",
+                        "description": "Krit-Schwelle in Millisekunden (default: 800)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname", "base_dn"],
+            },
+        },
+        {
+            "name": "vibemk_create_smb_check",
+            "description": (
+                "🖥️ SMB/CIFS-Share-Check für einen Host anlegen. Prüft Verfügbarkeit und "
+                "Füllstand eines Windows-Netzlaufwerks."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "share": {
+                        "type": "string",
+                        "description": "Share-Name ohne Backslashes (z.B. 'public')",
+                    },
+                    "smb_host": {
+                        "type": "string",
+                        "description": "SMB-Host-IP/-Name (default: 'use_parent_host')",
+                    },
+                    "warn_percent": {
+                        "type": "number",
+                        "description": "Füllstand Warn-Prozent (default: 85)",
+                    },
+                    "crit_percent": {
+                        "type": "number",
+                        "description": "Füllstand Krit-Prozent (default: 95)",
+                    },
+                    "username": {"type": "string", "description": "SMB-Benutzername (optional)"},
+                    "password": {"type": "string", "description": "SMB-Passwort (optional)"},
+                    "workgroup": {"type": "string", "description": "Workgroup/Domäne (optional)"},
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname", "share"],
+            },
+        },
+        {
+            "name": "vibemk_create_mkevents_check",
+            "description": (
+                "📋 Event-Console-Check für einen Host anlegen. Prüft ob offene Events "
+                "in der CheckMK Event Console für den Host existieren."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "ignore_acknowledged": {
+                        "type": "boolean",
+                        "description": "Quittierte Events ignorieren (default: true)",
+                    },
+                    "show_last_log": {
+                        "type": "string",
+                        "description": "'none', 'summary' oder 'long' (default: 'summary')",
+                    },
+                    "remote_ec_host": {
+                        "type": "string",
+                        "description": "IP/Host einer externen Event Console (optional)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_create_inventory_check",
+            "description": (
+                "🔬 HW/SW-Inventory-Check für einen Host anlegen. Löst Hardware/Software-Inventarisierung "
+                "aus und meldet Änderungen seit letztem Scan."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {"type": "string", "description": "Hostname"},
+                    "sw_changes_state": {
+                        "type": "integer",
+                        "description": "Status bei SW-Änderungen: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                    },
+                    "sw_missing_state": {
+                        "type": "integer",
+                        "description": "Status bei fehlender SW: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                    },
+                    "hw_changes_state": {
+                        "type": "integer",
+                        "description": "Status bei HW-Änderungen: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                    },
+                    "fail_status": {
+                        "type": "integer",
+                        "description": "Status bei Inventarisierungsfehler: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                    },
+                    "status_data_inventory": {
+                        "type": "boolean",
+                        "description": "Status-Data-Inventarisierung aktivieren (default: true)",
+                    },
+                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_list_active_checks",
+            "description": (
+                "🔍 Active-Check-Regeln auflisten. Zeigt alle Active-Check-Regeln, "
+                "optional gefiltert nach Host oder Check-Typ."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "Nur Regeln für diesen Hostnamen anzeigen (optional)",
+                    },
+                    "check_type": {
+                        "type": "string",
+                        "description": "Typ: 'http', 'tcp', 'icmp', 'dns', 'smtp', 'custom' (optional, alle wenn leer)",
+                    },
+                },
+            },
+        },
+        {
+            "name": "vibemk_delete_active_check",
+            "description": (
+                "🗑️ Active-Check-Regel löschen. Entweder per rule_id (UUID) "
+                "oder per hostname + optionalem service_name (sucht und löscht passende Regeln)."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "rule_id": {
+                        "type": "string",
+                        "description": "Rule-ID (UUID) — direkte Löschung",
+                    },
+                    "hostname": {
+                        "type": "string",
+                        "description": "Hostname — sucht alle Active-Check-Regeln für diesen Host",
+                    },
+                    "service_name": {
+                        "type": "string",
+                        "description": "Optionaler Servicename-Filter (z.B. 'HTTP', 'HTTPS')",
+                    },
+                    "check_type": {
+                        "type": "string",
+                        "description": "Check-Typ-Filter: 'http', 'tcp', 'icmp', 'custom' (optional)",
+                    },
+                },
+            },
+        },
+    ]
+
+
+def get_event_console_tools() -> List[Dict[str, Any]]:
+    """Event Console tools"""
+    return [
+        {
+            "name": "vibemk_get_events",
+            "description": (
+                "🗃️ Event-Console-Events abrufen. Zeigt offene/quittierte EC-Events "
+                "mit optionalen Filtern nach Host, Status und Phase."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "phase": {
+                        "type": "string",
+                        "description": "Phase: 'open' (default) oder 'ack' (quittiert)",
+                    },
+                    "state": {
+                        "type": "string",
+                        "description": "Status-Filter: 'ok', 'warning', 'critical', 'unknown'",
+                    },
+                    "host": {"type": "string", "description": "Hostnamen-Filter"},
+                    "application": {"type": "string", "description": "Applikations-Filter"},
+                    "site_id": {"type": "string", "description": "Site-ID (z.B. 'im', 'uel')"},
+                },
+            },
+        },
+        {
+            "name": "vibemk_acknowledge_event",
+            "description": "✅ EC-Event quittieren (acknowledge).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "event_id": {"type": "integer", "description": "Event-ID"},
+                    "comment": {"type": "string", "description": "Kommentar zur Quittierung"},
+                },
+                "required": ["event_id"],
+            },
+        },
+        {
+            "name": "vibemk_change_event_state",
+            "description": "🔄 Status eines EC-Events ändern.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "event_id": {"type": "integer", "description": "Event-ID"},
+                    "new_state": {
+                        "type": "string",
+                        "description": "Neuer Status: 'ok', 'warning', 'critical', 'unknown'",
+                    },
+                },
+                "required": ["event_id", "new_state"],
+            },
+        },
+        {
+            "name": "vibemk_delete_events",
+            "description": (
+                "🗑️ EC-Events löschen. Entweder per ID-Liste oder alle Events einer Phase/eines Hosts."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "event_ids": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Liste von Event-IDs (wenn leer: nach phase/host filtern)",
+                    },
+                    "phase": {"type": "string", "description": "Phase-Filter: 'open', 'ack' (default: 'open')"},
+                    "host": {"type": "string", "description": "Nur Events dieses Hosts löschen"},
+                },
+            },
+        },
+    ]
+
+
+def get_aux_tag_tools() -> List[Dict[str, Any]]:
+    """Auxiliary tag CRUD tools"""
+    return [
+        {
+            "name": "vibemk_get_aux_tags",
+            "description": "🏷️ Aux-Tags auflisten. Zeigt alle konfigurierten Auxiliary Tags.",
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vibemk_create_aux_tag",
+            "description": "🏷️ Neuen Aux-Tag anlegen.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "tag_id": {"type": "string", "description": "Eindeutige Tag-ID (z.B. 'sys-linux')"},
+                    "title": {"type": "string", "description": "Anzeigename (z.B. 'Linux System')"},
+                    "topic": {"type": "string", "description": "Thema/Gruppe (z.B. 'Operating System')"},
+                    "help": {"type": "string", "description": "Hilfetext"},
+                },
+                "required": ["tag_id", "title"],
+            },
+        },
+        {
+            "name": "vibemk_update_aux_tag",
+            "description": "🏷️ Aux-Tag aktualisieren.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "tag_id": {"type": "string", "description": "Tag-ID"},
+                    "title": {"type": "string", "description": "Neuer Anzeigename"},
+                    "topic": {"type": "string", "description": "Neues Thema"},
+                    "help": {"type": "string", "description": "Neuer Hilfetext"},
+                },
+                "required": ["tag_id"],
+            },
+        },
+        {
+            "name": "vibemk_delete_aux_tag",
+            "description": "🗑️ Aux-Tag löschen.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "tag_id": {"type": "string", "description": "Tag-ID"},
+                },
+                "required": ["tag_id"],
+            },
+        },
+    ]
+
+
+def get_audit_log_tools() -> List[Dict[str, Any]]:
+    """Audit log tools"""
+    return [
+        {
+            "name": "vibemk_get_audit_log",
+            "description": (
+                "📋 Audit-Log abrufen. Zeigt CheckMK-Konfigurationsänderungen "
+                "(Hosts anlegen/löschen, Regeln ändern, Aktivierungen, etc.)"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "description": "Startdatum (YYYY-MM-DD, default: heute)",
+                    },
+                    "object_type": {
+                        "type": "string",
+                        "description": "Objekttyp-Filter: 'All', 'Folder', 'Host', 'User', 'Rule', 'Ruleset'",
+                    },
+                    "object_id": {
+                        "type": "string",
+                        "description": "Objektname-Filter (z.B. Hostname)",
+                    },
+                    "user_id": {"type": "string", "description": "Benutzer-Filter"},
+                    "regexp": {
+                        "type": "string",
+                        "description": "Regex-Filter auf user_id, action und summary",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximale Anzahl Einträge (default: 50)",
+                    },
+                },
+            },
+        },
+    ]
+
+
+def get_site_tools() -> List[Dict[str, Any]]:
+    """Site management tools"""
+    return [
+        {
+            "name": "vibemk_get_sites",
+            "description": (
+                "🌐 Monitoring-Sites auflisten. Zeigt alle konfigurierten "
+                "CheckMK-Instanzen (Distributed Monitoring)."
+            ),
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vibemk_login_site",
+            "description": "🔑 Auf einer Remote-Site einloggen (Distributed Monitoring).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string", "description": "Site-ID (z.B. 'uel', 'ham')"},
+                    "username": {"type": "string", "description": "Benutzername"},
+                    "password": {"type": "string", "description": "Passwort"},
+                },
+                "required": ["site_id", "username", "password"],
+            },
+        },
+        {
+            "name": "vibemk_logout_site",
+            "description": "🚪 Von einer Remote-Site ausloggen.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "site_id": {"type": "string", "description": "Site-ID"},
+                },
+                "required": ["site_id"],
+            },
+        },
+    ]
+
+
+def get_clone_tools() -> List[Dict[str, Any]]:
+    """Clone host tool"""
+    return [
+        {
+            "name": "vibemk_clone_host",
+            "description": (
+                "\U0001f501 Host klonen - Kopiert Ordner, Tags und Labels "
+                "von einem Quell-Host auf einen neuen Ziel-Host. "
+                "Optional kann eine neue IP-Adresse angegeben werden."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "source_hostname": {
+                        "type": "string",
+                        "description": "Quell-Hostname (z.B. docker0160.ippen.media)",
+                    },
+                    "target_hostname": {
+                        "type": "string",
+                        "description": "Neuer Hostname (z.B. llamacpp03.ippen.media)",
+                    },
+                    "ip_address": {
+                        "type": "string",
+                        "description": (
+                            "Optionale IP-Adresse für den neuen Host. "
+                            "Wenn nicht angegeben wird die IP des Quell-Hosts kopiert."
+                        ),
+                    },
+                },
+                "required": ["source_hostname", "target_hostname"],
+            },
+        }
+    ]
+
+
+_WRITE_TOOLS = frozenset({
+    # Hosts
+    "vibemk_create_host", "vibemk_bulk_create_hosts", "vibemk_update_host",
+    "vibemk_delete_host", "vibemk_move_host", "vibemk_bulk_update_hosts",
+    "vibemk_create_cluster_host", "vibemk_clone_host",
+    # Folders
+    "vibemk_create_folder", "vibemk_delete_folder", "vibemk_update_folder", "vibemk_move_folder",
+    # Rules
+    "vibemk_create_rule", "vibemk_update_rule", "vibemk_delete_rule", "vibemk_move_rule",
+    "vibemk_create_host_contactgroup_rule", "vibemk_create_host_hostgroup_rule",
+    # Groups
+    "vibemk_create_host_group", "vibemk_update_host_group", "vibemk_delete_host_group",
+    "vibemk_create_service_group", "vibemk_update_service_group", "vibemk_delete_service_group",
+    "vibemk_bulk_create_service_groups", "vibemk_bulk_update_service_groups", "vibemk_bulk_delete_service_groups",
+    "vibemk_create_contact_group", "vibemk_update_contact_group", "vibemk_delete_contact_group",
+    # Tags
+    "vibemk_create_host_tag", "vibemk_update_host_tag", "vibemk_delete_host_tag",
+    # Timeperiods
+    "vibemk_create_timeperiod", "vibemk_update_timeperiod", "vibemk_delete_timeperiod",
+    # Passwords
+    "vibemk_create_password", "vibemk_update_password", "vibemk_delete_password",
+    # User roles
+    "vibemk_create_user_role", "vibemk_update_user_role", "vibemk_delete_user_role",
+    # Active checks (as rules — need activation)
+    "vibemk_create_http_check", "vibemk_create_tcp_check",
+    "vibemk_create_icmp_check", "vibemk_create_custom_check",
+    "vibemk_create_dns_check", "vibemk_create_smtp_check", "vibemk_create_ftp_check",
+    "vibemk_create_ldap_check", "vibemk_create_smb_check",
+    "vibemk_create_mkevents_check", "vibemk_create_inventory_check",
+    "vibemk_delete_active_check",
+    # Aux tags
+    "vibemk_create_aux_tag", "vibemk_update_aux_tag", "vibemk_delete_aux_tag",
+    # Service params
+    "vibemk_set_process_thresholds", "vibemk_set_interface_params",
+    "vibemk_set_memory_thresholds", "vibemk_delete_service_param_rule",
+})
+
+_ACTIVATE_PROP: Dict[str, Any] = {
+    "type": "boolean",
+    "description": (
+        "Änderungen nach der Operation sofort aktivieren (default: false). "
+        "Frage den Benutzer vorher, ob er aktivieren möchte."
+    ),
+}
+
+
+def get_service_param_tools() -> List[Dict[str, Any]]:
+    """Service parameter / threshold rules"""
+    return [
+        {
+            "name": "vibemk_set_process_thresholds",
+            "description": (
+                "⚙️ Prozess-Monitoring mit Schwellwerten für einen Host anlegen (inventory_processes_rules). "
+                "Erstellt eine Regel die definiert welche Prozesse überwacht werden und bei wie vielen "
+                "Instanzen WARN/CRIT ausgelöst wird. Führt danach automatisch Service Discovery aus "
+                "damit die Schwellwerte sofort aktiv werden. "
+                "Beispiel: 'Process wnscli.exe' auf Host X soll bei >=10 warnen und bei >=12 kritisch werden."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "CheckMK-Hostname für den die Regel gilt",
+                    },
+                    "process_name": {
+                        "type": "string",
+                        "description": (
+                            "Prozessname (z.B. 'wnscli.exe', 'nginx', 'java'). "
+                            "Wird automatisch als Prozess-Match und Service-Name verwendet. "
+                            "Prefix 'Process ' wird automatisch entfernt falls angegeben."
+                        ),
+                    },
+                    "warn_max": {
+                        "type": "integer",
+                        "description": "WARNING wenn mehr als diese Anzahl Prozesse laufen (z.B. 10)",
+                    },
+                    "crit_max": {
+                        "type": "integer",
+                        "description": "CRITICAL wenn mehr als diese Anzahl Prozesse laufen (z.B. 12)",
+                    },
+                    "warn_min": {
+                        "type": "integer",
+                        "description": "WARNING wenn weniger als diese Anzahl Prozesse laufen (default: 1)",
+                    },
+                    "crit_min": {
+                        "type": "integer",
+                        "description": "CRITICAL wenn weniger als diese Anzahl Prozesse laufen (default: 1)",
+                    },
+                    "cpu_warn_percent": {
+                        "type": "number",
+                        "description": "CPU-Auslastung gesamt Warn-Schwelle in Prozent (optional, z.B. 80)",
+                    },
+                    "cpu_crit_percent": {
+                        "type": "number",
+                        "description": "CPU-Auslastung gesamt Krit-Schwelle in Prozent (optional, z.B. 95)",
+                    },
+                    "single_cpu_warn_percent": {
+                        "type": "number",
+                        "description": "CPU-Auslastung pro einzelnem Prozess Warn-Schwelle in % (optional)",
+                    },
+                    "single_cpu_crit_percent": {
+                        "type": "number",
+                        "description": "CPU-Auslastung pro einzelnem Prozess Krit-Schwelle in % (optional)",
+                    },
+                    "cpu_average_min": {
+                        "type": "integer",
+                        "description": "CPU-Mittelwert über N Minuten berechnen statt Momentwert (optional, z.B. 15)",
+                    },
+                    "mem_warn_mb": {
+                        "type": "integer",
+                        "description": "Warn-Schwelle für virtuellen Speicher in MB (optional)",
+                    },
+                    "mem_crit_mb": {
+                        "type": "integer",
+                        "description": "Krit-Schwelle für virtuellen Speicher in MB (optional)",
+                    },
+                    "resident_warn_mb": {
+                        "type": "integer",
+                        "description": "Warn-Schwelle für Resident-Speicher (RSS) in MB (optional)",
+                    },
+                    "resident_crit_mb": {
+                        "type": "integer",
+                        "description": "Krit-Schwelle für Resident-Speicher (RSS) in MB (optional)",
+                    },
+                    "run_discovery": {
+                        "type": "boolean",
+                        "description": (
+                            "Service Discovery nach dem Anlegen der Regel ausführen (default: true). "
+                            "Nur auf false setzen wenn mehrere Regeln auf einmal angelegt werden."
+                        ),
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                    },
+                },
+                "required": ["hostname", "process_name", "warn_max", "crit_max"],
+            },
+        },
+        {
+            "name": "vibemk_set_interface_params",
+            "description": (
+                "🌐 Interface-Parameter für einen CheckMK-Host überschreiben (checkgroup_parameters:interfaces). "
+                "Typisch: erwartete Geschwindigkeit setzen um 'expected speed' WARN zu beheben. "
+                "Beispiel: Interface vmbr1 meldet WARN weil erwartet 10 GBit/s, real 1 GBit/s — "
+                "expected_speed_mbit=1000 setzt die erwartete Geschwindigkeit auf 1 GBit/s. "
+                "REGELREIHENFOLGE: Neue Regel wird im Host-Ordner angelegt (nicht Root!) damit Subfolder-Priorität korrekt ist. "
+                "Nur activate_changes nötig, keine Service Discovery."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "CheckMK-Hostname (z.B. vpp0143.ippen.media)",
+                    },
+                    "interface_name": {
+                        "type": "string",
+                        "description": (
+                            "Interface-Name (z.B. 'vmbr1', 'eth0', 'bond0'). "
+                            "Prefix 'Interface ' wird automatisch entfernt falls angegeben."
+                        ),
+                    },
+                    "expected_speed_mbit": {
+                        "type": "integer",
+                        "description": (
+                            "Erwartete Interface-Geschwindigkeit in Mbit/s. "
+                            "Typische Werte: 10, 100, 1000 (1 GBit/s), 10000 (10 GBit/s)."
+                        ),
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel in WATO (optional)",
+                    },
+                },
+                "required": ["hostname", "interface_name", "expected_speed_mbit"],
+            },
+        },
+        {
+            "name": "vibemk_set_memory_thresholds",
+            "description": (
+                "💾 Memory-Schwellwerte für einen Host setzen (checkgroup_parameters:memory_linux). "
+                "Legt eine neue Regel für RAM- und/oder Swap-Auslastung an. "
+                "WICHTIG Memory-Keys: RAM = levels_virtual (nicht 'levels'!), Swap = levels_swap, "
+                "physischer RAM = levels_ram, Committed = levels_committed. "
+                "REGELREIHENFOLGE: Neue Regel wird im Ordner des Hosts angelegt (nicht Root) — "
+                "prüfe mit vibemk_get_ruleset ob bereits eine Regel für diesen Host existiert "
+                "und aktualisiere diese ggf. mit vibemk_update_rule statt eine neue anzulegen. "
+                "Nur activate_changes nötig."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "CheckMK-Hostname (z.B. aim013.ippen.media)",
+                    },
+                    "ram_warn_percent": {
+                        "type": "number",
+                        "description": "Total virtual memory WARN in % (levels_virtual, z.B. 90). Optional.",
+                    },
+                    "ram_crit_percent": {
+                        "type": "number",
+                        "description": "Total virtual memory CRIT in % (levels_virtual, z.B. 95). Pflicht wenn ram_warn gesetzt.",
+                    },
+                    "swap_warn_percent": {
+                        "type": "number",
+                        "description": "Swap-Auslastung WARN-Schwelle in % (z.B. 30). Optional.",
+                    },
+                    "swap_crit_percent": {
+                        "type": "number",
+                        "description": "Swap-Auslastung CRIT-Schwelle in % (z.B. 50). Pflicht wenn swap_warn gesetzt.",
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Beschreibung der Regel in WATO (optional)",
+                    },
+                },
+                "required": ["hostname"],
+            },
+        },
+        {
+            "name": "vibemk_list_process_rules",
+            "description": (
+                "🔍 Prozess-Monitoring-Regeln auflisten (inventory_processes_rules). "
+                "Zeigt welche Prozesse auf welchen Hosts überwacht werden und mit welchen Schwellwerten."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "Nur Regeln für diesen Host anzeigen (optional)",
+                    },
+                    "process_name": {
+                        "type": "string",
+                        "description": "Nur Regeln für diesen Prozess anzeigen (optional)",
+                    },
+                },
+            },
+        },
+        {
+            "name": "vibemk_delete_service_param_rule",
+            "description": (
+                "🗑️ Service-Parameter-Regel löschen (z.B. Prozess-Schwellwert-Regel). "
+                "Benötigt die Rule-ID aus vibemk_list_process_rules."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "rule_id": {
+                        "type": "string",
+                        "description": "Rule-ID (aus vibemk_list_process_rules)",
+                    },
+                },
+                "required": ["rule_id"],
+            },
+        },
+    ]
+
+
+def get_checkmk_guide_tools() -> List[Dict[str, Any]]:
+    """CheckMK rule management guide and tips"""
+    return [
+        {
+            "name": "vibemk_checkmk_rules_guide",
+            "description": (
+                "📖 CheckMK Rules Guide - Returns the complete guide for rule management, "
+                "ordering pitfalls, and API tricks. Call this BEFORE creating/modifying rules "
+                "when unsure about the correct approach."
+            ),
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+    ]
+
+
+def get_agent_tools() -> List[Dict[str, Any]]:
+    """Agent bakery tools (CheckMK CEE/Cloud only)"""
+    return [
+        {
+            "name": "vibemk_bake_agents",
+            "description": "🍞 Bake agents - Trigger agent package baking for all hosts (CEE/Cloud only)",
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vibemk_baking_status",
+            "description": "🍞 Baking status - Get current agent baking status",
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vibemk_download_agent_by_host",
+            "description": "📦 Download agent - Get download URL for the agent package of a specific host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name to get agent for"},
+                    "os_type": {
+                        "type": "string",
+                        "description": "OS type, e.g. linux_deb, linux_rpm, windows_msi",
+                        "default": "linux_deb",
+                    },
+                },
+                "required": ["host_name"],
+            },
+        },
+    ]
+
+
 def get_all_tools() -> List[Dict[str, Any]]:
     """Get all available tools"""
     tools = []
@@ -1746,4 +2938,17 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_discovery_tools())
     tools.extend(get_service_group_tools())
     tools.extend(get_ruleset_discovery_tools())
+    tools.extend(get_clone_tools())
+    tools.extend(get_active_check_tools())
+    tools.extend(get_event_console_tools())
+    tools.extend(get_aux_tag_tools())
+    tools.extend(get_audit_log_tools())
+    tools.extend(get_site_tools())
+    tools.extend(get_service_param_tools())
+    tools.extend(get_agent_tools())
+    tools.extend(get_checkmk_guide_tools())
+    # Inject activate_changes into all write tools
+    for tool in tools:
+        if tool["name"] in _WRITE_TOOLS:
+            tool["inputSchema"]["properties"]["activate_changes"] = _ACTIVATE_PROP
     return tools

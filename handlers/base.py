@@ -2,7 +2,9 @@
 Base handler for vibeMK operations
 """
 
+import json
 import logging
+import urllib.request
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
@@ -48,6 +50,44 @@ class BaseHandler(ABC):
         if data:
             text += f"\n\n{self._format_data(data)}"
         return [{"type": "text", "text": text}]
+
+    def _get_pending_etag(self) -> str:
+        """Fetch ETag from pending_changes endpoint (required for activation)."""
+        import ssl as _ssl
+        url = f"{self.client.api_base_url}/domain-types/activation_run/collections/pending_changes"
+        req = urllib.request.Request(url, method="GET")
+        for k, v in self.client.headers.items():
+            req.add_header(k, v)
+        with urllib.request.urlopen(req, context=self.client._ssl_context, timeout=30) as resp:
+            etag = resp.headers.get("ETag", "*")
+            return etag.strip('"') if etag != "*" else "*"
+
+    def _run_activation(self) -> str:
+        """Activate pending CheckMK changes and return a status line."""
+        try:
+            # ETag must be fetched from pending_changes before activating
+            try:
+                etag = self._get_pending_etag()
+            except Exception:
+                etag = "*"
+
+            data = json.dumps({
+                "redirect": False,
+                "sites": [self.client.config.site],
+                "force_foreign_changes": True,
+            }).encode("utf-8")
+            url = (
+                f"{self.client.api_base_url}"
+                "/domain-types/activation_run/actions/activate-changes/invoke"
+            )
+            req = urllib.request.Request(url, data=data, method="POST")
+            for k, v in self.client.headers.items():
+                req.add_header(k, v)
+            req.add_header("If-Match", f'"{etag}"' if etag != "*" else "*")
+            with urllib.request.urlopen(req, context=self.client._ssl_context, timeout=60):
+                return "✅ Änderungen wurden aktiviert."
+        except Exception as exc:
+            return f"⚠️  Aktivierung fehlgeschlagen: {exc}"
 
     def _format_data(self, data: Union[Dict[str, Any], List[Any], str, int, float, None]) -> str:
         """Format data for display"""
