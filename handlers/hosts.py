@@ -56,11 +56,13 @@ class HostHandler(BaseHandler):
 
     async def _get_hosts(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of hosts with optional filtering"""
-        params = {}
-        if folder := arguments.get("folder"):
-            params["folder"] = folder
-
-        result = self.client.get("domain-types/host_config/collections/all", params=params)
+        # Use the monitoring 'host' collection, not the Setup 'host_config' one:
+        # a read-only/Guest account sees host_config as empty (HTTP 200, value=[]).
+        # Request the 'state' column so we can show live status.
+        result = self.client.get(
+            "domain-types/host/collections/all",
+            params={"columns": ["name", "state"]},
+        )
 
         if not result.get("success"):
             return self.error_response("Failed to retrieve hosts")
@@ -69,18 +71,20 @@ class HostHandler(BaseHandler):
         if not hosts:
             return [{"type": "text", "text": "📭 No hosts found"}]
 
+        state_map = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
         host_list = []
         for host in hosts[:50]:  # Limit display
-            host_id = host.get("id", "Unknown")
-            folder_path = host.get("extensions", {}).get("folder", "/")
-            host_list.append(f"🖥️ {host_id} (Folder: {folder_path})")
+            ext = host.get("extensions", {})
+            host_id = host.get("id") or ext.get("name", "Unknown")
+            status = state_map.get(ext.get("state"), f"UNKNOWN({ext.get('state')})")
+            host_list.append(f"🖥️ {host_id} ({status})")
 
         return [
             {
                 "type": "text",
                 "text": (
-                    f"🖥️ **CheckMK Hosts** ({len(hosts)} total, showing first {len(host_list)}):\\n\\n"
-                    + "\\n".join(host_list)
+                    f"🖥️ **CheckMK Hosts** ({len(hosts)} total, showing first {len(host_list)}):\n\n"
+                    + "\n".join(host_list)
                 ),
             }
         ]
@@ -195,13 +199,13 @@ class HostHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"✅ **Host Status: {host_name}**\\n\\n"
-                                    f"**Status:** {status_display}\\n"
-                                    f"**State Code:** {effective_state} ({state_info})\\n"
-                                    f"**Has Been Checked:** {'Yes' if has_been_checked else 'No'}\\n"
-                                    f"**Last Check:** {last_check_display}\\n"
-                                    f"**Last State Change:** {change_display}\\n\\n"
-                                    f"**Plugin Output:** {plugin_output}\\n\\n"
+                                    f"✅ **Host Status: {host_name}**\n\n"
+                                    f"**Status:** {status_display}\n"
+                                    f"**State Code:** {effective_state} ({state_info})\n"
+                                    f"**Has Been Checked:** {'Yes' if has_been_checked else 'No'}\n"
+                                    f"**Last Check:** {last_check_display}\n"
+                                    f"**Last State Change:** {change_display}\n\n"
+                                    f"**Plugin Output:** {plugin_output}\n\n"
                                     f"✅ **Live monitoring data from CheckMK REST API**"
                                 ),
                             }
@@ -257,9 +261,9 @@ class HostHandler(BaseHandler):
                                     {
                                         "type": "text",
                                         "text": (
-                                            f"✅ **Host Status: {host_name}** (Fallback Method)\\n\\n"
-                                            f"**Status:** {status_display}\\n"
-                                            f"**State Code:** {state}\\n\\n"
+                                            f"✅ **Host Status: {host_name}** (Fallback Method)\n\n"
+                                            f"**Status:** {status_display}\n"
+                                            f"**State Code:** {state}\n\n"
                                             f"✅ **Data from CheckMK host collections API**"
                                         ),
                                     }
@@ -278,15 +282,15 @@ class HostHandler(BaseHandler):
                     {
                         "type": "text",
                         "text": (
-                            f"⚪ **Host Status: {host_name}**\\n\\n"
-                            f"**Status:** MONITORING DATA UNAVAILABLE\\n\\n"
-                            f"✅ Host is configured in CheckMK\\n"
-                            f"❌ Live monitoring state not accessible\\n\\n"
-                            f"**Possible Issues:**\\n"
-                            f"• Host not actively monitored\\n"
-                            f"• Monitoring core not running\\n"
-                            f"• API permissions insufficient\\n\\n"
-                            f"**Recommendation:**\\n"
+                            f"⚪ **Host Status: {host_name}**\n\n"
+                            f"**Status:** MONITORING DATA UNAVAILABLE\n\n"
+                            f"✅ Host is configured in CheckMK\n"
+                            f"❌ Live monitoring state not accessible\n\n"
+                            f"**Possible Issues:**\n"
+                            f"• Host not actively monitored\n"
+                            f"• Monitoring core not running\n"
+                            f"• API permissions insufficient\n\n"
+                            f"**Recommendation:**\n"
                             f"Check CheckMK GUI for actual status"
                         ),
                     }
@@ -301,18 +305,18 @@ class HostHandler(BaseHandler):
             {
                 "type": "text",
                 "text": (
-                    f"❌ **Host Status Retrieval Failed**\\n\\n"
-                    f"Host: {host_name}\\n\\n"
-                    f"**Tried Methods:**\\n"
-                    f"1️⃣ Direct host object API (objects/host/)\\n"
-                    f"2️⃣ Host collections query (real-time data)\\n"
-                    f"3️⃣ Host configuration check\\n\\n"
-                    f"**Possible Issues:**\\n"
-                    f"• Host not found in monitoring system\\n"
-                    f"• Host name mismatch\\n"
-                    f"• CheckMK API version compatibility\\n"
-                    f"• Monitoring data not yet available\\n\\n"
-                    f"**Recommendation:**\\n"
+                    f"❌ **Host Status Retrieval Failed**\n\n"
+                    f"Host: {host_name}\n\n"
+                    f"**Tried Methods:**\n"
+                    f"1️⃣ Direct host object API (objects/host/)\n"
+                    f"2️⃣ Host collections query (real-time data)\n"
+                    f"3️⃣ Host configuration check\n\n"
+                    f"**Possible Issues:**\n"
+                    f"• Host not found in monitoring system\n"
+                    f"• Host name mismatch\n"
+                    f"• CheckMK API version compatibility\n"
+                    f"• Monitoring data not yet available\n\n"
+                    f"**Recommendation:**\n"
                     f"Verify the host exists in CheckMK GUI and is being monitored."
                 ),
             }
@@ -336,11 +340,11 @@ class HostHandler(BaseHandler):
             {
                 "type": "text",
                 "text": (
-                    f"🔍 **Host Details: {host_name}**\\n\\n"
-                    f"Folder: {extensions.get('folder', '/')}\\n"
-                    f"IP Address: {attributes.get('ipaddress', 'Not set')}\\n"
-                    f"Alias: {attributes.get('alias', 'Not set')}\\n"
-                    f"Agent Type: {attributes.get('tag_agent', 'Unknown')}\\n"
+                    f"🔍 **Host Details: {host_name}**\n\n"
+                    f"Folder: {extensions.get('folder', '/')}\n"
+                    f"IP Address: {attributes.get('ipaddress', 'Not set')}\n"
+                    f"Alias: {attributes.get('alias', 'Not set')}\n"
+                    f"Agent Type: {attributes.get('tag_agent', 'Unknown')}\n"
                     f"Site: {attributes.get('site', 'Not set')}"
                 ),
             }
@@ -416,21 +420,21 @@ class HostHandler(BaseHandler):
                 {
                     "type": "text",
                     "text": (
-                        f"✅ **Host Created Successfully**\\n\\n"
-                        f"**Host:** {host_name}\\n"
-                        f"**Folder:** {folder}\\n"
-                        f"**Attributes Set:** {attribute_count}\\n\\n"
-                        f"📋 **Host Details:**\\n"
+                        f"✅ **Host Created Successfully**\n\n"
+                        f"**Host:** {host_name}\n"
+                        f"**Folder:** {folder}\n"
+                        f"**Attributes Set:** {attribute_count}\n\n"
+                        f"📋 **Host Details:**\n"
                         + (
-                            f"• IP Address: {attributes.get('ipaddress', 'Not set')}\\n"
+                            f"• IP Address: {attributes.get('ipaddress', 'Not set')}\n"
                             if attributes.get("ipaddress")
                             else ""
                         )
-                        + (f"• Alias: {attributes.get('alias', 'Not set')}\\n" if attributes.get("alias") else "")
-                        + (f"• Site: {attributes.get('site', 'Default')}\\n" if attributes.get("site") else "")
-                        + f"\\n⚠️ **Remember to activate changes!**\\n\\n"
-                        f"💡 **Next Steps:**\\n"
-                        f"1️⃣ Use 'get_pending_changes' to review\\n"
+                        + (f"• Alias: {attributes.get('alias', 'Not set')}\n" if attributes.get("alias") else "")
+                        + (f"• Site: {attributes.get('site', 'Default')}\n" if attributes.get("site") else "")
+                        + f"\n⚠️ **Remember to activate changes!**\n\n"
+                        f"💡 **Next Steps:**\n"
+                        f"1️⃣ Use 'get_pending_changes' to review\n"
                         f"2️⃣ Use 'activate_changes' to apply configuration"
                     ),
                 }
@@ -466,7 +470,7 @@ class HostHandler(BaseHandler):
 
         if validation_errors:
             return self.error_response(
-                "Validation failed", "Bulk host creation validation errors:\\n• " + "\\n• ".join(validation_errors)
+                "Validation failed", "Bulk host creation validation errors:\n• " + "\n• ".join(validation_errors)
             )
 
         # Convert folder format for each entry (~ for root per CheckMK API)
@@ -509,31 +513,31 @@ class HostHandler(BaseHandler):
                     success_count = len(entries)  # Fallback if no detailed response
 
                 # Build success response
-                response_text = f"✅ **Bulk Host Creation Successful**\\n\\n"
-                response_text += f"**Hosts Created:** {success_count}/{len(entries)}\\n"
+                response_text = f"✅ **Bulk Host Creation Successful**\n\n"
+                response_text += f"**Hosts Created:** {success_count}/{len(entries)}\n"
 
                 if bake_agent:
-                    response_text += f"**Agent Baking:** Enabled (process started in background)\\n"
+                    response_text += f"**Agent Baking:** Enabled (process started in background)\n"
 
-                response_text += f"\\n📋 **Created Hosts:**\\n"
+                response_text += f"\n📋 **Created Hosts:**\n"
 
                 if created_hosts:
-                    response_text += "\\n".join(created_hosts)
+                    response_text += "\n".join(created_hosts)
                     if len(entries) > 10:
-                        response_text += f"\\n... and {len(entries) - 10} more hosts"
+                        response_text += f"\n... and {len(entries) - 10} more hosts"
                 else:
                     # Fallback: show requested host names
                     for i, entry in enumerate(entries[:10]):
                         host_name = entry.get("host_name", f"Host-{i+1}")
                         folder = entry.get("folder", "/")
-                        response_text += f"• {host_name} (Folder: {folder})\\n"
+                        response_text += f"• {host_name} (Folder: {folder})\n"
                     if len(entries) > 10:
-                        response_text += f"... and {len(entries) - 10} more hosts\\n"
+                        response_text += f"... and {len(entries) - 10} more hosts\n"
 
-                response_text += f"\\n⚠️ **Remember to activate changes!**\\n\\n"
-                response_text += f"💡 **Next Steps:**\\n"
-                response_text += f"1️⃣ Use 'get_pending_changes' to review all changes\\n"
-                response_text += f"2️⃣ Use 'activate_changes' to apply configuration\\n"
+                response_text += f"\n⚠️ **Remember to activate changes!**\n\n"
+                response_text += f"💡 **Next Steps:**\n"
+                response_text += f"1️⃣ Use 'get_pending_changes' to review all changes\n"
+                response_text += f"2️⃣ Use 'activate_changes' to apply configuration\n"
 
                 if bake_agent:
                     response_text += f"3️⃣ Monitor agent baking progress in CheckMK GUI"
@@ -579,7 +583,7 @@ class HostHandler(BaseHandler):
         # Validate specific attributes (alias, tag, ipaddress, site)
         validation_errors = self._validate_host_update_attributes(attributes)
         if validation_errors:
-            return self.error_response("Validation failed", "\\n".join(validation_errors))
+            return self.error_response("Validation failed", "\n".join(validation_errors))
 
         # Get current host configuration with ETag for proper concurrency control
         current_config = self.client.get(f"objects/host_config/{host_name}")
@@ -659,17 +663,17 @@ class HostHandler(BaseHandler):
                     {
                         "type": "text",
                         "text": (
-                            f"✅ **Host Updated Successfully**\\n\\n"
-                            f"**Host:** {host_name}\\n"
-                            f"**Update Mode:** {update_mode}\\n"
-                            f"**Operation:** {operation_description}\\n\\n"
-                            f"📋 **Changes Applied:**\\n"
+                            f"✅ **Host Updated Successfully**\n\n"
+                            f"**Host:** {host_name}\n"
+                            f"**Update Mode:** {update_mode}\n"
+                            f"**Operation:** {operation_description}\n\n"
+                            f"📋 **Changes Applied:**\n"
                             + (
                                 self._format_attribute_changes(changes)
                                 if changes["has_changes"]
                                 else "No changes detected"
                             )
-                            + f"\\n\\n⚠️ **Remember to activate changes!**\\n"
+                            + f"\n\n⚠️ **Remember to activate changes!**\n"
                             f"💡 Use 'vibemk_activate_changes' to apply the configuration"
                         ),
                     }
@@ -711,11 +715,11 @@ class HostHandler(BaseHandler):
                 {
                     "type": "text",
                     "text": (
-                        f"✅ **Host Deleted Successfully**\\n\\n"
-                        f"Host: {host_name}\\n\\n"
-                        f"📝 **Next Steps:**\\n"
-                        f"1️⃣ Use 'get_pending_changes' to review the deletion\\n"
-                        f"2️⃣ Use 'activate_changes' to apply the configuration\\n\\n"
+                        f"✅ **Host Deleted Successfully**\n\n"
+                        f"Host: {host_name}\n\n"
+                        f"📝 **Next Steps:**\n"
+                        f"1️⃣ Use 'get_pending_changes' to review the deletion\n"
+                        f"2️⃣ Use 'activate_changes' to apply the configuration\n\n"
                         f"💡 **Important:** The host is only marked for deletion until you activate changes!"
                     ),
                 }
@@ -791,13 +795,13 @@ class HostHandler(BaseHandler):
                 {
                     "type": "text",
                     "text": (
-                        f"✅ **Cluster Host Created Successfully**\\n\\n"
-                        f"**Cluster Host:** {host_name}\\n"
-                        f"**Folder:** {folder}\\n"
-                        f"**Nodes:** {', '.join(nodes)}\\n\\n"
-                        f"📋 **Cluster Configuration:**\\n"
-                        f"• Node Count: {len(nodes)}\\n"
-                        f"• Agent Type: No Agent (Cluster)\\n\\n"
+                        f"✅ **Cluster Host Created Successfully**\n\n"
+                        f"**Cluster Host:** {host_name}\n"
+                        f"**Folder:** {folder}\n"
+                        f"**Nodes:** {', '.join(nodes)}\n\n"
+                        f"📋 **Cluster Configuration:**\n"
+                        f"• Node Count: {len(nodes)}\n"
+                        f"• Agent Type: No Agent (Cluster)\n\n"
                         f"⚠️ **Remember to activate changes!**"
                     ),
                 }
@@ -843,22 +847,22 @@ class HostHandler(BaseHandler):
         # Compile validation results
         status = "valid" if not validation_errors else "invalid"
 
-        response_text = f"🔍 **Host Configuration Validation**\\n\\n"
-        response_text += f"**Host:** {host_name}\\n"
-        response_text += f"**Operation:** {operation}\\n"
-        response_text += f"**Status:** {'✅ Valid' if status == 'valid' else '❌ Invalid'}\\n\\n"
+        response_text = f"🔍 **Host Configuration Validation**\n\n"
+        response_text += f"**Host:** {host_name}\n"
+        response_text += f"**Operation:** {operation}\n"
+        response_text += f"**Status:** {'✅ Valid' if status == 'valid' else '❌ Invalid'}\n\n"
 
         if validation_errors:
-            response_text += "🚨 **Errors:**\\n"
+            response_text += "🚨 **Errors:**\n"
             for error in validation_errors:
-                response_text += f"• {error}\\n"
-            response_text += "\\n"
+                response_text += f"• {error}\n"
+            response_text += "\n"
 
         if warnings:
-            response_text += "⚠️ **Warnings:**\\n"
+            response_text += "⚠️ **Warnings:**\n"
             for warning in warnings:
-                response_text += f"• {warning}\\n"
-            response_text += "\\n"
+                response_text += f"• {warning}\n"
+            response_text += "\n"
 
         if status == "valid":
             response_text += "✅ Configuration is valid and ready for deployment"
@@ -883,12 +887,12 @@ class HostHandler(BaseHandler):
         # Compare states
         comparison = self._compare_attributes(current_attributes, desired_attributes)
 
-        response_text = f"🔄 **Host State Comparison**\\n\\n"
-        response_text += f"**Host:** {host_name}\\n"
-        response_text += f"**Changes Required:** {'Yes' if comparison['has_changes'] else 'No'}\\n\\n"
+        response_text = f"🔄 **Host State Comparison**\n\n"
+        response_text += f"**Host:** {host_name}\n"
+        response_text += f"**Changes Required:** {'Yes' if comparison['has_changes'] else 'No'}\n\n"
 
         if comparison["has_changes"]:
-            response_text += "📋 **Detected Changes:**\\n"
+            response_text += "📋 **Detected Changes:**\n"
             response_text += self._format_attribute_changes(comparison)
         else:
             response_text += "✅ Host is already in the desired state"
@@ -929,15 +933,15 @@ class HostHandler(BaseHandler):
         effective_attributes.update(inherited_attributes)
         effective_attributes.update(attributes)
 
-        response_text = f"📋 **Effective Host Attributes**\\n\\n"
-        response_text += f"**Host:** {host_name}\\n"
-        response_text += f"**Folder:** {folder_path}\\n\\n"
+        response_text = f"📋 **Effective Host Attributes**\n\n"
+        response_text += f"**Host:** {host_name}\n"
+        response_text += f"**Folder:** {folder_path}\n\n"
 
         if effective_attributes:
-            response_text += "🎯 **Effective Attributes:**\\n"
+            response_text += "🎯 **Effective Attributes:**\n"
             for key, value in effective_attributes.items():
                 source = "Host" if key in attributes else "Inherited"
-                response_text += f"• **{key}:** {value} _{source}_\\n"
+                response_text += f"• **{key}:** {value} _{source}_\n"
         else:
             response_text += "ℹ️ No attributes configured"
 
@@ -1017,19 +1021,19 @@ class HostHandler(BaseHandler):
         output = ""
 
         if changes["added"]:
-            output += "**Added:**\\n"
+            output += "**Added:**\n"
             for key, value in changes["added"].items():
-                output += f"• {key}: {value}\\n"
+                output += f"• {key}: {value}\n"
 
         if changes["modified"]:
-            output += "**Modified:**\\n"
+            output += "**Modified:**\n"
             for key, change in changes["modified"].items():
-                output += f"• {key}: {change['old']} → {change['new']}\\n"
+                output += f"• {key}: {change['old']} → {change['new']}\n"
 
         if changes["removed"]:
-            output += "**Removed:**\\n"
+            output += "**Removed:**\n"
             for key, value in changes["removed"].items():
-                output += f"• {key}: {value}\\n"
+                output += f"• {key}: {value}\n"
 
         return output
 

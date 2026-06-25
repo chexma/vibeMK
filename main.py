@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
 import asyncio
+import sys
 
 from mcp.server import CheckMKMCPServer
 from utils import setup_logging
@@ -26,6 +27,16 @@ from utils import setup_logging
 
 async def main():
     """Main entry point for vibeMK"""
+
+    # Force UTF-8 on stdio regardless of the launching environment. The MCP
+    # protocol and tool output (emoji, accents) are UTF-8; without this the
+    # server crashes on Windows with UnicodeEncodeError when the parent process
+    # doesn't set PYTHONIOENCODING.
+    for stream in (sys.stdout, sys.stdin, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
 
     # Setup logging with debug mode if LOGFILE is specified for better troubleshooting
     import os

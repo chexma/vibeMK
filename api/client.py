@@ -43,6 +43,20 @@ from config import CheckMKConfig
 logger = logging.getLogger(__name__)
 
 
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Refuse to follow redirects during URL detection.
+
+    A bare `/cmk/` path on a CheckMK behind SSO/Apache answers `/version` with a
+    302 to a login page. urllib follows redirects by default, so that 302 used to
+    be accepted as a working API root — and every authenticated call afterwards
+    hit the login HTML and failed with "Invalid JSON response". Returning None
+    here lets the 3xx surface as an HTTPError so the pattern is rejected.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class CheckMKClient:
     """CheckMK REST API client with automatic URL detection"""
 
@@ -81,13 +95,24 @@ class CheckMKClient:
         """Detect correct CheckMK API URL by testing different patterns"""
         debug_results = []
 
+        # The site-specific path (/<site>/check_mk/api/1.0) is the canonical
+        # CheckMK URL scheme — test it first. The bare /cmk/ pattern is gone: on
+        # this and most installs it 302-redirects to login and only caused false
+        # positives.
         test_patterns = [
-            f"{self.config.server_url}/cmk/check_mk/api/1.0",
             f"{self.config.server_url}/{self.config.site}/check_mk/api/1.0",
             f"{self.config.server_url}/check_mk/api/1.0",
             f"{self.config.server_url}/api/1.0",
             f"{self.config.server_url}/{self.config.site}/cmk/check_mk/api/1.0",
         ]
+
+        # Don't follow redirects (so a 3xx counts as failure) and cap detection
+        # time so a slow/unreachable server can't stall startup for minutes.
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPSHandler(context=self._ssl_context),
+            _NoRedirectHandler,
+        )
+        detect_timeout = min(self.config.timeout, 10)
 
         for base_url in test_patterns:
             try:
@@ -95,7 +120,7 @@ class CheckMKClient:
                 debug_results.append(f"Testing: {test_url}")
 
                 req = urllib.request.Request(test_url, headers=self.headers)
-                with urllib.request.urlopen(req, context=self._ssl_context, timeout=self.config.timeout) as response:
+                with opener.open(req, timeout=detect_timeout) as response:
                     if response.status == 200:
                         debug_results.append(f"SUCCESS: {base_url}")
                         self._debug_results = debug_results
@@ -111,7 +136,7 @@ class CheckMKClient:
 
         # Store debug results for troubleshooting
         self._debug_results = debug_results
-        fallback_url = f"{self.config.server_url}/cmk/check_mk/api/1.0"
+        fallback_url = f"{self.config.server_url}/{self.config.site}/check_mk/api/1.0"
         debug_results.append(f"FALLBACK: {fallback_url}")
         logger.warning(f"Using fallback API URL: {fallback_url}")
         return fallback_url
@@ -136,7 +161,7 @@ class CheckMKClient:
             url = f"{self.api_base_url}/{endpoint}"
         else:
             # For CheckMK View API and other non-REST endpoints
-            url = f"{self.config.server_url}/cmk/{endpoint}"
+            url = f"{self.config.server_url}/{self.config.site}/{endpoint}"
         if params:
             # Handle CheckMK API specific parameter encoding
             url_params = []
@@ -259,15 +284,14 @@ class CheckMKClient:
         if isinstance(error, urllib.error.URLError):
             raise CheckMKConnectionError(f"Connection error: {str(error)}")
 
-        # Retry logic for general connection errors
-        if retry_count < self.config.max_retries and not isinstance(error, StopIteration):
-            time.sleep(2**retry_count)
-            return self.request(endpoint, method, data, params, custom_headers, retry_count + 1, use_api_prefix)
-
         # Don't retry StopIteration errors (from test mocks)
         if isinstance(error, StopIteration):
             raise CheckMKConnectionError("Mock iteration exhausted")
 
+        # Do NOT retry other (e.g. read) errors here: the request already
+        # connected, and re-issuing it with a full timeout each time turned a
+        # transient read hiccup into a multi-minute hang. Transient server-side
+        # 5xx are still retried in _handle_http_error.
         raise CheckMKConnectionError(f"Connection failed: {str(error)}")
 
     # Convenience methods

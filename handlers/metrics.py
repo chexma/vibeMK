@@ -171,11 +171,11 @@ class MetricsHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"📊 **Available Metrics for {host_name}/{service_description}**\\n\\n"
-                                    f"**Available Metric IDs:** {', '.join(available_metrics)}\\n\\n"
-                                    f"💡 **Usage:** Specify metric_name parameter with one of these IDs\\n\\n"
-                                    f"**Current Performance Data:**\\n"
-                                    + "\\n".join([f"• {k}: {v}" for k, v in list(perf_data.items())[:10]])
+                                    f"📊 **Available Metrics for {host_name}/{service_description}**\n\n"
+                                    f"**Available Metric IDs:** {', '.join(available_metrics)}\n\n"
+                                    f"💡 **Usage:** Specify metric_name parameter with one of these IDs\n\n"
+                                    f"**Current Performance Data:**\n"
+                                    + "\n".join([f"• {k}: {v}" for k, v in list(perf_data.items())[:10]])
                                 ),
                             }
                         ]
@@ -250,11 +250,11 @@ class MetricsHandler(BaseHandler):
                         {
                             "type": "text",
                             "text": (
-                                f"❌ **Metrics Request Failed**\\n\\n"
-                                f"Service: {host_name}/{service_description}\\n"
-                                f"Requested metric: {metric_name}\\n"
-                                f"Error: {error_msg}\\n\\n"
-                                f"✅ **Available Metrics:** {', '.join(available_metrics)}\\n\\n"
+                                f"❌ **Metrics Request Failed**\n\n"
+                                f"Service: {host_name}/{service_description}\n"
+                                f"Requested metric: {metric_name}\n"
+                                f"Error: {error_msg}\n\n"
+                                f"✅ **Available Metrics:** {', '.join(available_metrics)}\n\n"
                                 f"💡 **Suggestion:** Try one of these metric IDs instead"
                             ),
                         }
@@ -411,7 +411,7 @@ class MetricsHandler(BaseHandler):
                         result.append(f"{title}: {latest_value} ({len(points)} data points)")
                     else:
                         result.append(f"{title}: No data points")
-                return "\\n".join(result)
+                return "\n".join(result)
 
         elif "values" in metric_data:
             values = metric_data.get("values", [])

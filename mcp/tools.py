@@ -1746,4 +1746,11 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_discovery_tools())
     tools.extend(get_service_group_tools())
     tools.extend(get_ruleset_discovery_tools())
-    return tools
+
+    # De-duplicate by tool name (a few tools were declared in two groups, e.g.
+    # the service-group and delete_downtime tools). Keep the LAST definition so
+    # the advertised schema matches the handler that wins routing in server.py.
+    deduped = {}
+    for tool in tools:
+        deduped[tool["name"]] = tool
+    return list(deduped.values())
