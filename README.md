@@ -91,9 +91,13 @@ This project is in the alpha stage and under development. I accept no liability 
 
 ## Checkmk Edition Support
 
-- **Raw Edition**: Basic functions available
-- **Enterprise Edition**: All features including BI, Agent Bakery, Metrics
+- **Raw Edition**: Fully supported, including the BI and Event Console endpoints
+- **Enterprise Edition**: Adds the Agent Bakery and custom graphs
 - **Cloud Edition**: All Enterprise features
+
+Edition availability follows the `operationId` of each endpoint in the Checkmk
+OpenAPI document: `cmk.gui.cee.*` is Enterprise-only, everything else is served
+by every edition including Raw.
 
 ## Security considerations
 
