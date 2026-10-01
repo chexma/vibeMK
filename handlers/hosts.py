@@ -14,38 +14,48 @@ from utils.folder_validator import validate_folder_path
 class HostHandler(BaseHandler):
     """Handle host management operations"""
 
+    _WRITE_TOOLS = frozenset({
+        "vibemk_create_host", "vibemk_bulk_create_hosts", "vibemk_update_host",
+        "vibemk_delete_host", "vibemk_move_host", "vibemk_bulk_update_hosts",
+        "vibemk_create_cluster_host", "vibemk_clone_host",
+    })
+
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Handle host-related tool calls"""
 
         try:
             if tool_name == "vibemk_get_checkmk_hosts":
-                return await self._get_hosts(arguments)
+                result = await self._get_hosts(arguments)
             elif tool_name == "vibemk_get_host_status":
-                return await self._get_host_status(arguments.get("host_name"))
+                result = await self._get_host_status(arguments.get("host_name"))
             elif tool_name == "vibemk_get_host_details":
-                return await self._get_host_details(arguments.get("host_name"))
+                result = await self._get_host_details(arguments.get("host_name"))
             elif tool_name == "vibemk_get_host_config":
-                return await self._get_host_config(arguments.get("host_name"))
+                result = await self._get_host_config(arguments.get("host_name"))
             elif tool_name == "vibemk_create_host":
-                return await self._create_host_smart(arguments)
+                result = await self._create_host_smart(arguments)
             elif tool_name == "vibemk_bulk_create_hosts":
-                return await self._bulk_create_hosts(arguments)
+                result = await self._bulk_create_hosts(arguments)
             elif tool_name == "vibemk_update_host":
-                return await self._update_host(arguments)
+                result = await self._update_host(arguments)
             elif tool_name == "vibemk_delete_host":
-                return await self._delete_host(arguments.get("host_name"))
+                result = await self._delete_host(arguments.get("host_name"))
             elif tool_name == "vibemk_move_host":
-                return await self._move_host(arguments)
+                result = await self._move_host(arguments)
             elif tool_name == "vibemk_bulk_update_hosts":
-                return await self._bulk_update_hosts(arguments)
+                result = await self._bulk_update_hosts(arguments)
             elif tool_name == "vibemk_create_cluster_host":
-                return await self._create_cluster_host(arguments)
+                result = await self._create_cluster_host(arguments)
             elif tool_name == "vibemk_validate_host_config":
-                return await self._validate_host_config(arguments)
+                result = await self._validate_host_config(arguments)
             elif tool_name == "vibemk_compare_host_states":
-                return await self._compare_host_states(arguments)
+                result = await self._compare_host_states(arguments)
             elif tool_name == "vibemk_get_host_effective_attributes":
-                return await self._get_host_effective_attributes(arguments)
+                result = await self._get_host_effective_attributes(arguments)
+            elif tool_name == "vibemk_clone_host":
+                result = await self._clone_host(arguments)
+            elif tool_name == "vibemk_rename_host":
+                result = await self._rename_host(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
@@ -54,6 +64,13 @@ class HostHandler(BaseHandler):
         except Exception as e:
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
+
+        if (tool_name in self._WRITE_TOOLS
+                and arguments.get("activate_changes")
+                and result
+                and "❌" not in result[-1].get("text", "")):
+            result[-1]["text"] += "\n" + self._run_activation()
+        return result
 
     async def _get_hosts(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of hosts with optional filtering"""
@@ -772,6 +789,37 @@ class HostHandler(BaseHandler):
         else:
             return self.error_response("Host move failed", f"Could not move host '{host_name}'")
 
+    async def _rename_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Rename a host in CheckMK (starts a background job)."""
+        host_name = arguments.get("host_name")
+        new_name = arguments.get("new_name")
+
+        if not host_name or not new_name:
+            return self.error_response("Missing parameters", "host_name and new_name are required")
+
+        result = self.client.put(
+            f"objects/host_config/{host_name}/actions/rename/invoke",
+            data={"new_name": new_name},
+        )
+
+        if result.get("success"):
+            job_id = result["data"].get("id", "")
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        f"✅ **Host Rename Started**\n\n"
+                        f"Old name: {host_name}\n"
+                        f"New name: {new_name}\n"
+                        + (f"Job ID: {job_id}\n" if job_id else "")
+                        + f"\n⚠️ Remember to activate changes after the job completes."
+                    ),
+                }
+            ]
+        else:
+            detail = result.get("data", {})
+            return self.error_response("Host rename failed", str(detail))
+
     async def _bulk_update_hosts(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Bulk update multiple hosts"""
         entries = arguments.get("entries", [])
@@ -990,6 +1038,47 @@ class HostHandler(BaseHandler):
             return self.error_response("Invalid IP address", "IP address format is invalid")
 
         return None
+
+    async def _clone_host(self, arguments: dict) -> list:
+        """Clone a host: copy folder + attributes from source to target."""
+        source = arguments.get("source_hostname", "")
+        target = arguments.get("target_hostname", "")
+        new_ip = arguments.get("ip_address")
+
+        if not source or not target:
+            return self.error_response(
+                "Missing parameter",
+                "source_hostname and target_hostname are required",
+            )
+
+        source_result = self.client.get(f"objects/host_config/{source}")
+        ext = source_result["data"].get("extensions", {})
+        folder = ext.get("folder", "/")
+        attributes = {
+            k: v for k, v in ext.get("attributes", {}).items()
+            if k != "meta_data"
+        }
+
+        if new_ip:
+            attributes["ipaddress"] = new_ip
+
+        api_folder = "~" + folder.lstrip("/").replace("/", "~")
+
+        result = self.client.post(
+            "domain-types/host_config/collections/all",
+            {"host_name": target, "folder": api_folder, "attributes": attributes},
+        )
+
+        if not result.get("success"):
+            error_details = result.get("data", {})
+            return self.error_response("Clone fehlgeschlagen", str(error_details))
+
+        msg = (
+            f"✅ Host '{target}' wurde als Klon von '{source}' angelegt.\n"
+            f"Ordner: {folder}\n"
+            f"Attribute: {json.dumps(attributes, indent=2)}"
+        )
+        return [{"type": "text", "text": msg}]
 
     def _validate_host_name(self, host_name: str) -> bool:
         """Validate host name format"""

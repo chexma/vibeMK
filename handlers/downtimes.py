@@ -28,6 +28,8 @@ class DowntimeHandler(BaseHandler):
                 return await self._get_active_downtimes(arguments)
             elif tool_name == "vibemk_check_host_downtime_status":
                 return await self._check_host_downtime_status(arguments)
+            elif tool_name == "vibemk_modify_downtime":
+                return await self._modify_downtime(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
@@ -1245,3 +1247,52 @@ class DowntimeHandler(BaseHandler):
 
         self.logger.warning(f"Downtime verification failed after {max_retries} attempts")
         return False
+
+    async def _modify_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Modify an existing downtime (extend/shorten end time or change comment)."""
+        downtime_id = arguments.get("downtime_id")
+        end_time = arguments.get("end_time")
+        comment = arguments.get("comment")
+        host_name = arguments.get("host_name")
+        service_description = arguments.get("service_description")
+
+        if downtime_id:
+            data: Dict[str, Any] = {
+                "modify_type": "params",
+                "downtime_id": int(downtime_id),
+                "end_time": {"modify_type": "set_end_time", "value": end_time},
+            }
+            if comment:
+                data["comment"] = comment
+        elif host_name:
+            # Query-based modification
+            query: Dict[str, Any] = {"op": "=", "left": "host_name", "right": host_name}
+            if service_description:
+                query = {
+                    "op": "and",
+                    "expr": [
+                        query,
+                        {"op": "=", "left": "service_description", "right": service_description},
+                    ],
+                }
+            data = {
+                "modify_type": "by_query",
+                "query": query,
+                "end_time": {"modify_type": "set_end_time", "value": end_time},
+            }
+            if comment:
+                data["comment"] = comment
+        else:
+            return self.error_response("Missing parameter", "downtime_id or host_name required")
+
+        if not end_time:
+            return self.error_response("Missing parameter", "end_time is required (ISO 8601 format)")
+
+        result = self.client.put("domain-types/downtime/actions/modify/invoke", data=data)
+
+        if result.get("success"):
+            target = f"downtime #{downtime_id}" if downtime_id else host_name
+            return [{"type": "text", "text": f"⏰ **Downtime Modified**\n\nTarget: {target}\nNew end: {end_time}"}]
+        else:
+            detail = result.get("data", {})
+            return self.error_response("Downtime modification failed", str(detail))

@@ -11,22 +11,27 @@ from handlers.base import BaseHandler
 class RulesHandler(BaseHandler):
     """Handle rule management operations"""
 
+    _WRITE_TOOLS = frozenset({
+        "vibemk_create_rule", "vibemk_update_rule",
+        "vibemk_delete_rule", "vibemk_move_rule",
+    })
+
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Handle rule-related tool calls"""
 
         try:
             if tool_name == "vibemk_get_rulesets":
-                return await self._get_rulesets(arguments)
+                result = await self._get_rulesets(arguments)
             elif tool_name == "vibemk_get_ruleset":
-                return await self._get_ruleset(arguments)
+                result = await self._get_ruleset(arguments)
             elif tool_name == "vibemk_create_rule":
-                return await self._create_rule(arguments)
+                result = await self._create_rule(arguments)
             elif tool_name == "vibemk_update_rule":
-                return await self._update_rule(arguments)
+                result = await self._update_rule(arguments)
             elif tool_name == "vibemk_delete_rule":
-                return await self._delete_rule(arguments)
+                result = await self._delete_rule(arguments)
             elif tool_name == "vibemk_move_rule":
-                return await self._move_rule(arguments)
+                result = await self._move_rule(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
@@ -35,6 +40,13 @@ class RulesHandler(BaseHandler):
         except Exception as e:
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
+
+        if (tool_name in self._WRITE_TOOLS
+                and arguments.get("activate_changes")
+                and result
+                and "❌" not in result[-1].get("text", "")):
+            result[-1]["text"] += "\n" + self._run_activation()
+        return result
 
     async def _get_rulesets(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of available rulesets"""
@@ -74,70 +86,65 @@ class RulesHandler(BaseHandler):
         return [{"type": "text", "text": response_text}]
 
     async def _get_ruleset(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Get specific ruleset configuration and rules"""
+        """Get rules in a ruleset, optionally filtered by hostname."""
         ruleset_name = arguments.get("ruleset_name")
+        hostname = arguments.get("hostname")
+        limit = int(arguments.get("limit", 50))
 
         if not ruleset_name:
             return self.error_response("Missing parameter", "ruleset_name is required")
 
-        # Use the correct endpoint to get actual rules with ruleset_name parameter
         params = {"ruleset_name": ruleset_name}
         result = self.client.get("domain-types/rule/collections/all", params=params)
 
         if not result.get("success"):
-            return self.error_response("Ruleset not found", f"Ruleset '{ruleset_name}' does not exist or has no rules")
-
-        rules = result["data"].get("value", [])
-
-        rule_list = []
-        for i, rule in enumerate(rules[:10]):  # Show first 10 rules
-            rule_id = rule.get("id", f"Rule {i+1}")
-            extensions = rule.get("extensions", {})
-            properties = extensions.get("properties", {})
-            comment = properties.get("comment", "No comment")
-            disabled = properties.get("disabled", False)
-            value_raw = extensions.get("value_raw", "No value")
-            folder = extensions.get("folder", "/")
-            conditions = extensions.get("conditions", {})
-
-            status = "🔒 Disabled" if disabled else "✅ Active"
-
-            # Format conditions summary
-            condition_summary = []
-            if conditions.get("host_name"):
-                host_match = conditions["host_name"]
-                condition_summary.append(
-                    f"Hosts: {host_match.get('match_on', [])} ({host_match.get('operator', 'unknown')})"
-                )
-            if conditions.get("host_tags") and len(conditions["host_tags"]) > 0:
-                tag_count = len(conditions["host_tags"])
-                condition_summary.append(f"Tags: {tag_count} conditions")
-            if conditions.get("host_label_groups") and len(conditions["host_label_groups"]) > 0:
-                label_count = len(conditions["host_label_groups"])
-                condition_summary.append(f"Labels: {label_count} conditions")
-
-            conditions_text = ", ".join(condition_summary) if condition_summary else "All hosts"
-
-            rule_list.append(
-                f"🔧 **Rule {i+1}** (ID: {rule_id})\n"
-                f"   Status: {status}\n"
-                f"   Value: {value_raw}\n"
-                f"   Folder: {folder}\n"
-                f"   Conditions: {conditions_text}\n"
-                f"   Comment: {comment}"
+            return self.error_response(
+                "Ruleset not found", f"Ruleset '{ruleset_name}' does not exist or has no rules"
             )
 
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"📋 **Ruleset: {ruleset_name}**\n\n"
-                    f"Rules ({len(rules)} total):\n\n"
-                    + ("\n\n".join(rule_list) if rule_list else "No rules configured in this ruleset")
-                    + (f"\n\n... and {len(rules) - 10} more rules" if len(rules) > 10 else "")
-                ),
-            }
-        ]
+        all_rules = result["data"].get("value", [])
+
+        # Filter by hostname if requested
+        if hostname:
+            rules = [
+                r for r in all_rules
+                if hostname in r.get("extensions", {}).get("conditions", {})
+                                  .get("host_name", {}).get("match_on", [])
+            ]
+        else:
+            rules = all_rules
+
+        rule_list = []
+        for i, rule in enumerate(rules[:limit]):
+            rule_id = rule.get("id", f"Rule {i+1}")
+            ext = rule.get("extensions", {})
+            props = ext.get("properties", {})
+            disabled = props.get("disabled", False)
+            value_raw = ext.get("value_raw", "")
+            folder = ext.get("folder", "/")
+            conditions = ext.get("conditions", {})
+
+            status = "🔒 Disabled" if disabled else "✅ Active"
+            hosts = conditions.get("host_name", {}).get("match_on", [])
+            cond_text = ", ".join(hosts) if hosts else "all hosts"
+
+            rule_list.append(
+                f"• [{status}] **ID: `{rule_id}`**\n"
+                f"  Folder: {folder} | Hosts: {cond_text}\n"
+                f"  Value: `{value_raw[:150]}{'…' if len(value_raw) > 150 else ''}`"
+            )
+
+        header = (
+            f"📋 **{ruleset_name}** — {len(rules)}"
+            + (f"/{len(all_rules)}" if hostname else "")
+            + " Regeln"
+            + (f" (hostname-Filter: {hostname})" if hostname else "")
+        )
+        body = "\n".join(rule_list) if rule_list else "Keine Regeln gefunden."
+        if len(rules) > limit:
+            body += f"\n\n…{len(rules) - limit} weitere (erhöhe limit)"
+
+        return [{"type": "text", "text": f"{header}\n\n{body}"}]
 
     async def _validate_ruleset_value(self, ruleset_name: str, value: Any) -> str:
         """Validate and format value for specific ruleset"""
@@ -164,40 +171,54 @@ class RulesHandler(BaseHandler):
         """Create a new monitoring rule"""
         ruleset_name = arguments.get("ruleset_name")
         rule_config = arguments.get("rule_config", {})
+        value_raw_str = arguments.get("value_raw")  # direct Python literal string (preferred)
         conditions = arguments.get("conditions", {})
         comment = arguments.get("comment", "")
         folder = arguments.get("folder", "/")
-        position = arguments.get("position", "top")
 
         if not ruleset_name:
             return self.error_response("Missing parameter", "ruleset_name is required")
 
-        if not rule_config:
-            return self.error_response("Missing parameter", "rule_config is required")
+        if not rule_config and not value_raw_str:
+            return self.error_response("Missing parameter", "rule_config or value_raw is required")
 
-        # Build rule data structure according to CheckMK 2.3 OpenAPI specification
-        # Convert folder path: "/" -> "~", "/hosts/linux" -> "~hosts~linux"
         if folder.startswith("/"):
             api_folder = "~" + folder[1:].replace("/", "~") if folder != "/" else "~"
         else:
             api_folder = "~" + folder.replace("/", "~")
 
-        # Use the validation method to format the value correctly
-        value_raw = await self._validate_ruleset_value(ruleset_name, rule_config)
+        # Prefer direct value_raw string; fall back to auto-conversion (lossy: JSON has no tuples)
+        if value_raw_str:
+            value_raw = value_raw_str
+        else:
+            value_raw = await self._validate_ruleset_value(ruleset_name, rule_config)
+
+        # Always include required empty arrays in conditions
+        full_conditions = {
+            "host_tags": [],
+            "host_label_groups": [],
+            "service_label_groups": [],
+        }
+        full_conditions.update(conditions)
 
         data = {
             "properties": {"disabled": False},
             "value_raw": value_raw,
-            "conditions": conditions if conditions else {},
+            "conditions": full_conditions,
             "ruleset": ruleset_name,
             "folder": api_folder,
         }
-
-        # Add comment to properties if provided
         if comment:
             data["properties"]["comment"] = comment
 
-        result = self.client.post("domain-types/rule/collections/all", data=data)
+        try:
+            result = self.client.post("domain-types/rule/collections/all", data=data)
+        except Exception as exc:
+            detail = getattr(exc, "response_data", {})
+            return self.error_response(
+                "Rule creation failed",
+                f"CheckMK API error: {exc}\nDetail: {detail}\nvalue_raw sent: {value_raw}",
+            )
 
         if result.get("success"):
             rule_id = result["data"].get("id", "unknown")
@@ -209,18 +230,23 @@ class RulesHandler(BaseHandler):
                         f"Ruleset: {ruleset_name}\n"
                         f"Rule ID: {rule_id}\n"
                         f"Folder: {folder}\n"
-                        f"Comment: {comment}\n\n"
-                        f"⚠️ **Remember to activate changes!**"
+                        + (f"Comment: {comment}\n" if comment else "")
+                        + f"\n⚠️ **Remember to activate changes!**"
                     ),
                 }
             ]
         else:
-            return self.error_response("Rule creation failed", f"Could not create rule in ruleset '{ruleset_name}'")
+            detail = result.get("data", {})
+            return self.error_response(
+                "Rule creation failed",
+                f"Ruleset: {ruleset_name}\nDetail: {detail}\nvalue_raw sent: {value_raw}",
+            )
 
     async def _update_rule(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Update an existing rule"""
         rule_id = arguments.get("rule_id")
         rule_config = arguments.get("rule_config")
+        value_raw_str = arguments.get("value_raw")  # direct Python literal string (preferred)
         conditions = arguments.get("conditions")
         comment = arguments.get("comment")
         disabled = arguments.get("disabled")
@@ -228,14 +254,22 @@ class RulesHandler(BaseHandler):
         if not rule_id:
             return self.error_response("Missing parameter", "rule_id is required")
 
-        # Build update data
-        data = {}
-        if rule_config:
-            data["value_raw"] = rule_config
-        if conditions:
-            data["conditions"] = conditions
+        data: Dict[str, Any] = {}
+        sent_value_raw = None
+        if value_raw_str:
+            data["value_raw"] = value_raw_str
+            sent_value_raw = value_raw_str
+        elif rule_config:
+            # Fallback: auto-convert (lossy — JSON has no tuples, use value_raw directly instead)
+            sent_value_raw = await self._validate_ruleset_value("", rule_config)
+            data["value_raw"] = sent_value_raw
 
-        properties = {}
+        if conditions:
+            full_conditions = {"host_tags": [], "host_label_groups": [], "service_label_groups": []}
+            full_conditions.update(conditions)
+            data["conditions"] = full_conditions
+
+        properties: Dict[str, Any] = {}
         if comment is not None:
             properties["comment"] = comment
         if disabled is not None:
@@ -246,9 +280,15 @@ class RulesHandler(BaseHandler):
         if not data:
             return self.error_response("No data to update", "At least one field must be provided")
 
-        # Use ETag for optimistic locking
         headers = {"If-Match": "*"}
-        result = self.client.put(f"objects/rule/{rule_id}", data=data, headers=headers)
+        try:
+            result = self.client.put(f"objects/rule/{rule_id}", data=data, headers=headers)
+        except Exception as exc:
+            detail = getattr(exc, "response_data", {})
+            return self.error_response(
+                "Rule update failed",
+                f"CheckMK API error: {exc}\nDetail: {detail}\nvalue_raw sent: {sent_value_raw}",
+            )
 
         if result.get("success"):
             return [
@@ -263,50 +303,62 @@ class RulesHandler(BaseHandler):
                 }
             ]
         else:
-            return self.error_response("Rule update failed", f"Could not update rule '{rule_id}'")
+            detail = result.get("data", {})
+            return self.error_response(
+                "Rule update failed",
+                f"Rule ID: {rule_id}\nDetail: {detail}\nvalue_raw sent: {sent_value_raw}",
+            )
 
     async def _delete_rule(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Delete a rule"""
+        """Delete a rule by ID."""
+        from api.exceptions import CheckMKError as _CMKError
+
         rule_id = arguments.get("rule_id")
 
         if not rule_id:
-            return self.error_response("Missing parameter", "rule_id is required")
+            return self.error_response(
+                "Missing parameter",
+                "rule_id is required — use vibemk_get_ruleset or vibemk_list_active_checks to find it",
+            )
 
-        result = self.client.delete(f"objects/rule/{rule_id}")
+        try:
+            self.client.delete(f"objects/rule/{rule_id}")
+        except _CMKError as exc:
+            detail = getattr(exc, "response_data", {}).get("detail", "")
+            msg = str(exc) + (f"\nDetail: {detail}" if detail else "")
+            return self.error_response("Regel löschen fehlgeschlagen", msg)
 
-        if result.get("success"):
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"✅ **Rule Deleted Successfully**\n\n"
-                        f"Rule ID: {rule_id}\n\n"
-                        f"📝 **Next Steps:**\n"
-                        f"1️⃣ Use 'get_pending_changes' to review the deletion\n"
-                        f"2️⃣ Use 'activate_changes' to apply the configuration\n\n"
-                        f"💡 **Important:** The rule is only marked for deletion until you activate changes!"
-                    ),
-                }
-            ]
-        else:
-            return self.error_response("Rule deletion failed", f"Could not delete rule '{rule_id}'")
+        return [{"type": "text", "text": f"✅ Regel `{rule_id}` gelöscht."}]
 
     async def _move_rule(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Move a rule to different position"""
+        """Move a rule to a different position within its folder."""
         rule_id = arguments.get("rule_id")
-        position = arguments.get("position", "top")  # top, bottom, before, after
-        target_rule_id = arguments.get("target_rule_id")  # for before/after
+        position = arguments.get("position", "top_of_folder")
+        target_rule_id = arguments.get("target_rule_id")
+        folder = arguments.get("folder", "~")
 
         if not rule_id:
             return self.error_response("Missing parameter", "rule_id is required")
 
-        if position in ["before", "after"] and not target_rule_id:
-            return self.error_response("Missing parameter", "target_rule_id is required for before/after positioning")
+        # Normalize legacy short names to the API enum values
+        _ALIAS = {
+            "top": "top_of_folder",
+            "bottom": "bottom_of_folder",
+            "before": "before_specific_rule",
+            "after": "after_specific_rule",
+        }
+        position = _ALIAS.get(position, position)
 
-        # Build move data
-        data = {"position": position}
-        if target_rule_id:
-            data["target_rule"] = target_rule_id
+        if position in ("before_specific_rule", "after_specific_rule") and not target_rule_id:
+            return self.error_response(
+                "Missing parameter",
+                "target_rule_id is required for before_specific_rule / after_specific_rule",
+            )
+
+        if position in ("top_of_folder", "bottom_of_folder"):
+            data: Dict[str, Any] = {"position": position, "folder": folder}
+        else:
+            data = {"position": position, "target_rule": target_rule_id}
 
         result = self.client.post(f"objects/rule/{rule_id}/actions/move/invoke", data=data)
 
@@ -319,9 +371,11 @@ class RulesHandler(BaseHandler):
                         f"Rule ID: {rule_id}\n"
                         f"New Position: {position}\n"
                         + (f"Target Rule: {target_rule_id}\n" if target_rule_id else "")
+                        + (f"Folder: {folder}\n" if position in ("top_of_folder", "bottom_of_folder") else "")
                         + f"\n⚠️ **Remember to activate changes!**"
                     ),
                 }
             ]
         else:
-            return self.error_response("Rule move failed", f"Could not move rule '{rule_id}'")
+            detail = result.get("data", {})
+            return self.error_response("Rule move failed", f"Rule '{rule_id}': {detail}")
