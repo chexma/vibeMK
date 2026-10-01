@@ -14,11 +14,18 @@ from utils.folder_validator import validate_folder_path
 class HostHandler(BaseHandler):
     """Handle host management operations"""
 
-    _WRITE_TOOLS = frozenset({
-        "vibemk_create_host", "vibemk_bulk_create_hosts", "vibemk_update_host",
-        "vibemk_delete_host", "vibemk_move_host", "vibemk_bulk_update_hosts",
-        "vibemk_create_cluster_host", "vibemk_clone_host",
-    })
+    _WRITE_TOOLS = frozenset(
+        {
+            "vibemk_create_host",
+            "vibemk_bulk_create_hosts",
+            "vibemk_update_host",
+            "vibemk_delete_host",
+            "vibemk_move_host",
+            "vibemk_bulk_update_hosts",
+            "vibemk_create_cluster_host",
+            "vibemk_clone_host",
+        }
+    )
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Handle host-related tool calls"""
@@ -65,10 +72,12 @@ class HostHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (tool_name in self._WRITE_TOOLS
-                and arguments.get("activate_changes")
-                and result
-                and "❌" not in result[-1].get("text", "")):
+        if (
+            tool_name in self._WRITE_TOOLS
+            and arguments.get("activate_changes")
+            and result
+            and "❌" not in result[-1].get("text", "")
+        ):
             result[-1]["text"] += "\n" + self._run_activation()
         return result
 
@@ -1054,10 +1063,7 @@ class HostHandler(BaseHandler):
         source_result = self.client.get(f"objects/host_config/{source}")
         ext = source_result["data"].get("extensions", {})
         folder = ext.get("folder", "/")
-        attributes = {
-            k: v for k, v in ext.get("attributes", {}).items()
-            if k != "meta_data"
-        }
+        attributes = {k: v for k, v in ext.get("attributes", {}).items() if k != "meta_data"}
 
         if new_ip:
             attributes["ipaddress"] = new_ip

@@ -80,9 +80,7 @@ class SitesHandler(BaseHandler):
         if not site_id:
             return self.error_response("Missing parameter", "site_id is required")
 
-        result = self.client.post(
-            f"objects/site_connection/{site_id}/actions/logout/invoke", {}
-        )
+        result = self.client.post(f"objects/site_connection/{site_id}/actions/logout/invoke", {})
         if result.get("success"):
             return [{"type": "text", "text": f"✅ Logout von Site '{site_id}' erfolgreich."}]
         return self.error_response("Logout fehlgeschlagen", str(result.get("data", {})))

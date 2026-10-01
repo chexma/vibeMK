@@ -32,7 +32,9 @@ class AgentHandler(BaseHandler):
         """Trigger agent baking for all hosts (CEE/Cloud only)."""
         result = self.client.post("domain-types/agent/actions/bake/invoke")
         if result.get("success"):
-            return [{"type": "text", "text": "🍞 **Agent Baking Started**\n\nUse vibemk_baking_status to check progress."}]
+            return [
+                {"type": "text", "text": "🍞 **Agent Baking Started**\n\nUse vibemk_baking_status to check progress."}
+            ]
         detail = result.get("data", {})
         return self.error_response("Agent baking failed", str(detail))
 
@@ -65,10 +67,7 @@ class AgentHandler(BaseHandler):
             return self.error_response("Missing parameter", "host_name is required")
 
         # The API returns the binary directly — we can only return the URL for the caller to fetch.
-        url = (
-            f"{self.client.api_base_url}/objects/agent/download_by_host"
-            f"?os_type={os_type}&host_name={host_name}"
-        )
+        url = f"{self.client.api_base_url}/objects/agent/download_by_host" f"?os_type={os_type}&host_name={host_name}"
         return [
             {
                 "type": "text",

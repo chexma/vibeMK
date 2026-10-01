@@ -1857,7 +1857,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "expect_regex": {
                         "type": "string",
-                        "description": "Regulärer Ausdruck der im Response-Body matchen muss (z.B. '\"status\":\\s*\"ok\"')",
+                        "description": 'Regulärer Ausdruck der im Response-Body matchen muss (z.B. \'"status":\\s*"ok"\')',
                     },
                     "expect_response": {
                         "type": "string",
@@ -1980,8 +1980,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_icmp_check",
             "description": (
-                "🏓 ICMP/PING-Check für einen Host anlegen. Prüft Erreichbarkeit, "
-                "Paketverlust und Round-Trip-Zeit."
+                "🏓 ICMP/PING-Check für einen Host anlegen. Prüft Erreichbarkeit, " "Paketverlust und Round-Trip-Zeit."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2097,8 +2096,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_smtp_check",
             "description": (
-                "📧 SMTP-Check für einen Host anlegen. Prüft SMTP-Dienst, optional STARTTLS "
-                "und Zertifikat-Ablauf."
+                "📧 SMTP-Check für einen Host anlegen. Prüft SMTP-Dienst, optional STARTTLS " "und Zertifikat-Ablauf."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2158,9 +2156,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_create_ldap_check",
-            "description": (
-                "🗂️ LDAP-Check für einen Host anlegen. Prüft LDAP-Dienst und Antwortzeit."
-            ),
+            "description": ("🗂️ LDAP-Check für einen Host anlegen. Prüft LDAP-Dienst und Antwortzeit."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2411,9 +2407,7 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_delete_events",
-            "description": (
-                "🗑️ EC-Events löschen. Entweder per ID-Liste oder alle Events einer Phase/eines Hosts."
-            ),
+            "description": ("🗑️ EC-Events löschen. Entweder per ID-Liste oder alle Events einer Phase/eines Hosts."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2592,42 +2586,82 @@ def get_clone_tools() -> List[Dict[str, Any]]:
     ]
 
 
-_WRITE_TOOLS = frozenset({
-    # Hosts
-    "vibemk_create_host", "vibemk_bulk_create_hosts", "vibemk_update_host",
-    "vibemk_delete_host", "vibemk_move_host", "vibemk_bulk_update_hosts",
-    "vibemk_create_cluster_host", "vibemk_clone_host",
-    # Folders
-    "vibemk_create_folder", "vibemk_delete_folder", "vibemk_update_folder", "vibemk_move_folder",
-    # Rules
-    "vibemk_create_rule", "vibemk_update_rule", "vibemk_delete_rule", "vibemk_move_rule",
-    "vibemk_create_host_contactgroup_rule", "vibemk_create_host_hostgroup_rule",
-    # Groups
-    "vibemk_create_host_group", "vibemk_update_host_group", "vibemk_delete_host_group",
-    "vibemk_create_service_group", "vibemk_update_service_group", "vibemk_delete_service_group",
-    "vibemk_bulk_create_service_groups", "vibemk_bulk_update_service_groups", "vibemk_bulk_delete_service_groups",
-    "vibemk_create_contact_group", "vibemk_update_contact_group", "vibemk_delete_contact_group",
-    # Tags
-    "vibemk_create_host_tag", "vibemk_update_host_tag", "vibemk_delete_host_tag",
-    # Timeperiods
-    "vibemk_create_timeperiod", "vibemk_update_timeperiod", "vibemk_delete_timeperiod",
-    # Passwords
-    "vibemk_create_password", "vibemk_update_password", "vibemk_delete_password",
-    # User roles
-    "vibemk_create_user_role", "vibemk_update_user_role", "vibemk_delete_user_role",
-    # Active checks (as rules — need activation)
-    "vibemk_create_http_check", "vibemk_create_tcp_check",
-    "vibemk_create_icmp_check", "vibemk_create_custom_check",
-    "vibemk_create_dns_check", "vibemk_create_smtp_check", "vibemk_create_ftp_check",
-    "vibemk_create_ldap_check", "vibemk_create_smb_check",
-    "vibemk_create_mkevents_check", "vibemk_create_inventory_check",
-    "vibemk_delete_active_check",
-    # Aux tags
-    "vibemk_create_aux_tag", "vibemk_update_aux_tag", "vibemk_delete_aux_tag",
-    # Service params
-    "vibemk_set_process_thresholds", "vibemk_set_interface_params",
-    "vibemk_set_memory_thresholds", "vibemk_delete_service_param_rule",
-})
+_WRITE_TOOLS = frozenset(
+    {
+        # Hosts
+        "vibemk_create_host",
+        "vibemk_bulk_create_hosts",
+        "vibemk_update_host",
+        "vibemk_delete_host",
+        "vibemk_move_host",
+        "vibemk_bulk_update_hosts",
+        "vibemk_create_cluster_host",
+        "vibemk_clone_host",
+        # Folders
+        "vibemk_create_folder",
+        "vibemk_delete_folder",
+        "vibemk_update_folder",
+        "vibemk_move_folder",
+        # Rules
+        "vibemk_create_rule",
+        "vibemk_update_rule",
+        "vibemk_delete_rule",
+        "vibemk_move_rule",
+        "vibemk_create_host_contactgroup_rule",
+        "vibemk_create_host_hostgroup_rule",
+        # Groups
+        "vibemk_create_host_group",
+        "vibemk_update_host_group",
+        "vibemk_delete_host_group",
+        "vibemk_create_service_group",
+        "vibemk_update_service_group",
+        "vibemk_delete_service_group",
+        "vibemk_bulk_create_service_groups",
+        "vibemk_bulk_update_service_groups",
+        "vibemk_bulk_delete_service_groups",
+        "vibemk_create_contact_group",
+        "vibemk_update_contact_group",
+        "vibemk_delete_contact_group",
+        # Tags
+        "vibemk_create_host_tag",
+        "vibemk_update_host_tag",
+        "vibemk_delete_host_tag",
+        # Timeperiods
+        "vibemk_create_timeperiod",
+        "vibemk_update_timeperiod",
+        "vibemk_delete_timeperiod",
+        # Passwords
+        "vibemk_create_password",
+        "vibemk_update_password",
+        "vibemk_delete_password",
+        # User roles
+        "vibemk_create_user_role",
+        "vibemk_update_user_role",
+        "vibemk_delete_user_role",
+        # Active checks (as rules — need activation)
+        "vibemk_create_http_check",
+        "vibemk_create_tcp_check",
+        "vibemk_create_icmp_check",
+        "vibemk_create_custom_check",
+        "vibemk_create_dns_check",
+        "vibemk_create_smtp_check",
+        "vibemk_create_ftp_check",
+        "vibemk_create_ldap_check",
+        "vibemk_create_smb_check",
+        "vibemk_create_mkevents_check",
+        "vibemk_create_inventory_check",
+        "vibemk_delete_active_check",
+        # Aux tags
+        "vibemk_create_aux_tag",
+        "vibemk_update_aux_tag",
+        "vibemk_delete_aux_tag",
+        # Service params
+        "vibemk_set_process_thresholds",
+        "vibemk_set_interface_params",
+        "vibemk_set_memory_thresholds",
+        "vibemk_delete_service_param_rule",
+    }
+)
 
 _ACTIVATE_PROP: Dict[str, Any] = {
     "type": "boolean",

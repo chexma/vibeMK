@@ -15,12 +15,14 @@ from handlers.base import BaseHandler
 class ServiceParamsHandler(BaseHandler):
     """Handle service parameter threshold rules"""
 
-    _WRITE_TOOLS = frozenset({
-        "vibemk_set_process_thresholds",
-        "vibemk_set_interface_params",
-        "vibemk_set_memory_thresholds",
-        "vibemk_delete_service_param_rule",
-    })
+    _WRITE_TOOLS = frozenset(
+        {
+            "vibemk_set_process_thresholds",
+            "vibemk_set_interface_params",
+            "vibemk_set_memory_thresholds",
+            "vibemk_delete_service_param_rule",
+        }
+    )
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         try:
@@ -43,10 +45,12 @@ class ServiceParamsHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (tool_name in self._WRITE_TOOLS
-                and arguments.get("activate_changes")
-                and result
-                and "❌" not in result[-1].get("text", "")):
+        if (
+            tool_name in self._WRITE_TOOLS
+            and arguments.get("activate_changes")
+            and result
+            and "❌" not in result[-1].get("text", "")
+        ):
             result[-1]["text"] += "\n" + self._run_activation()
         return result
 
@@ -112,7 +116,10 @@ class ServiceParamsHandler(BaseHandler):
         if mem_warn_mb and mem_crit_mb:
             default_params["virtual_levels"] = (int(mem_warn_mb) * 1024 * 1024, int(mem_crit_mb) * 1024 * 1024)
         if resident_warn_mb and resident_crit_mb:
-            default_params["resident_levels"] = (int(resident_warn_mb) * 1024 * 1024, int(resident_crit_mb) * 1024 * 1024)
+            default_params["resident_levels"] = (
+                int(resident_warn_mb) * 1024 * 1024,
+                int(resident_crit_mb) * 1024 * 1024,
+            )
 
         # inventory_processes_rules value format:
         # descr = service item name (shown as "Process <descr>")
@@ -130,18 +137,21 @@ class ServiceParamsHandler(BaseHandler):
         else:
             props["description"] = f"Process {proc}: warn>={warn_max}, crit>={crit_max}"
 
-        result = self.client.post("domain-types/rule/collections/all", {
-            "ruleset": "inventory_processes_rules",
-            "folder": folder,
-            "value_raw": repr(value),
-            "conditions": {
-                "host_name": {"match_on": [hostname], "operator": "one_of"},
-                "host_tags": [],
-                "host_label_groups": [],
-                "service_label_groups": [],
+        result = self.client.post(
+            "domain-types/rule/collections/all",
+            {
+                "ruleset": "inventory_processes_rules",
+                "folder": folder,
+                "value_raw": repr(value),
+                "conditions": {
+                    "host_name": {"match_on": [hostname], "operator": "one_of"},
+                    "host_tags": [],
+                    "host_label_groups": [],
+                    "service_label_groups": [],
+                },
+                "properties": props,
             },
-            "properties": props,
-        })
+        )
 
         if result.get("success"):
             rule_id = result["data"].get("id", "")
@@ -153,7 +163,11 @@ class ServiceParamsHandler(BaseHandler):
                 + (f"CPU pro Prozess: warn {single_cpu_warn}%, crit {single_cpu_crit}%\n" if single_cpu_warn else "")
                 + (f"CPU-Mittelwert: {cpu_average_min} Minuten\n" if cpu_average_min else "")
                 + (f"Virtueller Speicher: warn {mem_warn_mb} MB, crit {mem_crit_mb} MB\n" if mem_warn_mb else "")
-                + (f"Resident-Speicher: warn {resident_warn_mb} MB, crit {resident_crit_mb} MB\n" if resident_warn_mb else "")
+                + (
+                    f"Resident-Speicher: warn {resident_warn_mb} MB, crit {resident_crit_mb} MB\n"
+                    if resident_warn_mb
+                    else ""
+                )
                 + f"Rule-ID: {rule_id}\n"
             )
             if run_discovery:
@@ -254,19 +268,22 @@ class ServiceParamsHandler(BaseHandler):
         props: Dict[str, Any] = {"disabled": False}
         props["description"] = description or f"{service_desc} auf {hostname}: expected speed {speed_mbit} Mbit/s"
 
-        result = self.client.post("domain-types/rule/collections/all", {
-            "ruleset": "checkgroup_parameters:interfaces",
-            "folder": folder,
-            "value_raw": repr(value),
-            "conditions": {
-                "host_name": {"match_on": [hostname], "operator": "one_of"},
-                "service_description": {"match_on": [service_desc], "operator": "one_of"},
-                "host_tags": [],
-                "host_label_groups": [],
-                "service_label_groups": [],
+        result = self.client.post(
+            "domain-types/rule/collections/all",
+            {
+                "ruleset": "checkgroup_parameters:interfaces",
+                "folder": folder,
+                "value_raw": repr(value),
+                "conditions": {
+                    "host_name": {"match_on": [hostname], "operator": "one_of"},
+                    "service_description": {"match_on": [service_desc], "operator": "one_of"},
+                    "host_tags": [],
+                    "host_label_groups": [],
+                    "service_label_groups": [],
+                },
+                "properties": props,
             },
-            "properties": props,
-        })
+        )
 
         if result.get("success"):
             rule_id = result["data"].get("id", "")
@@ -308,18 +325,21 @@ class ServiceParamsHandler(BaseHandler):
             parts.append(f"Swap warn={swap_warn}% crit={swap_crit}%")
         props["description"] = description or f"Memory {hostname}: {', '.join(parts)}"
 
-        result = self.client.post("domain-types/rule/collections/all", {
-            "ruleset": "checkgroup_parameters:memory_linux",
-            "folder": folder,
-            "value_raw": repr(value),
-            "conditions": {
-                "host_name": {"match_on": [hostname], "operator": "one_of"},
-                "host_tags": [],
-                "host_label_groups": [],
-                "service_label_groups": [],
+        result = self.client.post(
+            "domain-types/rule/collections/all",
+            {
+                "ruleset": "checkgroup_parameters:memory_linux",
+                "folder": folder,
+                "value_raw": repr(value),
+                "conditions": {
+                    "host_name": {"match_on": [hostname], "operator": "one_of"},
+                    "host_tags": [],
+                    "host_label_groups": [],
+                    "service_label_groups": [],
+                },
+                "properties": props,
             },
-            "properties": props,
-        })
+        )
 
         if result.get("success"):
             rule_id = result["data"].get("id", "")

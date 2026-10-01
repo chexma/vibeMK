@@ -54,6 +54,7 @@ class BaseHandler(ABC):
     def _get_pending_etag(self) -> str:
         """Fetch ETag from pending_changes endpoint (required for activation)."""
         import ssl as _ssl
+
         url = f"{self.client.api_base_url}/domain-types/activation_run/collections/pending_changes"
         req = urllib.request.Request(url, method="GET")
         for k, v in self.client.headers.items():
@@ -71,15 +72,14 @@ class BaseHandler(ABC):
             except Exception:
                 etag = "*"
 
-            data = json.dumps({
-                "redirect": False,
-                "sites": [self.client.config.site],
-                "force_foreign_changes": True,
-            }).encode("utf-8")
-            url = (
-                f"{self.client.api_base_url}"
-                "/domain-types/activation_run/actions/activate-changes/invoke"
-            )
+            data = json.dumps(
+                {
+                    "redirect": False,
+                    "sites": [self.client.config.site],
+                    "force_foreign_changes": True,
+                }
+            ).encode("utf-8")
+            url = f"{self.client.api_base_url}" "/domain-types/activation_run/actions/activate-changes/invoke"
             req = urllib.request.Request(url, data=data, method="POST")
             for k, v in self.client.headers.items():
                 req.add_header(k, v)

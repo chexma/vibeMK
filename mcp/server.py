@@ -25,18 +25,18 @@ from typing import Any, Dict, Optional
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
 from handlers.acknowledgements import AcknowledgementHandler
+from handlers.active_checks import ActiveChecksHandler
 from handlers.agents import AgentHandler
+from handlers.audit_log import AuditLogHandler
+from handlers.aux_tags import AuxTagsHandler
 from handlers.configuration import ConfigurationHandler
 from handlers.connection import ConnectionHandler
 from handlers.debug import DebugHandler
 from handlers.discovery import DiscoveryHandler
 from handlers.downtimes import DowntimeHandler
+from handlers.event_console import EventConsoleHandler
 from handlers.folders import FolderHandler
 from handlers.groups import GroupsHandler
-from handlers.active_checks import ActiveChecksHandler
-from handlers.audit_log import AuditLogHandler
-from handlers.aux_tags import AuxTagsHandler
-from handlers.event_console import EventConsoleHandler
 from handlers.host_group_rules import HostGroupRulesHandler
 from handlers.hosts import HostHandler
 from handlers.metrics import MetricsHandler
@@ -45,8 +45,8 @@ from handlers.passwords import PasswordsHandler
 from handlers.rules import RulesHandler
 from handlers.rulesets import RulesetsHandler
 from handlers.service_groups import ServiceGroupHandler
-from handlers.services import ServiceHandler
 from handlers.service_params import ServiceParamsHandler
+from handlers.services import ServiceHandler
 from handlers.sites import SitesHandler
 from handlers.tags import TagsHandler
 from handlers.timeperiods import TimePeriodsHandler

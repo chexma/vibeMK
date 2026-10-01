@@ -11,10 +11,14 @@ from handlers.base import BaseHandler
 class RulesHandler(BaseHandler):
     """Handle rule management operations"""
 
-    _WRITE_TOOLS = frozenset({
-        "vibemk_create_rule", "vibemk_update_rule",
-        "vibemk_delete_rule", "vibemk_move_rule",
-    })
+    _WRITE_TOOLS = frozenset(
+        {
+            "vibemk_create_rule",
+            "vibemk_update_rule",
+            "vibemk_delete_rule",
+            "vibemk_move_rule",
+        }
+    )
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Handle rule-related tool calls"""
@@ -41,10 +45,12 @@ class RulesHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (tool_name in self._WRITE_TOOLS
-                and arguments.get("activate_changes")
-                and result
-                and "❌" not in result[-1].get("text", "")):
+        if (
+            tool_name in self._WRITE_TOOLS
+            and arguments.get("activate_changes")
+            and result
+            and "❌" not in result[-1].get("text", "")
+        ):
             result[-1]["text"] += "\n" + self._run_activation()
         return result
 
@@ -98,18 +104,16 @@ class RulesHandler(BaseHandler):
         result = self.client.get("domain-types/rule/collections/all", params=params)
 
         if not result.get("success"):
-            return self.error_response(
-                "Ruleset not found", f"Ruleset '{ruleset_name}' does not exist or has no rules"
-            )
+            return self.error_response("Ruleset not found", f"Ruleset '{ruleset_name}' does not exist or has no rules")
 
         all_rules = result["data"].get("value", [])
 
         # Filter by hostname if requested
         if hostname:
             rules = [
-                r for r in all_rules
-                if hostname in r.get("extensions", {}).get("conditions", {})
-                                  .get("host_name", {}).get("match_on", [])
+                r
+                for r in all_rules
+                if hostname in r.get("extensions", {}).get("conditions", {}).get("host_name", {}).get("match_on", [])
             ]
         else:
             rules = all_rules

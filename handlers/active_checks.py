@@ -13,26 +13,35 @@ from handlers.base import BaseHandler
 class ActiveChecksHandler(BaseHandler):
     """Handle active check rule creation"""
 
-    _WRITE_TOOLS = frozenset({
-        "vibemk_create_http_check",
-        "vibemk_create_tcp_check",
-        "vibemk_create_icmp_check",
-        "vibemk_create_custom_check",
-        "vibemk_create_dns_check",
-        "vibemk_create_smtp_check",
-        "vibemk_create_ftp_check",
-        "vibemk_create_ldap_check",
-        "vibemk_create_smb_check",
-        "vibemk_create_mkevents_check",
-        "vibemk_create_inventory_check",
-        "vibemk_delete_active_check",
-    })
+    _WRITE_TOOLS = frozenset(
+        {
+            "vibemk_create_http_check",
+            "vibemk_create_tcp_check",
+            "vibemk_create_icmp_check",
+            "vibemk_create_custom_check",
+            "vibemk_create_dns_check",
+            "vibemk_create_smtp_check",
+            "vibemk_create_ftp_check",
+            "vibemk_create_ldap_check",
+            "vibemk_create_smb_check",
+            "vibemk_create_mkevents_check",
+            "vibemk_create_inventory_check",
+            "vibemk_delete_active_check",
+        }
+    )
 
     _ALL_RULESETS = [
-        "active_checks:http", "active_checks:tcp", "active_checks:icmp",
-        "active_checks:dns", "active_checks:smtp", "active_checks:ftp",
-        "active_checks:ldap", "active_checks:disk_smb", "active_checks:mkevents",
-        "active_checks:cmk_inv", "custom_checks",
+        "active_checks:http",
+        "active_checks:tcp",
+        "active_checks:icmp",
+        "active_checks:dns",
+        "active_checks:smtp",
+        "active_checks:ftp",
+        "active_checks:ldap",
+        "active_checks:disk_smb",
+        "active_checks:mkevents",
+        "active_checks:cmk_inv",
+        "custom_checks",
     ]
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -72,10 +81,12 @@ class ActiveChecksHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (tool_name in self._WRITE_TOOLS
-                and arguments.get("activate_changes")
-                and result
-                and "❌" not in result[-1].get("text", "")):
+        if (
+            tool_name in self._WRITE_TOOLS
+            and arguments.get("activate_changes")
+            and result
+            and "❌" not in result[-1].get("text", "")
+        ):
             result[-1]["text"] += "\n" + self._run_activation()
         return result
 
@@ -104,13 +115,16 @@ class ActiveChecksHandler(BaseHandler):
         props: Dict[str, Any] = {"disabled": False}
         if description:
             props["description"] = description
-        return self.client.post("domain-types/rule/collections/all", {
-            "ruleset": ruleset,
-            "folder": folder,
-            "value_raw": value_raw,
-            "conditions": self._host_condition(hostname),
-            "properties": props,
-        })
+        return self.client.post(
+            "domain-types/rule/collections/all",
+            {
+                "ruleset": ruleset,
+                "folder": folder,
+                "value_raw": value_raw,
+                "conditions": self._host_condition(hostname),
+                "properties": props,
+            },
+        )
 
     async def _create_http_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -133,7 +147,7 @@ class ActiveChecksHandler(BaseHandler):
         crit_seconds = arguments.get("response_time_crit")
 
         # Request options
-        method = arguments.get("method")          # GET, POST, HEAD, …
+        method = arguments.get("method")  # GET, POST, HEAD, …
         no_body = arguments.get("no_body", False)
         onredirect = arguments.get("onredirect")  # ok, warning, critical, follow, sticky, stickyport
         extended_perfdata = arguments.get("extended_perfdata", False)
@@ -163,8 +177,7 @@ class ActiveChecksHandler(BaseHandler):
         if address_family:
             host_cfg["address_family"] = address_family
         if proxy_address:
-            host_cfg["address"] = ("proxy", {"address": proxy_address,
-                                              "port": int(proxy_port or 80)})
+            host_cfg["address"] = ("proxy", {"address": proxy_address, "port": int(proxy_port or 80)})
         elif direct_address:
             host_cfg["address"] = ("direct", direct_address)
         if virt_host or not direct_address:
@@ -187,8 +200,7 @@ class ActiveChecksHandler(BaseHandler):
                 url_params["expect_regex"] = expect_regex
             if expect_response:
                 url_params["expect_response"] = (
-                    expect_response if isinstance(expect_response, list)
-                    else [expect_response]
+                    expect_response if isinstance(expect_response, list) else [expect_response]
                 )
             if timeout:
                 url_params["timeout"] = int(timeout)
@@ -228,7 +240,9 @@ class ActiveChecksHandler(BaseHandler):
             if description:
                 details.append(f"Beschreibung: {description}")
             details.append(f"Rule-ID: {rule_id}")
-            return [{"type": "text", "text": f"✅ HTTP-Check '{name}' für '{hostname}' angelegt.\n" + "\n".join(details)}]
+            return [
+                {"type": "text", "text": f"✅ HTTP-Check '{name}' für '{hostname}' angelegt.\n" + "\n".join(details)}
+            ]
         return self.error_response("HTTP-Check fehlgeschlagen", str(result.get("data", {})))
 
     async def _create_tcp_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -240,7 +254,7 @@ class ActiveChecksHandler(BaseHandler):
         use_ssl = arguments.get("ssl", False)
         cert_warn = arguments.get("cert_days_warn")
         cert_crit = arguments.get("cert_days_crit")
-        expect = arguments.get("expect")           # string or list of strings to expect in response
+        expect = arguments.get("expect")  # string or list of strings to expect in response
         refuse_state = arguments.get("refuse_state")  # ok / warn / crit
         mismatch_state = arguments.get("mismatch_state")  # ok / warn / crit
         timeout = arguments.get("timeout")
@@ -288,11 +302,11 @@ class ActiveChecksHandler(BaseHandler):
         folder = self._resolve_folder(hostname, arguments.get("folder"))
         packets = arguments.get("packets", 5)
         timeout = arguments.get("timeout", 20.0)
-        explicit_address = arguments.get("explicit_address")   # ping a different IP
-        rta_warn = arguments.get("rta_warn_ms")                # round-trip warn ms
-        rta_crit = arguments.get("rta_crit_ms")                # round-trip crit ms
-        loss_warn = arguments.get("loss_warn_percent")         # packet loss warn %
-        loss_crit = arguments.get("loss_crit_percent")         # packet loss crit %
+        explicit_address = arguments.get("explicit_address")  # ping a different IP
+        rta_warn = arguments.get("rta_warn_ms")  # round-trip warn ms
+        rta_crit = arguments.get("rta_crit_ms")  # round-trip crit ms
+        loss_warn = arguments.get("loss_warn_percent")  # packet loss warn %
+        loss_crit = arguments.get("loss_crit_percent")  # packet loss crit %
         min_pings = arguments.get("min_pings")
 
         if not hostname:
@@ -599,15 +613,14 @@ class ActiveChecksHandler(BaseHandler):
         check_type = arguments.get("check_type")
 
         rulesets = (
-            [f"active_checks:{check_type}"] if check_type and check_type != "custom"
-            else ["custom_checks"] if check_type == "custom"
-            else self._ALL_RULESETS
+            [f"active_checks:{check_type}"]
+            if check_type and check_type != "custom"
+            else ["custom_checks"] if check_type == "custom" else self._ALL_RULESETS
         )
 
         lines = ["🔍 **Active Checks**\n"]
         for ruleset in rulesets:
-            result = self.client.get("domain-types/rule/collections/all",
-                                     params={"ruleset_name": ruleset})
+            result = self.client.get("domain-types/rule/collections/all", params={"ruleset_name": ruleset})
             if not result.get("success"):
                 continue
             rules = result["data"].get("value", [])
@@ -642,14 +655,13 @@ class ActiveChecksHandler(BaseHandler):
         if not rule_id and hostname:
             check_type = arguments.get("check_type")
             rulesets = (
-                [f"active_checks:{check_type}"] if check_type and check_type != "custom"
-                else ["custom_checks"] if check_type == "custom"
-                else self._ALL_RULESETS
+                [f"active_checks:{check_type}"]
+                if check_type and check_type != "custom"
+                else ["custom_checks"] if check_type == "custom" else self._ALL_RULESETS
             )
             matches = []
             for rs in rulesets:
-                res = self.client.get("domain-types/rule/collections/all",
-                                      params={"ruleset_name": rs})
+                res = self.client.get("domain-types/rule/collections/all", params={"ruleset_name": rs})
                 if not res.get("success"):
                     continue
                 for rule in res["data"].get("value", []):
@@ -667,7 +679,8 @@ class ActiveChecksHandler(BaseHandler):
                 return self.error_response(
                     "Keine Regel gefunden",
                     f"Keine Active-Check-Regel für '{hostname}'"
-                    + (f" mit Service '{service_name}'" if service_name else "") + " gefunden.",
+                    + (f" mit Service '{service_name}'" if service_name else "")
+                    + " gefunden.",
                 )
             if len(matches) > 1:
                 lines = [f"Mehrere Regeln für '{hostname}' gefunden — bitte rule_id angeben:\n"]
