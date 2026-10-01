@@ -63,7 +63,7 @@ class ServiceHandler(BaseHandler):
                                     )
 
                                     service_list.append(
-                                        f"🔧 **{description}**\\n   Status: {status}\\n   Output: {plugin_output}"
+                                        f"🔧 **{description}**\n   Status: {status}\n   Output: {plugin_output}"
                                     )
 
                             if service_list:
@@ -71,8 +71,8 @@ class ServiceHandler(BaseHandler):
                                     {
                                         "type": "text",
                                         "text": (
-                                            f"🔧 **Services for Host: {host_name}** ({len(services)} total, showing first {len(service_list)}):\\n\\n"
-                                            + "\\n\\n".join(service_list)
+                                            f"🔧 **Services for Host: {host_name}** ({len(services)} total, showing first {len(service_list)}):\n\n"
+                                            + "\n\n".join(service_list)
                                         ),
                                     }
                                 ]
@@ -83,7 +83,9 @@ class ServiceHandler(BaseHandler):
 
         # Method 2: Fallback to domain-types collection (for all services or if host-specific failed)
         try:
-            params = {}
+            # Request the state/plugin_output columns explicitly — without them the
+            # collection endpoint omits 'state' and every service shows as UNKNOWN.
+            params = {"columns": ["host_name", "description", "state", "plugin_output"]}
             if host_name:
                 params["host_name"] = host_name
 
@@ -110,8 +112,8 @@ class ServiceHandler(BaseHandler):
                 {
                     "type": "text",
                     "text": (
-                        f"🔧 **CheckMK Services** ({len(services)} total, showing first {len(service_list)}):\\n\\n"
-                        + "\\n".join(service_list)
+                        f"🔧 **CheckMK Services** ({len(services)} total, showing first {len(service_list)}):\n\n"
+                        + "\n".join(service_list)
                     ),
                 }
             ]
@@ -190,11 +192,11 @@ class ServiceHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"{status_icon} **Service Status: {host_name_from_api}/{description}**\\n\\n"
-                                    f"**Status:** {status_text}\\n"
-                                    f"**State Code:** {state}\\n"
-                                    f"**Last Check:** {last_check_text}\\n"
-                                    f"**State Type:** {'Hard' if state_type == 1 else 'Soft'}\\n\\n"
+                                    f"{status_icon} **Service Status: {host_name_from_api}/{description}**\n\n"
+                                    f"**Status:** {status_text}\n"
+                                    f"**State Code:** {state}\n"
+                                    f"**Last Check:** {last_check_text}\n"
+                                    f"**State Type:** {'Hard' if state_type == 1 else 'Soft'}\n\n"
                                     f"✅ **Live monitoring data from CheckMK REST API**"
                                 ),
                             }
@@ -204,8 +206,8 @@ class ServiceHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"📊 **Service Found: {host_name}/{description}**\\n\\n"
-                                    f"❌ **No state information available**\\n"
+                                    f"📊 **Service Found: {host_name}/{description}**\n\n"
+                                    f"❌ **No state information available**\n"
                                     f"Available fields: {list(extensions.keys())}"
                                 ),
                             }
@@ -245,9 +247,9 @@ class ServiceHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"📊 **Service Status: {host_name}/{service_description}** (Fallback API)\\n\\n"
-                                    f"Status: {status}\\n"
-                                    f"State Code: {state}\\n\\n"
+                                    f"📊 **Service Status: {host_name}/{service_description}** (Fallback API)\n\n"
+                                    f"Status: {status}\n"
+                                    f"State Code: {state}\n\n"
                                     f"⚠️ **Note:** Using fallback API, limited monitoring information available"
                                 ),
                             }
@@ -257,7 +259,7 @@ class ServiceHandler(BaseHandler):
 
         # Method 2: Try LiveStatus query for real-time service monitoring data
         try:
-            livestatus_query = f"GET services\\nColumns: host_name description state plugin_output last_check last_state_change check_type\\nFilter: host_name = {host_name}\\nFilter: description = {service_description}"
+            livestatus_query = f"GET services\nColumns: host_name description state plugin_output last_check last_state_change check_type\nFilter: host_name = {host_name}\nFilter: description = {service_description}"
             livestatus_result = self.client.post(
                 "domain-types/bi_rule/actions/livestatus_query/invoke", data={"query": livestatus_query}
             )
@@ -282,14 +284,14 @@ class ServiceHandler(BaseHandler):
                         {
                             "type": "text",
                             "text": (
-                                f"📊 **Service Status: {host_name}/{service_description}** (LiveStatus)\\n\\n"
-                                f"Status: {status}\\n"
-                                f"Output: {plugin_output}\\n"
-                                f"Last Check: {last_check}\\n"
-                                f"Last State Change: {last_state_change}\\n"
-                                f"Check Type: {check_type}\\n\\n"
-                                f"🔍 **Debug Info:**\\n"
-                                f"Raw State: {state}\\n"
+                                f"📊 **Service Status: {host_name}/{service_description}** (LiveStatus)\n\n"
+                                f"Status: {status}\n"
+                                f"Output: {plugin_output}\n"
+                                f"Last Check: {last_check}\n"
+                                f"Last State Change: {last_state_change}\n"
+                                f"Check Type: {check_type}\n\n"
+                                f"🔍 **Debug Info:**\n"
+                                f"Raw State: {state}\n"
                                 f"LiveStatus Response: {service_data}"
                             ),
                         }
@@ -335,14 +337,14 @@ class ServiceHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"📊 **Service Status: {host_name}/{service_description}** (Correct API Query)\\n\\n"
-                                    f"Status: {status}\\n"
-                                    f"Output: {plugin_output}\\n"
-                                    f"Last Check: {last_check}\\n"
-                                    f"Last State Change: {last_state_change}\\n\\n"
-                                    f"🔍 **Debug Info:**\\n"
-                                    f"Raw State: {state}\\n"
-                                    f"Query Result: {service_data}\\n"
+                                    f"📊 **Service Status: {host_name}/{service_description}** (Correct API Query)\n\n"
+                                    f"Status: {status}\n"
+                                    f"Output: {plugin_output}\n"
+                                    f"Last Check: {last_check}\n"
+                                    f"Last State Change: {last_state_change}\n\n"
+                                    f"🔍 **Debug Info:**\n"
+                                    f"Raw State: {state}\n"
+                                    f"Query Result: {service_data}\n"
                                     f"✅ **Data Source:** Correct CheckMK Query API"
                                 ),
                             }
@@ -363,12 +365,12 @@ class ServiceHandler(BaseHandler):
                                 {
                                     "type": "text",
                                     "text": (
-                                        f"📊 **Service Status: {host_name}/{service_description}** (Dict Format)\\n\\n"
-                                        f"Status: {status}\\n"
-                                        f"Output: {plugin_output}\\n"
-                                        f"Last Check: {last_check}\\n\\n"
-                                        f"🔍 **Debug Info:**\\n"
-                                        f"Raw State: {state}\\n"
+                                        f"📊 **Service Status: {host_name}/{service_description}** (Dict Format)\n\n"
+                                        f"Status: {status}\n"
+                                        f"Output: {plugin_output}\n"
+                                        f"Last Check: {last_check}\n\n"
+                                        f"🔍 **Debug Info:**\n"
+                                        f"Raw State: {state}\n"
                                         f"Extensions: {list(extensions.keys())}"
                                     ),
                                 }
@@ -402,12 +404,12 @@ class ServiceHandler(BaseHandler):
                             {
                                 "type": "text",
                                 "text": (
-                                    f"📊 **Service Status: {host_name}/{service_description}** (Fallback Query)\\n\\n"
-                                    f"Status: {status}\\n"
-                                    f"Output: {plugin_output}\\n"
-                                    f"Last Check: {last_check}\\n\\n"
-                                    f"🔍 **Debug Info:**\\n"
-                                    f"Raw State: {state}\\n"
+                                    f"📊 **Service Status: {host_name}/{service_description}** (Fallback Query)\n\n"
+                                    f"Status: {status}\n"
+                                    f"Output: {plugin_output}\n"
+                                    f"Last Check: {last_check}\n\n"
+                                    f"🔍 **Debug Info:**\n"
+                                    f"Raw State: {state}\n"
                                     f"Extensions: {list(extensions.keys())}"
                                 ),
                             }
@@ -420,18 +422,18 @@ class ServiceHandler(BaseHandler):
             {
                 "type": "text",
                 "text": (
-                    f"❌ **Service Status Retrieval Failed**\\n\\n"
-                    f"Service: {host_name}/{service_description}\\n\\n"
-                    f"**Tried Methods:**\\n"
-                    f"1️⃣ Direct service object API (objects/service/)\\n"
-                    f"2️⃣ LiveStatus query (real-time data)\\n"
-                    f"3️⃣ Domain-type service collection query\\n\\n"
-                    f"**Possible Issues:**\\n"
-                    f"• Service not found in monitoring system\\n"
-                    f"• Service description name mismatch\\n"
-                    f"• CheckMK API version compatibility\\n"
-                    f"• Monitoring data not yet available\\n\\n"
-                    f"**Recommendation:**\\n"
+                    f"❌ **Service Status Retrieval Failed**\n\n"
+                    f"Service: {host_name}/{service_description}\n\n"
+                    f"**Tried Methods:**\n"
+                    f"1️⃣ Direct service object API (objects/service/)\n"
+                    f"2️⃣ LiveStatus query (real-time data)\n"
+                    f"3️⃣ Domain-type service collection query\n\n"
+                    f"**Possible Issues:**\n"
+                    f"• Service not found in monitoring system\n"
+                    f"• Service description name mismatch\n"
+                    f"• CheckMK API version compatibility\n"
+                    f"• Monitoring data not yet available\n\n"
+                    f"**Recommendation:**\n"
                     f"Verify the service exists in CheckMK GUI and is being monitored."
                 ),
             }

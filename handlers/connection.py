@@ -54,7 +54,7 @@ class ConnectionHandler(BaseHandler):
                             f"👤 User: {self.client.config.username}\n"
                             f"🔒 SSL Verify: {self.client.config.verify_ssl}\n"
                             f"🔗 API Base URL: {self.client.api_base_url}\n"
-                            f"📊 Version: {data.get('version', 'Unknown')}\n"
+                            f"📊 Version: {data.get('versions', {}).get('checkmk', 'Unknown')}\n"
                             f"📦 Edition: {data.get('edition', 'Unknown')}"
                         ),
                     }
@@ -169,7 +169,7 @@ class ConnectionHandler(BaseHandler):
                     "type": "text",
                     "text": (
                         f"📋 **CheckMK Version Information**\n\n"
-                        f"Version: {data.get('version', 'Unknown')}\n"
+                        f"Version: {data.get('versions', {}).get('checkmk', 'Unknown')}\n"
                         f"Edition: {data.get('edition', 'Unknown')}\n"
                         f"Site: {self.client.config.site}\n"
                         f"Server: {self.client.config.server_url}"
