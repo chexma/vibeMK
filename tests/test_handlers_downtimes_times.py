@@ -14,6 +14,7 @@ local and then labelled UTC.
 """
 
 import datetime
+import time
 from unittest.mock import MagicMock
 
 import pytest
@@ -24,6 +25,26 @@ from handlers.downtimes import DowntimeHandler
 @pytest.fixture
 def handler():
     return DowntimeHandler(MagicMock())
+
+
+@pytest.fixture
+def away_from_utc(monkeypatch):
+    """Run the body in a timezone that is not UTC.
+
+    CI runners are UTC, where local and UTC agree and a test that compares
+    them passes whatever the code does -- the buggy version passed this
+    file's conversion test on a UTC machine. Asia/Kolkata is +5:30 all year:
+    no DST to reason about, and the half hour catches arithmetic that only
+    handles whole-hour offsets.
+    """
+    if not hasattr(time, "tzset"):
+        pytest.skip("the timezone cannot be changed at runtime on this platform")
+
+    monkeypatch.setenv("TZ", "Asia/Kolkata")
+    time.tzset()
+    yield
+    monkeypatch.undo()
+    time.tzset()
 
 
 class TestTheDurationGrammar:
@@ -140,7 +161,20 @@ class TestTheScheduleIsExpressedInUTC:
     def _as_utc(stamp: str) -> datetime.datetime:
         return datetime.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 
-    def test_a_wall_clock_time_is_converted_from_local_to_utc(self, handler):
+    def test_a_parsed_wall_clock_time_carries_an_offset(self, handler):
+        """The assertion that holds in every timezone, UTC included.
+
+        The defect was a *naive* datetime being labelled Z. Comparing local
+        against UTC cannot catch that on a UTC machine -- but a missing
+        tzinfo is missing everywhere, so this is the guard that still works
+        on a CI runner.
+        """
+        parsed = handler._parse_natural_time("22:00 tomorrow")
+
+        assert parsed is not None
+        assert parsed.tzinfo is not None, "a wall-clock time was parsed without an offset"
+
+    def test_a_wall_clock_time_is_converted_from_local_to_utc(self, handler, away_from_utc):
         times = handler._parse_downtime_times("22:00 tomorrow", None, 120)
 
         # 22:00 tomorrow on the operator's wall clock, expressed in UTC.
