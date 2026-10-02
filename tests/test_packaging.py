@@ -51,28 +51,6 @@ class TestTheConsoleScript:
 
         assert not inspect.iscoroutinefunction(cli), "the console script target must not be a coroutine function"
 
-    def test_pyproject_points_the_script_at_that_target(self):
-        """The declaration and the function cannot drift apart silently."""
-        import tomllib
-
-        with (PROJECT_ROOT / "pyproject.toml").open("rb") as handle:
-            pyproject = tomllib.load(handle)
-
-        assert pyproject["project"]["scripts"]["vibemk"] == "vibemk_mcp.cli:cli"
-
-    def test_the_entry_point_lives_inside_a_shipped_package(self):
-        """A top-level `main.py` is never in the wheel, so `main:cli` could
-        not resolve at all -- `vibemk` died with ModuleNotFoundError before it
-        ever reached the coroutine problem."""
-        import tomllib
-
-        with (PROJECT_ROOT / "pyproject.toml").open("rb") as handle:
-            pyproject = tomllib.load(handle)
-
-        module = pyproject["project"]["scripts"]["vibemk"].split(":")[0]
-
-        assert module.split(".")[0] in EXPECTED_PACKAGES, f"{module} is not inside a packaged module"
-
     def test_the_checkout_shim_still_works(self):
         """`python main.py` is what every configuration example uses."""
         import main
@@ -112,8 +90,14 @@ class TestTheLicence:
 
 
 @pytest.fixture(scope="session")
-def built_wheel(tmp_path_factory):
-    """Build the wheel once and hand back the paths it contains."""
+def wheel(tmp_path_factory):
+    """Build the wheel once; hand back its paths and its entry points.
+
+    Reading the entry point out of the built artefact rather than out of
+    pyproject.toml is both the stronger check -- it is what setuptools
+    actually produced -- and the portable one: tomllib only exists from
+    Python 3.11, and this project supports 3.10.
+    """
     pytest.importorskip("build", reason="python-build is needed to inspect the distribution")
 
     outdir = tmp_path_factory.mktemp("dist")
@@ -127,8 +111,39 @@ def built_wheel(tmp_path_factory):
 
     wheels = glob.glob(str(outdir / "*.whl"))
     assert wheels, "the build produced no wheel"
+
     with zipfile.ZipFile(wheels[0]) as archive:
-        return archive.namelist()
+        names = archive.namelist()
+        declared = [name for name in names if name.endswith("entry_points.txt")]
+        entry_points = archive.read(declared[0]).decode() if declared else ""
+
+    return {"names": names, "entry_points": entry_points}
+
+
+@pytest.fixture(scope="session")
+def built_wheel(wheel):
+    """Just the paths, for the tests that only care what is in the archive."""
+    return wheel["names"]
+
+
+class TestTheShippedEntryPoint:
+    """What `pip install` wires the `vibemk` command to."""
+
+    def test_the_wheel_declares_the_console_script(self, wheel):
+        assert "vibemk = vibemk_mcp.cli:cli" in wheel["entry_points"], wheel["entry_points"]
+
+    def test_the_target_module_is_actually_in_the_wheel(self, wheel):
+        """The original target, `main:cli`, never shipped.
+
+        `main.py` is a loose top-level module and packages.find only collects
+        packages, so `vibemk` died with ModuleNotFoundError before it could
+        even reach the coroutine problem. Declaring an entry point is not the
+        same as shipping what it points at.
+        """
+        target = wheel["entry_points"].split("vibemk = ")[1].split("\n")[0].strip()
+        module_path = target.split(":")[0].replace(".", "/") + ".py"
+
+        assert module_path in wheel["names"], f"{module_path} is declared but not packaged"
 
 
 class TestTheWheel:
