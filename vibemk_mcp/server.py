@@ -25,9 +25,9 @@ from typing import Any, Dict, Optional
 
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
-from mcp.dispatch import Dispatcher
-from mcp.registry import ToolRegistry
-from mcp.transport import StdioTransport
+from vibemk_mcp.dispatch import Dispatcher
+from vibemk_mcp.registry import ToolRegistry
+from vibemk_mcp.transport import StdioTransport
 from utils import get_logger
 
 logger = get_logger(__name__)

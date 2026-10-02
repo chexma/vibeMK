@@ -15,8 +15,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from mcp.registry import ToolRegistry
-from mcp.tools import get_all_tools
+from vibemk_mcp.registry import ToolRegistry
+from vibemk_mcp.tools import get_all_tools
 
 HANDLERS_DIR = pathlib.Path(__file__).resolve().parent.parent / "handlers"
 

@@ -361,7 +361,7 @@ python -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.
 ```bash
 # Show all available tools
 python -c "
-from mcp.tools import get_all_tools
+from vibemk_mcp.tools import get_all_tools
 tools = get_all_tools()
 print(f'Total tools: {len(tools)}')
 for tool in tools[:5]:

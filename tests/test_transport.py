@@ -8,7 +8,7 @@ import asyncio
 import io
 import json
 
-from mcp.transport import StdioTransport
+from vibemk_mcp.transport import StdioTransport
 
 
 def responder(response=None):

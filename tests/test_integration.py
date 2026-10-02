@@ -12,7 +12,7 @@ import pytest
 
 from api import CheckMKClient
 from config import CheckMKConfig
-from mcp.server import CheckMKMCPServer
+from vibemk_mcp.server import CheckMKMCPServer
 
 # Skip integration tests by default
 pytestmark = pytest.mark.skipif(

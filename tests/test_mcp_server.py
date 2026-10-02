@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Optional
 import pytest
 
 from config import MCPConfig
-from mcp.dispatch import Dispatcher
-from mcp.registry import ToolRegistry
-from mcp.tools import get_all_tools
+from vibemk_mcp.dispatch import Dispatcher
+from vibemk_mcp.registry import ToolRegistry
+from vibemk_mcp.tools import get_all_tools
 
 
 class RecordingHandler:
@@ -187,7 +187,7 @@ class TestToolCallsLeaveATrace:
 
     @pytest.mark.asyncio
     async def test_a_successful_call_is_logged_with_its_tool_name(self, caplog: pytest.LogCaptureFixture) -> None:
-        with caplog.at_level(logging.INFO, logger="mcp.dispatch"):
+        with caplog.at_level(logging.INFO, logger="vibemk_mcp.dispatch"):
             await make_dispatcher().handle(
                 request("tools/call", {"name": "vibemk_get_checkmk_version", "arguments": {}})
             )
@@ -199,7 +199,7 @@ class TestToolCallsLeaveATrace:
 
     @pytest.mark.asyncio
     async def test_the_arguments_are_not_logged(self, caplog: pytest.LogCaptureFixture) -> None:
-        with caplog.at_level(logging.INFO, logger="mcp.dispatch"):
+        with caplog.at_level(logging.INFO, logger="vibemk_mcp.dispatch"):
             await make_dispatcher().handle(
                 request(
                     "tools/call",

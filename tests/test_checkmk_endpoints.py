@@ -16,7 +16,7 @@ import pytest
 from api.exceptions import CheckMKAPIError
 from handlers.discovery import DiscoveryHandler
 from handlers.services import ServiceHandler
-from mcp.tools import get_all_tools
+from vibemk_mcp.tools import get_all_tools
 
 # Paths registered by cmk/gui/openapi/endpoints/service_discovery/__init__.py
 SINGLE_HOST_DISCOVERY = "domain-types/service_discovery_run/actions/start/invoke"

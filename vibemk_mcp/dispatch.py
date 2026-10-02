@@ -8,8 +8,8 @@ nothing about how a request arrived.
 from typing import Any, Callable, Dict, Optional
 
 from config import MCPConfig
-from mcp.registry import ToolRegistry
-from mcp.tools import get_all_tools
+from vibemk_mcp.registry import ToolRegistry
+from vibemk_mcp.tools import get_all_tools
 from utils import get_logger
 
 logger = get_logger(__name__)

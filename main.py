@@ -21,7 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import sys
 
-from mcp.server import CheckMKMCPServer
+from vibemk_mcp.server import CheckMKMCPServer
 from utils import setup_logging
 
 

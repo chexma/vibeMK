@@ -30,7 +30,7 @@ import pytest
 
 from api import CheckMKClient
 from config import CheckMKConfig
-from mcp.registry import ToolRegistry
+from vibemk_mcp.registry import ToolRegistry
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("LIVE_SMOKE_TEST") != "true",

@@ -89,7 +89,7 @@ class TestModeTableMatchesSchema:
 
     def test_every_advertised_mode_has_a_mapping(self):
         from handlers.discovery import _BULK_OPTIONS_BY_MODE
-        from mcp.tools import get_all_tools
+        from vibemk_mcp.tools import get_all_tools
 
         tool = next(t for t in get_all_tools() if t["name"] == "vibemk_start_service_discovery")
         advertised = set(tool["inputSchema"]["properties"]["mode"]["enum"])
@@ -99,7 +99,7 @@ class TestModeTableMatchesSchema:
 
     def test_every_mapping_is_advertised(self):
         from handlers.discovery import _BULK_OPTIONS_BY_MODE
-        from mcp.tools import get_all_tools
+        from vibemk_mcp.tools import get_all_tools
 
         tool = next(t for t in get_all_tools() if t["name"] == "vibemk_start_service_discovery")
         advertised = set(tool["inputSchema"]["properties"]["mode"]["enum"])

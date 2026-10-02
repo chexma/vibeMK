@@ -44,8 +44,8 @@ vibemk/
 ### Adding New Features
 
 1. **New Handler**: Create in `handlers/` directory
-2. **New Tool**: Add to `mcp/tools.py`
-3. **Register Handler**: Update `mcp/server.py`
+2. **New Tool**: Add to `vibemk_mcp/tools.py`
+3. **Register Handler**: Update `vibemk_mcp/server.py`
 
 Example handler structure:
 ```python
