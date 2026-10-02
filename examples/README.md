@@ -29,7 +29,9 @@ This directory contains example configurations for different use cases.
    ```
 
 2. **Edit Configuration**
-   - Replace `/Users/yourname/vibemk/main.py` with your actual path
+   - Replace `/absolute/path/to/vibemk` with the output of `which vibemk`
+     (see [INSTALL.md](../INSTALL.md); from a source checkout use
+     `"command": "python3", "args": ["/path/to/vibeMK/main.py"]` instead)
    - Update CheckMK server details
    - Set your automation credentials
 
