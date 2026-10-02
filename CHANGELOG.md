@@ -3,41 +3,35 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.5.0] - 2026-10-02
+
 ### Added
-- vibeMK can be hosted centrally: `--transport http` serves Streamable HTTP, so
-  clients no longer need Python and a checkout. Requires a bearer token
-  (`VIBEMK_HTTP_TOKEN`) and binds to localhost unless told otherwise
-- Tools now say what they do before they run: whether one only reads, whether
-  it can delete something, whether calling it twice differs from calling it
-  once. Clients use this to decide what needs a confirmation prompt
-- Host status, host lists and pending changes return machine-readable data
-  alongside the usual text
+- Host centrally: `--transport http` serves Streamable HTTP, so clients need
+  neither Python nor a checkout. Requires a bearer token (`VIBEMK_HTTP_TOKEN`)
+- Tools now say what they do before they run — read-only, writing or
+  destructive — so a client knows what to confirm
+- Notification rule management: list, show, create, update and delete
+- Service params, agent bakery, active checks, audit log, aux tags, event
+  console and site management
+- Host status, host lists and pending changes also return machine-readable data
 
 ### Changed
-- vibeMK now speaks MCP through the official SDK. The handshake negotiates a
-  current protocol revision instead of a fixed 2024-11-05, a failing tool
-  reports a failure the model can act on, and Streamable HTTP is available
-- Requires Python 3.10 or newer, and installs one dependency (the MCP SDK)
+- MCP is served through the official SDK: a current protocol revision is
+  negotiated, and a failing tool now reports a failure the model can act on
+- Requires Python 3.10 or newer, and one dependency (the MCP SDK)
+- A server URL without `http://` or `https://` now assumes HTTPS
+- Error messages include CheckMK's own explanation, not just the HTTP status
+- Discovery offers all seven modes CheckMK documents
 
 ### Fixed
 - Deleting one downtime no longer deletes others on the same host
-- Acknowledgement lists now show acknowledgements, not similar-looking comments
-- Bulk discovery no longer removes services unless you ask it to
+- Acknowledgement lists show acknowledgements, not similar-looking comments
+- Bulk discovery no longer removes services unless asked to
 - A failed write is no longer retried, so it cannot take effect twice
-
-### Changed
-- A server URL without `http://` or `https://` now assumes HTTPS
-- Error messages now include CheckMK's own explanation, not just the HTTP status
 - Concurrent edits are detected again: writes send the object's real ETag
-- Discovery offers all seven modes CheckMK documents, `tabula_rasa` included
-- Acknowledgements accept `sticky`, `notify` and `persistent`
-
-### Added
-- Service param tools, agent bakery, active checks, audit log, aux tags,
-  event console and site management
-- Notification rule management - list, show, create, update and delete
-- Acknowledgement tools are now reachable (they were built but never offered)
-- CheckMK 2.4 compatibility fixes for monitoring data and host listings
+- Acknowledgement tools are reachable (they were built but never offered)
+- CheckMK 2.4 and 2.5 compatibility for monitoring data and host listings
 
 ### Removed
 - Three tools whose CheckMK endpoints do not exist: `vibemk_reschedule_check`,
