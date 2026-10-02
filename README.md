@@ -117,6 +117,9 @@ by every edition including Raw.
 
 ## Security considerations
 
+- To let a model look without touching, start vibeMK read-only: `--read-only`
+  or `VIBEMK_READ_ONLY=1`. Only the tools that read are offered, and a call to
+  any other is refused before it reaches CheckMK
 - Be aware of the potential security risks when you unleash AI on your checkmk
 - Use at your own risk
 - I accept no responsibility for actions performed by an AI

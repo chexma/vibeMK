@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Read-only mode: `--read-only` or `VIBEMK_READ_ONLY=1` offers only the tools
+  that read and refuses every write
+
 ### Security
 - `vibemk_test_direct_url` only requests URLs under the configured CheckMK API
   and no longer follows redirects; it could send the CheckMK credentials to any

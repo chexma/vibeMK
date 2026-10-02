@@ -6,7 +6,7 @@ nothing about JSON-RPC or about transport -- the SDK owns both.
 """
 
 import asyncio
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import AbstractSet, Any, Callable, Dict, List, Optional, Sequence
 
 import mcp.types as types
 
@@ -64,8 +64,12 @@ def structured_of(content: Sequence[Dict[str, Any]]) -> Any:
 class Dispatcher:
     """Runs one tool call and shapes its result."""
 
-    def __init__(self, registry_provider: Callable[[], ToolRegistry]) -> None:
+    def __init__(
+        self, registry_provider: Callable[[], ToolRegistry], allowed_tools: Optional[AbstractSet[str]] = None
+    ) -> None:
         self._registry_provider = registry_provider
+        # None allows every tool. Read-only mode passes the read tools only.
+        self._allowed_tools = allowed_tools
 
     async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]]) -> types.CallToolResult:
         """Run a tool and return its result, failures included.
@@ -88,6 +92,17 @@ class Dispatcher:
         return await asyncio.to_thread(asyncio.run, self._call(name, arguments))
 
     async def _call(self, name: str, arguments: Optional[Dict[str, Any]]) -> types.CallToolResult:
+        # Before the registry: a refused write must not even open the
+        # CheckMK connection. A client holding a tool list from before the
+        # server was restarted read-only can still name a write tool.
+        if self._allowed_tools is not None and name not in self._allowed_tools:
+            logger.warning("Refused %s: the server runs read-only", name)
+            return self._failure(
+                f"❌ **{name} is not available**\n\n"
+                "This vibeMK server runs read-only: it only offers tools that read from CheckMK. "
+                "Ask the operator to restart it without --read-only (VIBEMK_READ_ONLY) to make changes."
+            )
+
         try:
             registry = self._registry_provider()
         except Exception as error:  # a misconfigured server still answers
