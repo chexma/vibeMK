@@ -154,7 +154,7 @@ class TimePeriodsHandler(BaseHandler):
             return self.error_response("No data to update", "At least one field must be provided")
 
         # Use ETag for optimistic locking
-        headers = {"If-Match": "*"}
+        headers = self._if_match_header(f"objects/time_period/{name}")
         result = self.client.put(f"objects/time_period/{name}", data=data, headers=headers)
 
         if result.get("success"):
@@ -184,7 +184,8 @@ class TimePeriodsHandler(BaseHandler):
         if not check_result.get("success"):
             return self.error_response("Time period not found", f"Time period '{name}' does not exist")
 
-        result = self.client.delete(f"objects/time_period/{name}")
+        headers = self._if_match_header(f"objects/time_period/{name}")
+        result = self.client.delete(f"objects/time_period/{name}", headers=headers)
 
         if result.get("success"):
             return [

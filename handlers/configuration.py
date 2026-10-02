@@ -74,44 +74,17 @@ class ConfigurationHandler(BaseHandler):
             "force_foreign_changes": force,
         }
 
-        # Use wildcard ETag to bypass precondition requirement
-        headers = {"If-Match": "*"}
+        # activate-changes is declared etag="input"; the ETag comes from the
+        # pending_changes response fetched above, which is etag="output".
+        # The wildcard was accepted but disabled the precondition check.
+        headers = {"If-Match": self._extract_etag(pending_result)}
 
-        # Make activation request with proper headers
         try:
-            # Custom request with headers
-            import json
-            import urllib.request
-
-            url = f"{self.client.api_base_url}/domain-types/activation_run/actions/activate-changes/invoke"
-
-            # Prepare request
-            req_data = json.dumps(data).encode("utf-8")
-            req = urllib.request.Request(url, data=req_data, method="POST")
-
-            # Add all necessary headers
-            for key, value in self.client.headers.items():
-                req.add_header(key, value)
-            req.add_header("If-Match", "*")  # Critical for activation!
-
-            # Execute request
-            with urllib.request.urlopen(
-                req, context=self.client._ssl_context, timeout=self.client.config.timeout
-            ) as response:
-                response_data = response.read().decode()
-                result = {
-                    "status": response.status,
-                    "data": json.loads(response_data) if response_data else {},
-                    "success": True,
-                }
-
-        except urllib.error.HTTPError as e:
-            error_data = e.read().decode()
-            return self.error_response(
-                f"Activation failed (HTTP {e.code})", f"Error: {e.reason}\n\nDetails: {error_data}"
+            result = self.client.post(
+                "domain-types/activation_run/actions/activate-changes/invoke", data=data, headers=headers
             )
-        except Exception as e:
-            return self.error_response("Activation failed", f"Network error: {str(e)}")
+        except CheckMKError as error:
+            return self.error_response("Activation failed", str(error))
 
         if result.get("success"):
             activation_id = result["data"].get("id", "unknown")

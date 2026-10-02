@@ -35,7 +35,7 @@ from api.exceptions import (
     CheckMKNotFoundError,
     CheckMKPermissionError,
 )
-from config import CheckMKConfig
+from config import CheckMKConfig, MCPConfig
 
 # Avoid conflict with built-in 'types' module - comment out for now
 # from checkmk_types.checkmk_types import CheckMKAPIResponse
@@ -86,7 +86,7 @@ class CheckMKClient:
             "Authorization": f"Basic {encoded_credentials}",
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": f"vibeMK/{self.config.__class__.__module__}",
+            "User-Agent": f"vibeMK/{MCPConfig().version}",
         }
 
     def _create_ssl_context(self) -> Optional[ssl.SSLContext]:
@@ -334,9 +334,14 @@ class CheckMKClient:
         """GET request with optional non-API endpoints"""
         return self.request(endpoint, "GET", params=params, use_api_prefix=use_api_prefix)
 
-    def post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """POST request"""
-        return self.request(endpoint, "POST", data=data)
+    def post(
+        self,
+        endpoint: str,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """POST request with optional custom headers"""
+        return self.request(endpoint, "POST", data=data, custom_headers=headers)
 
     def put(
         self, endpoint: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None
@@ -344,9 +349,14 @@ class CheckMKClient:
         """PUT request with optional custom headers"""
         return self.request(endpoint, "PUT", data=data, custom_headers=headers)
 
-    def delete(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """DELETE request with optional parameters"""
-        return self.request(endpoint, "DELETE", params=params)
+    def delete(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """DELETE request with optional parameters and custom headers"""
+        return self.request(endpoint, "DELETE", params=params, custom_headers=headers)
 
     def patch(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """PATCH request"""

@@ -197,7 +197,8 @@ class FolderHandler(BaseHandler):
         if not data:
             return self.error_response("Missing parameters", "At least one of 'title' or 'attributes' is required")
 
-        result = self.client.put(f"objects/folder_config/{encoded_folder}", data=data)
+        headers = self._if_match_header(f"objects/folder_config/{encoded_folder}")
+        result = self.client.put(f"objects/folder_config/{encoded_folder}", data=data, headers=headers)
 
         if result.get("success"):
             return [
