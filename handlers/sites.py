@@ -33,11 +33,11 @@ class SitesHandler(BaseHandler):
     async def _get_sites(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         result = self.client.get("domain-types/site_connection/collections/all")
         if not result.get("success"):
-            return self.error_response("Sites konnten nicht abgerufen werden")
+            return self.error_response("Could not retrieve sites")
 
         sites = result["data"].get("value", [])
         if not sites:
-            return [{"type": "text", "text": "🌐 Keine Sites gefunden."}]
+            return [{"type": "text", "text": "🌐 No sites found."}]
 
         lines = [f"🌐 **Monitoring Sites ({len(sites)})**\n"]
         for site in sites:
@@ -72,8 +72,8 @@ class SitesHandler(BaseHandler):
             {"username": username, "password": password},
         )
         if result.get("success"):
-            return [{"type": "text", "text": f"✅ Login auf Site '{site_id}' erfolgreich."}]
-        return self.error_response("Login fehlgeschlagen", str(result.get("data", {})))
+            return [{"type": "text", "text": f"✅ Logged in to site '{site_id}'."}]
+        return self.error_response("Login failed", str(result.get("data", {})))
 
     async def _logout_site(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         site_id = arguments.get("site_id", "")
@@ -82,5 +82,5 @@ class SitesHandler(BaseHandler):
 
         result = self.client.post(f"objects/site_connection/{site_id}/actions/logout/invoke", {})
         if result.get("success"):
-            return [{"type": "text", "text": f"✅ Logout von Site '{site_id}' erfolgreich."}]
-        return self.error_response("Logout fehlgeschlagen", str(result.get("data", {})))
+            return [{"type": "text", "text": f"✅ Logged out of site '{site_id}'."}]
+        return self.error_response("Logout failed", str(result.get("data", {})))

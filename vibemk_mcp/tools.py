@@ -389,10 +389,7 @@ def get_configuration_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_activate_changes",
             "description": (
-                "🔄 Activate changes - Deploy pending configuration changes. "
-                "INTERN: vibemk holt den ETag automatisch von pending_changes vor der Aktivierung — "
-                "manuelles ETag-Management ist nicht nötig. "
-                "Nach Aktivierung warten bis der nächste Check-Zyklus läuft bevor Ergebnisse sichtbar sind."
+                "🔄 Activate changes - Deploy pending configuration changes. INTERNAL: vibeMK reads the ETag from pending_changes itself, so there is no manual ETag handling to do. After activating, wait for the next check cycle before results become visible."
             ),
             "inputSchema": {
                 "type": "object",
@@ -818,23 +815,22 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_ruleset",
             "description": (
-                "📋 Regeln eines Rulesets auflisten — mit optionalem Hostname-Filter. "
-                "Zeigt Rule-IDs für vibemk_delete_rule."
+                "📋 List the rules of a ruleset, optionally filtered by host name. Shows the rule IDs vibemk_delete_rule needs."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "ruleset_name": {
                         "type": "string",
-                        "description": "Ruleset-Name (z.B. 'active_checks:http', 'host_label_rules')",
+                        "description": "Ruleset name, e.g. 'active_checks:http' or 'host_label_rules'",
                     },
                     "hostname": {
                         "type": "string",
-                        "description": "Nur Regeln für diesen Host anzeigen (optional)",
+                        "description": "Show only rules for this host (optional)",
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Max. Anzahl Regeln (default: 50)",
+                        "description": "Maximum number of rules to return (default: 50)",
                     },
                 },
                 "required": ["ruleset_name"],
@@ -1840,37 +1836,36 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_http_check",
             "description": (
-                "🌐 HTTP/HTTPS-Check für einen Host anlegen (active_checks:http). "
-                "Unterstützt URL-Modus (Inhaltsprüfung, Auth, Timing) und Zertifikat-Modus."
+                "🌐 Create an HTTP/HTTPS check for a host (active_checks:http). Supports URL mode (content check, auth, timing) and certificate mode."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "Host für den die Regel gilt (CheckMK-Hostname)",
+                        "description": "Host the rule applies to (Checkmk host name)",
                     },
                     "name": {
                         "type": "string",
-                        "description": "Servicename im Monitoring (z.B. 'HTTP Main', 'API Health')",
+                        "description": "Service name in the monitoring, e.g. 'HTTP Main' or 'API Health'",
                     },
                     "uri": {
                         "type": "string",
-                        "description": "URL-Pfad oder vollständige URL (default: '/')",
+                        "description": "URL path, or a full URL (default: '/')",
                     },
-                    "port": {"type": "integer", "description": "HTTP-Port (default: 80 bzw. 443 bei SSL)"},
+                    "port": {"type": "integer", "description": "HTTP port (default: 80, or 443 with SSL)"},
                     "ssl": {"type": "boolean", "description": "HTTPS/SSL verwenden (default: false)"},
                     "virt_host": {
                         "type": "string",
-                        "description": "Virtual-Host-Header (wenn abweichend vom Hostname)",
+                        "description": "Virtual host header, when it differs from the host name",
                     },
                     "direct_address": {
                         "type": "string",
-                        "description": "Direkte IP/Hostname-Adresse statt Hostnamen (optional)",
+                        "description": "Address to contact instead of the host name (optional)",
                     },
                     "proxy_address": {
                         "type": "string",
-                        "description": "HTTP-Proxy Adresse (optional, z.B. 'proxy.intern')",
+                        "description": "HTTP proxy address (optional, e.g. 'proxy.internal')",
                     },
                     "proxy_port": {
                         "type": "integer",
@@ -1878,15 +1873,15 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "address_family": {
                         "type": "string",
-                        "description": "IP-Version: 'ipv4' oder 'ipv6' (optional)",
+                        "description": "IP version: 'ipv4' or 'ipv6' (optional)",
                     },
                     "expect_string": {
                         "type": "string",
-                        "description": "Fester String der im Response-Body enthalten sein muss (z.B. 'ok', 'healthy')",
+                        "description": "Literal string the response body must contain, e.g. 'ok' or 'healthy'",
                     },
                     "expect_regex": {
                         "type": "string",
-                        "description": 'Regulärer Ausdruck der im Response-Body matchen muss (z.B. \'"status":\\s*"ok"\')',
+                        "description": 'Regular expression the response body must match, e.g. \'"status":\\s*"ok"\'',
                     },
                     "expect_response": {
                         "type": "string",
@@ -1898,7 +1893,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "no_body": {
                         "type": "boolean",
-                        "description": "Nur Header laden, keinen Body abrufen (default: false)",
+                        "description": "Fetch headers only, not the body (default: false)",
                     },
                     "onredirect": {
                         "type": "string",
@@ -1906,44 +1901,47 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "timeout": {
                         "type": "integer",
-                        "description": "Timeout in Sekunden (optional)",
+                        "description": "Timeout in seconds (optional)",
                     },
                     "response_time_warn": {
                         "type": "number",
-                        "description": "Warn-Schwelle Antwortzeit in Sekunden (z.B. 2.0)",
+                        "description": "Response time WARN threshold in seconds, e.g. 2.0",
                     },
                     "response_time_crit": {
                         "type": "number",
-                        "description": "Krit-Schwelle Antwortzeit in Sekunden (z.B. 5.0)",
+                        "description": "Response time CRIT threshold in seconds, e.g. 5.0",
                     },
                     "extended_perfdata": {
                         "type": "boolean",
-                        "description": "Erweiterte Performance-Daten (Größe, Headersize) sammeln (default: false)",
+                        "description": "Collect extended performance data such as body and header size (default: false)",
                     },
                     "auth_user": {
                         "type": "string",
-                        "description": "HTTP-Basic-Auth Benutzername (optional)",
+                        "description": "HTTP basic auth user name (optional)",
                     },
                     "auth_password": {
                         "type": "string",
-                        "description": "HTTP-Basic-Auth Passwort (optional)",
+                        "description": "HTTP basic auth password (optional)",
                     },
                     "cert_mode": {
                         "type": "boolean",
-                        "description": "Zertifikat-Ablauf prüfen statt URL (default: false)",
+                        "description": "Check certificate expiry instead of the URL (default: false)",
                     },
                     "cert_days_warn": {
                         "type": "integer",
-                        "description": "Warn-Tage vor Zertifikat-Ablauf (default: 14, nur bei cert_mode)",
+                        "description": "WARN this many days before the certificate expires (default: 14, cert_mode only)",
                     },
                     "cert_days_crit": {
                         "type": "integer",
-                        "description": "Krit-Tage vor Zertifikat-Ablauf (default: 7, nur bei cert_mode)",
+                        "description": "CRIT this many days before the certificate expires (default: 7, cert_mode only)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)"},
+                    "folder": {
+                        "type": "string",
+                        "description": "Checkmk folder (optional, defaults to the host's own folder)",
+                    },
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -1952,55 +1950,54 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_tcp_check",
             "description": (
-                "🔌 TCP-Port-Check für einen Host anlegen. Prüft Erreichbarkeit, optionalen "
-                "Response-Inhalt und SSL-Zertifikat."
+                "🔌 Create a TCP port check for a host. Tests reachability, optionally the response content, and the SSL certificate."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
                     "port": {"type": "integer", "description": "TCP-Port (z.B. 8080)"},
-                    "name": {"type": "string", "description": "Optionaler Servicename"},
+                    "name": {"type": "string", "description": "Optional service name"},
                     "ssl": {
                         "type": "boolean",
                         "description": "SSL/TLS verwenden (default: false)",
                     },
                     "cert_days_warn": {
                         "type": "integer",
-                        "description": "Warn-Tage vor Zertifikat-Ablauf (nur bei ssl=true)",
+                        "description": "WARN this many days before the certificate expires (ssl=true only)",
                     },
                     "cert_days_crit": {
                         "type": "integer",
-                        "description": "Krit-Tage vor Zertifikat-Ablauf (nur bei ssl=true)",
+                        "description": "CRIT this many days before the certificate expires (ssl=true only)",
                     },
                     "expect": {
                         "type": "string",
-                        "description": "String der in der TCP-Antwort erwartet wird (z.B. 'SSH-2.0', 'Connection refused')",
+                        "description": "String expected in the TCP response, e.g. 'SSH-2.0' or 'Connection refused'",
                     },
                     "refuse_state": {
                         "type": "string",
-                        "description": "Status wenn Port nicht erreichbar: 'ok', 'warn', 'crit' (default: 'crit')",
+                        "description": "State when the port refuses the connection: 'ok', 'warn', 'crit' (default: 'crit')",
                     },
                     "mismatch_state": {
                         "type": "string",
-                        "description": "Status wenn expect-String nicht matcht: 'ok', 'warn', 'crit'",
+                        "description": "State when the expected string does not match: 'ok', 'warn', 'crit'",
                     },
                     "timeout": {
                         "type": "integer",
-                        "description": "Timeout in Sekunden (optional)",
+                        "description": "Timeout in seconds (optional)",
                     },
                     "response_time_warn": {
                         "type": "number",
-                        "description": "Warn-Schwelle Antwortzeit in Sekunden",
+                        "description": "Response time WARN threshold in seconds",
                     },
                     "response_time_crit": {
                         "type": "number",
-                        "description": "Krit-Schwelle Antwortzeit in Sekunden",
+                        "description": "Response time CRIT threshold in seconds",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname", "port"],
@@ -2009,18 +2006,18 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_icmp_check",
             "description": (
-                "🏓 ICMP/PING-Check für einen Host anlegen. Prüft Erreichbarkeit, Paketverlust und Round-Trip-Zeit."
+                "🏓 Create an ICMP/PING check for a host. Measures reachability, packet loss and round-trip time."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
-                    "name": {"type": "string", "description": "Servicename (default: 'PING')"},
-                    "packets": {"type": "integer", "description": "Anzahl Pakete (default: 5)"},
-                    "timeout": {"type": "number", "description": "Timeout in Sekunden (default: 20)"},
+                    "name": {"type": "string", "description": "Service name (default: 'PING')"},
+                    "packets": {"type": "integer", "description": "Number of packets (default: 5)"},
+                    "timeout": {"type": "number", "description": "Timeout in seconds (default: 20)"},
                     "explicit_address": {
                         "type": "string",
-                        "description": "Ziel-IP oder Hostname statt Hostnamen anpingen (optional)",
+                        "description": "Ping this address instead of the host name (optional)",
                     },
                     "rta_warn_ms": {
                         "type": "number",
@@ -2040,12 +2037,12 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "min_pings": {
                         "type": "integer",
-                        "description": "Minimale Anzahl empfangener Pings für gültiges Ergebnis (optional)",
+                        "description": "Minimum number of replies for the result to count (optional)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -2053,27 +2050,24 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_create_custom_check",
-            "description": (
-                "🔧 Custom Nagios-Plugin-Check für einen Host anlegen. "
-                "Bindet ein beliebiges Nagios-kompatibles Plugin ein."
-            ),
+            "description": ("🔧 Create a custom Nagios plugin check for a host. Runs any Nagios-compatible plugin."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
-                    "service_description": {"type": "string", "description": "Servicename im Monitoring"},
+                    "service_description": {"type": "string", "description": "Service name in the monitoring"},
                     "command_line": {
                         "type": "string",
-                        "description": "Plugin-Kommando (z.B. '$USER1$/check_smtp -H $HOSTNAME$ -t 5')",
+                        "description": "Plugin command line, e.g. '$USER1$/check_smtp -H $HOSTNAME$ -t 5'",
                     },
                     "command_name": {
                         "type": "string",
-                        "description": "Optionaler interner Name des Kommandos",
+                        "description": "Optional internal name for the command",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (default: '~')"},
+                    "folder": {"type": "string", "description": "Checkmk folder (default: '~')"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (wird im WATO angezeigt). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description, shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname", "service_description", "command_line"],
@@ -2082,41 +2076,40 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_dns_check",
             "description": (
-                "🔎 DNS-Check für einen Host anlegen. Prüft ob ein Hostname auflösbar ist "
-                "und ob die Antwortzeit im Limit liegt."
+                "🔎 Create a DNS check for a host. Tests whether a name resolves and whether the answer arrives in time."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "hostname": {"type": "string", "description": "Host für den die Regel gilt"},
+                    "hostname": {"type": "string", "description": "Host the rule applies to"},
                     "lookup_hostname": {
                         "type": "string",
-                        "description": "Hostname der aufgelöst werden soll (default: wie hostname)",
+                        "description": "Name to resolve (defaults to hostname)",
                     },
                     "dns_server": {
                         "type": "string",
-                        "description": "DNS-Server IP (optional, default: Systemstandard)",
+                        "description": "DNS server IP (optional, defaults to the system resolver)",
                     },
                     "expected_addresses": {
                         "type": "string",
-                        "description": "Erwartete IP-Adresse(n) — einzelne IP oder kommagetrennte Liste (optional)",
+                        "description": "Expected IP address or addresses, one or a comma-separated list (optional)",
                     },
                     "expect_all_addresses": {
                         "type": "boolean",
-                        "description": "Alle expected_addresses müssen zurückgeliefert werden (default: false)",
+                        "description": "Require every expected_addresses entry to be returned (default: false)",
                     },
                     "response_time_warn": {
                         "type": "number",
-                        "description": "Warn-Schwelle in Sekunden (default: 0.2)",
+                        "description": "WARN threshold in seconds (default: 0.2)",
                     },
                     "response_time_crit": {
                         "type": "number",
-                        "description": "Krit-Schwelle in Sekunden (default: 0.3)",
+                        "description": "CRIT threshold in seconds (default: 0.3)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -2125,33 +2118,33 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_smtp_check",
             "description": (
-                "📧 SMTP-Check für einen Host anlegen. Prüft SMTP-Dienst, optional STARTTLS und Zertifikat-Ablauf."
+                "📧 Create an SMTP check for a host. Tests the SMTP service, optionally STARTTLS and certificate expiry."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
-                    "name": {"type": "string", "description": "Servicename (default: 'SMTP')"},
+                    "name": {"type": "string", "description": "Service name (default: 'SMTP')"},
                     "starttls": {
                         "type": "boolean",
-                        "description": "STARTTLS verwenden und Zertifikat prüfen (default: false)",
+                        "description": "Use STARTTLS and check the certificate (default: false)",
                     },
                     "check_cert": {
                         "type": "boolean",
-                        "description": "Nur Zertifikat prüfen ohne STARTTLS (default: false)",
+                        "description": "Check the certificate only, without STARTTLS (default: false)",
                     },
                     "cert_days_warn": {
                         "type": "integer",
-                        "description": "Warn-Tage vor Zertifikat-Ablauf (default: 14, bei starttls oder check_cert)",
+                        "description": "WARN this many days before the certificate expires (default: 14, with starttls or check_cert)",
                     },
                     "cert_days_crit": {
                         "type": "integer",
                         "description": "Krit-Tage vor Zertifikat-Ablauf (default: 7)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -2159,25 +2152,25 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_create_ftp_check",
-            "description": "📁 FTP-Check für einen Host anlegen. Prüft ob ein FTP-Port erreichbar ist.",
+            "description": "📁 Create an FTP check for a host. Tests whether an FTP port is reachable.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
                     "port": {"type": "integer", "description": "FTP-Port (default: 21)"},
-                    "timeout": {"type": "integer", "description": "Timeout in Sekunden (optional)"},
+                    "timeout": {"type": "integer", "description": "Timeout in seconds (optional)"},
                     "passive": {
                         "type": "boolean",
-                        "description": "Passiver FTP-Modus (optional)",
+                        "description": "Passive FTP mode (optional)",
                     },
                     "refuse_state": {
                         "type": "string",
                         "description": "Status wenn Verbindung abgelehnt: 'crit', 'warn', 'ok' (default: 'crit')",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -2185,25 +2178,25 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_create_ldap_check",
-            "description": ("🗂️ LDAP-Check für einen Host anlegen. Prüft LDAP-Dienst und Antwortzeit."),
+            "description": ("🗂️ Create an LDAP check for a host. Tests the LDAP service and its response time."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
-                    "name": {"type": "string", "description": "Servicename (default: 'LDAP')"},
+                    "name": {"type": "string", "description": "Service name (default: 'LDAP')"},
                     "base_dn": {
                         "type": "string",
                         "description": "LDAP Base-DN (z.B. 'DC=example,DC=com')",
                     },
                     "bind_dn": {
                         "type": "string",
-                        "description": "Bind-DN für Authentifizierung (optional)",
+                        "description": "Bind DN for authentication (optional)",
                     },
-                    "password": {"type": "string", "description": "LDAP-Passwort (optional)"},
-                    "port": {"type": "integer", "description": "LDAP-Port (optional, default: 389)"},
+                    "password": {"type": "string", "description": "LDAP password (optional)"},
+                    "port": {"type": "integer", "description": "LDAP port (optional, default: 389)"},
                     "attribute": {
                         "type": "string",
-                        "description": "LDAP-Attribut oder Filter-String (optional, z.B. '(objectclass=*)')",
+                        "description": "LDAP attribute or filter string (optional, e.g. '(objectclass=*)')",
                     },
                     "response_time_warn_ms": {
                         "type": "number",
@@ -2213,10 +2206,10 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                         "type": "number",
                         "description": "Krit-Schwelle in Millisekunden (default: 800)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname", "base_dn"],
@@ -2225,8 +2218,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_smb_check",
             "description": (
-                "🖥️ SMB/CIFS-Share-Check für einen Host anlegen. Prüft Verfügbarkeit und "
-                "Füllstand eines Windows-Netzlaufwerks."
+                "🖥️ Create an SMB/CIFS share check for a host. Tests availability and used space of a Windows network share."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2234,27 +2226,27 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     "hostname": {"type": "string", "description": "Hostname"},
                     "share": {
                         "type": "string",
-                        "description": "Share-Name ohne Backslashes (z.B. 'public')",
+                        "description": "Share name without backslashes, e.g. 'public'",
                     },
                     "smb_host": {
                         "type": "string",
-                        "description": "SMB-Host-IP/-Name (default: 'use_parent_host')",
+                        "description": "SMB host IP or name (default: 'use_parent_host')",
                     },
                     "warn_percent": {
                         "type": "number",
-                        "description": "Füllstand Warn-Prozent (default: 85)",
+                        "description": "Used space WARN threshold in percent (default: 85)",
                     },
                     "crit_percent": {
                         "type": "number",
-                        "description": "Füllstand Krit-Prozent (default: 95)",
+                        "description": "Used space CRIT threshold in percent (default: 95)",
                     },
-                    "username": {"type": "string", "description": "SMB-Benutzername (optional)"},
-                    "password": {"type": "string", "description": "SMB-Passwort (optional)"},
-                    "workgroup": {"type": "string", "description": "Workgroup/Domäne (optional)"},
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "username": {"type": "string", "description": "SMB user name (optional)"},
+                    "password": {"type": "string", "description": "SMB password (optional)"},
+                    "workgroup": {"type": "string", "description": "Workgroup or domain (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname", "share"],
@@ -2263,8 +2255,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_mkevents_check",
             "description": (
-                "📋 Event-Console-Check für einen Host anlegen. Prüft ob offene Events "
-                "in der CheckMK Event Console für den Host existieren."
+                "📋 Create an Event Console check for a host. Reports whether the Checkmk Event Console holds open events for it."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2280,12 +2271,12 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "remote_ec_host": {
                         "type": "string",
-                        "description": "IP/Host einer externen Event Console (optional)",
+                        "description": "IP or host of an external Event Console (optional)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -2294,8 +2285,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_inventory_check",
             "description": (
-                "🔬 HW/SW-Inventory-Check für einen Host anlegen. Löst Hardware/Software-Inventarisierung "
-                "aus und meldet Änderungen seit letztem Scan."
+                "🔬 Create a HW/SW inventory check for a host. Triggers hardware and software inventory and reports changes since the last scan."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2303,28 +2293,28 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     "hostname": {"type": "string", "description": "Hostname"},
                     "sw_changes_state": {
                         "type": "integer",
-                        "description": "Status bei SW-Änderungen: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                        "description": "State on software changes: 0=OK, 1=WARN, 2=CRIT (default: 0)",
                     },
                     "sw_missing_state": {
                         "type": "integer",
-                        "description": "Status bei fehlender SW: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                        "description": "State when software data is missing: 0=OK, 1=WARN, 2=CRIT (default: 0)",
                     },
                     "hw_changes_state": {
                         "type": "integer",
-                        "description": "Status bei HW-Änderungen: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                        "description": "State on hardware changes: 0=OK, 1=WARN, 2=CRIT (default: 0)",
                     },
                     "fail_status": {
                         "type": "integer",
-                        "description": "Status bei Inventarisierungsfehler: 0=OK, 1=WARN, 2=CRIT (default: 0)",
+                        "description": "State when the inventory fails: 0=OK, 1=WARN, 2=CRIT (default: 0)",
                     },
                     "status_data_inventory": {
                         "type": "boolean",
                         "description": "Status-Data-Inventarisierung aktivieren (default: true)",
                     },
-                    "folder": {"type": "string", "description": "CheckMK-Ordner (optional)"},
+                    "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname"],
@@ -2332,20 +2322,17 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_list_active_checks",
-            "description": (
-                "🔍 Active-Check-Regeln auflisten. Zeigt alle Active-Check-Regeln, "
-                "optional gefiltert nach Host oder Check-Typ."
-            ),
+            "description": ("🔍 List active check rules, optionally filtered by host or check type."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "Nur Regeln für diesen Hostnamen anzeigen (optional)",
+                        "description": "Show only rules for this host name (optional)",
                     },
                     "check_type": {
                         "type": "string",
-                        "description": "Typ: 'http', 'tcp', 'icmp', 'dns', 'smtp', 'custom' (optional, alle wenn leer)",
+                        "description": "Type: 'http', 'tcp', 'icmp', 'dns', 'smtp', 'custom' (optional, all types when empty)",
                     },
                 },
             },
@@ -2353,27 +2340,26 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_delete_active_check",
             "description": (
-                "🗑️ Active-Check-Regel löschen. Entweder per rule_id (UUID) "
-                "oder per hostname + optionalem service_name (sucht und löscht passende Regeln)."
+                "🗑️ Delete an active check rule, either by rule_id (UUID) or by hostname plus an optional service_name, which finds and deletes the matching rules."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "rule_id": {
                         "type": "string",
-                        "description": "Rule-ID (UUID) — direkte Löschung",
+                        "description": "Rule ID (UUID) — deletes that rule directly",
                     },
                     "hostname": {
                         "type": "string",
-                        "description": "Hostname — sucht alle Active-Check-Regeln für diesen Host",
+                        "description": "Host name; finds every active check rule for this host",
                     },
                     "service_name": {
                         "type": "string",
-                        "description": "Optionaler Servicename-Filter (z.B. 'HTTP', 'HTTPS')",
+                        "description": "Optional service name filter, e.g. 'HTTP' or 'HTTPS'",
                     },
                     "check_type": {
                         "type": "string",
-                        "description": "Check-Typ-Filter: 'http', 'tcp', 'icmp', 'custom' (optional)",
+                        "description": "Check type filter: 'http', 'tcp', 'icmp', 'custom' (optional)",
                     },
                 },
             },
@@ -2387,8 +2373,7 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_events",
             "description": (
-                "🗃️ Event-Console-Events abrufen. Zeigt offene/quittierte EC-Events "
-                "mit optionalen Filtern nach Host, Status und Phase."
+                "🗃️ Retrieve Event Console events. Shows open and acknowledged events, optionally filtered by host, state and phase."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2401,7 +2386,7 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
                         "type": "string",
                         "description": "Status-Filter: 'ok', 'warning', 'critical', 'unknown'",
                     },
-                    "host": {"type": "string", "description": "Hostnamen-Filter"},
+                    "host": {"type": "string", "description": "Host name filter"},
                     "application": {"type": "string", "description": "Applikations-Filter"},
                     "site_id": {"type": "string", "description": "Site-ID (z.B. 'im', 'uel')"},
                 },
@@ -2414,14 +2399,14 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "event_id": {"type": "integer", "description": "Event-ID"},
-                    "comment": {"type": "string", "description": "Kommentar zur Quittierung"},
+                    "comment": {"type": "string", "description": "Comment recorded with the acknowledgement"},
                 },
                 "required": ["event_id"],
             },
         },
         {
             "name": "vibemk_change_event_state",
-            "description": "🔄 Status eines EC-Events ändern.",
+            "description": "🔄 Change the state of an Event Console event.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2436,17 +2421,19 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_delete_events",
-            "description": ("🗑️ EC-Events löschen. Entweder per ID-Liste oder alle Events einer Phase/eines Hosts."),
+            "description": (
+                "🗑️ Delete Event Console events, either by a list of IDs or every event of one phase or host."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "event_ids": {
                         "type": "array",
                         "items": {"type": "integer"},
-                        "description": "Liste von Event-IDs (wenn leer: nach phase/host filtern)",
+                        "description": "List of event IDs; when empty, phase and host are used as the filter",
                     },
                     "phase": {"type": "string", "description": "Phase-Filter: 'open', 'ack' (default: 'open')"},
-                    "host": {"type": "string", "description": "Nur Events dieses Hosts löschen"},
+                    "host": {"type": "string", "description": "Delete only the events of this host"},
                 },
             },
         },
@@ -2458,12 +2445,12 @@ def get_aux_tag_tools() -> List[Dict[str, Any]]:
     return [
         {
             "name": "vibemk_get_aux_tags",
-            "description": "🏷️ Aux-Tags auflisten. Zeigt alle konfigurierten Auxiliary Tags.",
+            "description": "🏷️ List every configured auxiliary tag.",
             "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_create_aux_tag",
-            "description": "🏷️ Neuen Aux-Tag anlegen.",
+            "description": "🏷️ Create a new auxiliary tag.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2491,7 +2478,7 @@ def get_aux_tag_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_delete_aux_tag",
-            "description": "🗑️ Aux-Tag löschen.",
+            "description": "🗑️ Delete an auxiliary tag.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2509,8 +2496,7 @@ def get_audit_log_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_get_audit_log",
             "description": (
-                "📋 Audit-Log abrufen. Zeigt CheckMK-Konfigurationsänderungen "
-                "(Hosts anlegen/löschen, Regeln ändern, Aktivierungen, etc.)"
+                "📋 Retrieve the audit log: Checkmk configuration changes such as hosts created or deleted, rules changed, and activations."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2525,16 +2511,16 @@ def get_audit_log_tools() -> List[Dict[str, Any]]:
                     },
                     "object_id": {
                         "type": "string",
-                        "description": "Objektname-Filter (z.B. Hostname)",
+                        "description": "Object name filter, e.g. a host name",
                     },
-                    "user_id": {"type": "string", "description": "Benutzer-Filter"},
+                    "user_id": {"type": "string", "description": "User filter"},
                     "regexp": {
                         "type": "string",
-                        "description": "Regex-Filter auf user_id, action und summary",
+                        "description": "Regular expression filtered against user_id, action and summary",
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Maximale Anzahl Einträge (default: 50)",
+                        "description": "Maximum number of entries (default: 50)",
                     },
                 },
             },
@@ -2547,28 +2533,25 @@ def get_site_tools() -> List[Dict[str, Any]]:
     return [
         {
             "name": "vibemk_get_sites",
-            "description": (
-                "🌐 Monitoring-Sites auflisten. Zeigt alle konfigurierten "
-                "CheckMK-Instanzen (Distributed Monitoring)."
-            ),
+            "description": ("🌐 List monitoring sites: every configured Checkmk instance in a distributed setup."),
             "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_login_site",
-            "description": "🔑 Auf einer Remote-Site einloggen (Distributed Monitoring).",
+            "description": "🔑 Log in to a remote site (distributed monitoring).",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "site_id": {"type": "string", "description": "Site-ID (z.B. 'uel', 'ham')"},
-                    "username": {"type": "string", "description": "Benutzername"},
-                    "password": {"type": "string", "description": "Passwort"},
+                    "username": {"type": "string", "description": "User name"},
+                    "password": {"type": "string", "description": "Password"},
                 },
                 "required": ["site_id", "username", "password"],
             },
         },
         {
             "name": "vibemk_logout_site",
-            "description": "🚪 Von einer Remote-Site ausloggen.",
+            "description": "🚪 Log out of a remote site.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2586,26 +2569,23 @@ def get_clone_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_clone_host",
             "description": (
-                "\U0001f501 Host klonen - Kopiert Ordner, Tags und Labels "
-                "von einem Quell-Host auf einen neuen Ziel-Host. "
-                "Optional kann eine neue IP-Adresse angegeben werden."
+                "🔁 Clone a host - copies the folder, tags and labels of a source host onto a new target host. A different IP address can optionally be given."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "source_hostname": {
                         "type": "string",
-                        "description": "Quell-Hostname (z.B. docker0160.ippen.media)",
+                        "description": "Source host name, e.g. 'web01.example.com'",
                     },
                     "target_hostname": {
                         "type": "string",
-                        "description": "Neuer Hostname (z.B. llamacpp03.ippen.media)",
+                        "description": "New host name, e.g. 'web02.example.com'",
                     },
                     "ip_address": {
                         "type": "string",
                         "description": (
-                            "Optionale IP-Adresse für den neuen Host. "
-                            "Wenn nicht angegeben wird die IP des Quell-Hosts kopiert."
+                            "Optional IP address for the new host. Without it, the source host's IP is copied."
                         ),
                     },
                 },
@@ -2695,8 +2675,7 @@ _WRITE_TOOLS = frozenset(
 _ACTIVATE_PROP: Dict[str, Any] = {
     "type": "boolean",
     "description": (
-        "Änderungen nach der Operation sofort aktivieren (default: false). "
-        "Frage den Benutzer vorher, ob er aktivieren möchte."
+        "Activate the changes immediately after the operation (default: false). Ask the user first whether they want that."
     ),
 }
 
@@ -2707,93 +2686,86 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_set_process_thresholds",
             "description": (
-                "⚙️ Prozess-Monitoring mit Schwellwerten für einen Host anlegen (inventory_processes_rules). "
-                "Erstellt eine Regel die definiert welche Prozesse überwacht werden und bei wie vielen "
-                "Instanzen WARN/CRIT ausgelöst wird. Führt danach automatisch Service Discovery aus "
-                "damit die Schwellwerte sofort aktiv werden. "
-                "Beispiel: 'Process wnscli.exe' auf Host X soll bei >=10 warnen und bei >=12 kritisch werden."
+                "⚙️ Create process monitoring with thresholds for a host (inventory_processes_rules). The rule defines which processes are watched and how many instances trigger WARN and CRIT. A service discovery runs afterwards so the thresholds take effect immediately. Example: 'Process wnscli.exe' on host X should warn at >=10 instances and go critical at >=12."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "CheckMK-Hostname für den die Regel gilt",
+                        "description": "Checkmk host name the rule applies to",
                     },
                     "process_name": {
                         "type": "string",
                         "description": (
-                            "Prozessname (z.B. 'wnscli.exe', 'nginx', 'java'). "
-                            "Wird automatisch als Prozess-Match und Service-Name verwendet. "
-                            "Prefix 'Process ' wird automatisch entfernt falls angegeben."
+                            "Process name, e.g. 'wnscli.exe', 'nginx' or 'java'. Used both as the process match and as the service name. A leading 'Process ' is stripped if present."
                         ),
                     },
                     "warn_max": {
                         "type": "integer",
-                        "description": "WARNING wenn mehr als diese Anzahl Prozesse laufen (z.B. 10)",
+                        "description": "WARNING when more than this many processes run (e.g. 10)",
                     },
                     "crit_max": {
                         "type": "integer",
-                        "description": "CRITICAL wenn mehr als diese Anzahl Prozesse laufen (z.B. 12)",
+                        "description": "CRITICAL when more than this many processes run (e.g. 12)",
                     },
                     "warn_min": {
                         "type": "integer",
-                        "description": "WARNING wenn weniger als diese Anzahl Prozesse laufen (default: 1)",
+                        "description": "WARNING when fewer than this many processes run (default: 1)",
                     },
                     "crit_min": {
                         "type": "integer",
-                        "description": "CRITICAL wenn weniger als diese Anzahl Prozesse laufen (default: 1)",
+                        "description": "CRITICAL when fewer than this many processes run (default: 1)",
                     },
                     "cpu_warn_percent": {
                         "type": "number",
-                        "description": "CPU-Auslastung gesamt Warn-Schwelle in Prozent (optional, z.B. 80)",
+                        "description": "Total CPU usage WARN threshold in percent (optional, e.g. 80)",
                     },
                     "cpu_crit_percent": {
                         "type": "number",
-                        "description": "CPU-Auslastung gesamt Krit-Schwelle in Prozent (optional, z.B. 95)",
+                        "description": "Total CPU usage CRIT threshold in percent (optional, e.g. 95)",
                     },
                     "single_cpu_warn_percent": {
                         "type": "number",
-                        "description": "CPU-Auslastung pro einzelnem Prozess Warn-Schwelle in % (optional)",
+                        "description": "Per-process CPU usage WARN threshold in percent (optional)",
                     },
                     "single_cpu_crit_percent": {
                         "type": "number",
-                        "description": "CPU-Auslastung pro einzelnem Prozess Krit-Schwelle in % (optional)",
+                        "description": "Per-process CPU usage CRIT threshold in percent (optional)",
                     },
                     "cpu_average_min": {
                         "type": "integer",
-                        "description": "CPU-Mittelwert über N Minuten berechnen statt Momentwert (optional, z.B. 15)",
+                        "description": "Average CPU over N minutes instead of using the instantaneous value (optional, e.g. 15)",
                     },
                     "mem_warn_mb": {
                         "type": "integer",
-                        "description": "Warn-Schwelle für virtuellen Speicher in MB (optional)",
+                        "description": "Virtual memory WARN threshold in MB (optional)",
                     },
                     "mem_crit_mb": {
                         "type": "integer",
-                        "description": "Krit-Schwelle für virtuellen Speicher in MB (optional)",
+                        "description": "Virtual memory CRIT threshold in MB (optional)",
                     },
                     "resident_warn_mb": {
                         "type": "integer",
-                        "description": "Warn-Schwelle für Resident-Speicher (RSS) in MB (optional)",
+                        "description": "Resident memory (RSS) WARN threshold in MB (optional)",
                     },
                     "resident_crit_mb": {
                         "type": "integer",
-                        "description": "Krit-Schwelle für Resident-Speicher (RSS) in MB (optional)",
+                        "description": "Resident memory (RSS) CRIT threshold in MB (optional)",
                     },
                     "run_discovery": {
                         "type": "boolean",
                         "description": (
-                            "Service Discovery nach dem Anlegen der Regel ausführen (default: true). "
-                            "Nur auf false setzen wenn mehrere Regeln auf einmal angelegt werden."
+                            "Run a service discovery after creating the rule (default: true). Set it to false only when creating several rules at once."
                         ),
                     },
                     "folder": {
                         "type": "string",
-                        "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)",
+                        "description": "Checkmk folder (optional, defaults to the host's own folder)",
                     },
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel (WATO). Die KI soll einen passenden Namen wählen.",
+                        "description": "Rule description shown in WATO. Pick one that says what the rule is for.",
                     },
                 },
                 "required": ["hostname", "process_name", "warn_max", "crit_max"],
@@ -2802,25 +2774,19 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_set_interface_params",
             "description": (
-                "🌐 Interface-Parameter für einen CheckMK-Host überschreiben (checkgroup_parameters:interfaces). "
-                "Typisch: erwartete Geschwindigkeit setzen um 'expected speed' WARN zu beheben. "
-                "Beispiel: Interface vmbr1 meldet WARN weil erwartet 10 GBit/s, real 1 GBit/s — "
-                "expected_speed_mbit=1000 setzt die erwartete Geschwindigkeit auf 1 GBit/s. "
-                "REGELREIHENFOLGE: Neue Regel wird im Host-Ordner angelegt (nicht Root!) damit Subfolder-Priorität korrekt ist. "
-                "Nur activate_changes nötig, keine Service Discovery."
+                "🌐 Override interface parameters for a Checkmk host (checkgroup_parameters:interfaces). Typically used to set the expected speed and clear an 'expected speed' WARN. Example: interface vmbr1 warns because 10 Gbit/s is expected and 1 Gbit/s is real; expected_speed_mbit=1000 sets the expectation to 1 Gbit/s. RULE ORDER: the new rule is created in the host's own folder, not in root, so that subfolder precedence applies. Only activate_changes is needed, no service discovery."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "CheckMK-Hostname (z.B. vpp0143.ippen.media)",
+                        "description": "Checkmk host name, e.g. 'web01.example.com'",
                     },
                     "interface_name": {
                         "type": "string",
                         "description": (
-                            "Interface-Name (z.B. 'vmbr1', 'eth0', 'bond0'). "
-                            "Prefix 'Interface ' wird automatisch entfernt falls angegeben."
+                            "Interface name, e.g. 'vmbr1', 'eth0' or 'bond0'. A leading 'Interface ' is stripped if present."
                         ),
                     },
                     "expected_speed_mbit": {
@@ -2832,11 +2798,11 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
                     },
                     "folder": {
                         "type": "string",
-                        "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)",
+                        "description": "Checkmk folder (optional, defaults to the host's own folder)",
                     },
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel in WATO (optional)",
+                        "description": "Rule description shown in WATO (optional)",
                     },
                 },
                 "required": ["hostname", "interface_name", "expected_speed_mbit"],
@@ -2845,25 +2811,18 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_set_memory_thresholds",
             "description": (
-                "💾 Memory-Schwellwerte für einen Host setzen (checkgroup_parameters:memory_linux). "
-                "Legt eine neue Regel für RAM- und/oder Swap-Auslastung an. "
-                "WICHTIG Memory-Keys: RAM = levels_virtual (nicht 'levels'!), Swap = levels_swap, "
-                "physischer RAM = levels_ram, Committed = levels_committed. "
-                "REGELREIHENFOLGE: Neue Regel wird im Ordner des Hosts angelegt (nicht Root) — "
-                "prüfe mit vibemk_get_ruleset ob bereits eine Regel für diesen Host existiert "
-                "und aktualisiere diese ggf. mit vibemk_update_rule statt eine neue anzulegen. "
-                "Nur activate_changes nötig."
+                "💾 Set memory thresholds for a host (checkgroup_parameters:memory_linux), creating a rule for RAM and/or swap usage. IMPORTANT, the memory keys are: RAM = levels_virtual (not 'levels'), swap = levels_swap, physical RAM = levels_ram, committed = levels_committed. RULE ORDER: the new rule is created in the host's own folder, not in root. Check with vibemk_get_ruleset whether a rule for this host already exists and update it with vibemk_update_rule rather than adding a second one. Only activate_changes is needed."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "CheckMK-Hostname (z.B. aim013.ippen.media)",
+                        "description": "Checkmk host name, e.g. 'web01.example.com'",
                     },
                     "ram_warn_percent": {
                         "type": "number",
-                        "description": "Total virtual memory WARN in % (levels_virtual, z.B. 90). Optional.",
+                        "description": "Total virtual memory WARN in percent (levels_virtual, e.g. 90). Optional.",
                     },
                     "ram_crit_percent": {
                         "type": "number",
@@ -2871,7 +2830,7 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
                     },
                     "swap_warn_percent": {
                         "type": "number",
-                        "description": "Swap-Auslastung WARN-Schwelle in % (z.B. 30). Optional.",
+                        "description": "Swap usage WARN threshold in percent (e.g. 30). Optional.",
                     },
                     "swap_crit_percent": {
                         "type": "number",
@@ -2879,11 +2838,11 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
                     },
                     "folder": {
                         "type": "string",
-                        "description": "CheckMK-Ordner (optional, default: Ordner des Hosts)",
+                        "description": "Checkmk folder (optional, defaults to the host's own folder)",
                     },
                     "description": {
                         "type": "string",
-                        "description": "Beschreibung der Regel in WATO (optional)",
+                        "description": "Rule description shown in WATO (optional)",
                     },
                 },
                 "required": ["hostname"],
@@ -2892,19 +2851,18 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_list_process_rules",
             "description": (
-                "🔍 Prozess-Monitoring-Regeln auflisten (inventory_processes_rules). "
-                "Zeigt welche Prozesse auf welchen Hosts überwacht werden und mit welchen Schwellwerten."
+                "🔍 List process monitoring rules (inventory_processes_rules): which processes are monitored on which hosts, and at what thresholds."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "Nur Regeln für diesen Host anzeigen (optional)",
+                        "description": "Show only rules for this host (optional)",
                     },
                     "process_name": {
                         "type": "string",
-                        "description": "Nur Regeln für diesen Prozess anzeigen (optional)",
+                        "description": "Show only rules for this process (optional)",
                     },
                 },
             },
@@ -2912,15 +2870,14 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_delete_service_param_rule",
             "description": (
-                "🗑️ Service-Parameter-Regel löschen (z.B. Prozess-Schwellwert-Regel). "
-                "Benötigt die Rule-ID aus vibemk_list_process_rules."
+                "🗑️ Delete a service parameter rule, such as a process threshold rule. Needs the rule ID from vibemk_list_process_rules."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "rule_id": {
                         "type": "string",
-                        "description": "Rule-ID (aus vibemk_list_process_rules)",
+                        "description": "Rule ID, from vibemk_list_process_rules",
                     },
                 },
                 "required": ["rule_id"],

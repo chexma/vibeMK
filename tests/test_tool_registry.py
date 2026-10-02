@@ -322,3 +322,69 @@ class TestASchemaIsAlwaysHonoured:
             {"host_name": "web01", "state": "UNKNOWN", "state_code": -1, "is_hard_state": False},
             HOST_STATUS,
         )
+
+
+class TestTheCatalogueIsInEnglish:
+    """CLAUDE.md requires English for user-facing text.
+
+    The catalogue is where that matters most: unlike an error message, which
+    a user sees only when something goes wrong, every description here is
+    read by every client and model that connects. Thirty-one of them were in
+    German, next to a hundred and thirty-two German field descriptions, so
+    one tool offered "🏓 ICMP/PING-Check für einen Host anlegen" and the next
+    "🖥️ List hosts".
+
+    An umlaut or an eszett is the cheap, near-certain signal: no English
+    string in this project has one, and no German sentence of any length
+    avoids them for long.
+    """
+
+    GERMAN_LETTERS = "äöüÄÖÜß"
+
+    def _offenders(self, text: str) -> str:
+        return "".join(sorted({c for c in text if c in self.GERMAN_LETTERS}))
+
+    def test_no_tool_description_is_german(self):
+        guilty = {
+            tool["name"]: self._offenders(tool.get("description", ""))
+            for tool in get_all_tools()
+            if self._offenders(tool.get("description", ""))
+        }
+
+        assert guilty == {}, f"German in tool descriptions: {guilty}"
+
+    def test_no_tool_title_is_german(self):
+        guilty = [tool["name"] for tool in get_all_tools() if self._offenders(tool.get("title", ""))]
+
+        assert guilty == [], f"German in tool titles: {guilty}"
+
+    def test_no_input_schema_field_is_german(self):
+        """The field descriptions are what a model reads to fill in arguments."""
+        guilty = []
+        for tool in get_all_tools():
+            properties = tool.get("inputSchema", {}).get("properties") or {}
+            for field, spec in properties.items():
+                if isinstance(spec, dict) and self._offenders(str(spec.get("description", ""))):
+                    guilty.append(f"{tool['name']}.{field}")
+
+        assert guilty == [], f"German in input schema descriptions: {guilty}"
+
+    def test_no_description_names_a_real_host(self):
+        """Four descriptions used production host names as their examples.
+
+        They shipped in a public repository, in the catalogue every client
+        downloads. Examples belong in the reserved example.com space.
+        """
+        import re
+
+        real_host = re.compile(r"\b[a-z0-9-]+\.(?!example\.(com|org|net)\b)[a-z]{2,}\.[a-z]{2,}\b")
+        guilty = {}
+        for tool in get_all_tools():
+            texts = [tool.get("description", "")]
+            properties = tool.get("inputSchema", {}).get("properties") or {}
+            texts += [str(spec.get("description", "")) for spec in properties.values() if isinstance(spec, dict)]
+            found = {m.group(0) for text in texts for m in real_host.finditer(text)}
+            if found:
+                guilty[tool["name"]] = sorted(found)
+
+        assert guilty == {}, f"non-example host names in the catalogue: {guilty}"
