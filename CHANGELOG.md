@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2026-10-03
+
+### Added
+- Listed in the official MCP Registry as `io.github.chexma/vibemk`
+- Installation with `pipx`, `uv tool install` or `uvx` documented
+
+### Changed
+- The MCP SDK is held below 3.0 so an untested major version cannot break a fresh install
+
 ## [0.6.1] - 2026-10-03
 
 ### Added
