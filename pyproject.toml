@@ -24,7 +24,12 @@ classifiers = [
     "Topic :: System :: Networking :: Monitoring",
 ]
 keywords = ["checkmk", "monitoring", "mcp", "claude", "automation"]
-dependencies = ["mcp>=2.0.0"]
+dependencies = [
+    "mcp>=2.0.0",
+    # Imported directly to validate tool arguments; the SDK depends on it too,
+    # but a direct import should not rest on someone else's dependency list.
+    "jsonschema>=4.0.0",
+]
 requires-python = ">=3.10"
 
 [project.urls]
@@ -77,6 +82,9 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
     "coverage>=7.0.0",
+    # Without the stubs, ignore_missing_imports turns jsonschema into Any and
+    # strict mypy checks nothing about the argument validation.
+    "types-jsonschema",
     # tests/test_packaging.py builds the wheel to check what is in it. Without
     # this it importorskips, and the guards against shipping scratch files
     # report green without ever running -- which is how the defects they cover

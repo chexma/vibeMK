@@ -6,9 +6,10 @@ nothing about JSON-RPC or about transport -- the SDK owns both.
 """
 
 import asyncio
-from typing import AbstractSet, Any, Callable, Dict, List, Optional, Sequence
+from typing import AbstractSet, Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 import mcp.types as types
+from jsonschema import Draft202012Validator
 
 from utils import get_logger
 from vibemk_mcp.registry import ToolRegistry
@@ -65,11 +66,17 @@ class Dispatcher:
     """Runs one tool call and shapes its result."""
 
     def __init__(
-        self, registry_provider: Callable[[], ToolRegistry], allowed_tools: Optional[AbstractSet[str]] = None
+        self,
+        registry_provider: Callable[[], ToolRegistry],
+        allowed_tools: Optional[AbstractSet[str]] = None,
+        input_schemas: Optional[Mapping[str, Mapping[str, Any]]] = None,
     ) -> None:
         self._registry_provider = registry_provider
         # None allows every tool. Read-only mode passes the read tools only.
         self._allowed_tools = allowed_tools
+        # The SDK's low-level server leaves argument validation to us. Built
+        # once: compiling a validator per call would cost more than the check.
+        self._validators = {name: Draft202012Validator(schema) for name, schema in (input_schemas or {}).items()}
 
     async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]]) -> types.CallToolResult:
         """Run a tool and return its result, failures included.
@@ -103,6 +110,13 @@ class Dispatcher:
                 "Ask the operator to restart it without --read-only (VIBEMK_READ_ONLY) to make changes."
             )
 
+        problems = self._argument_problems(name, arguments or {})
+        if problems:
+            # A result, not a protocol error: the model can correct the
+            # arguments and call again, and every problem is listed so it
+            # can do so in one go.
+            return self._failure(f"❌ **Invalid arguments for {name}**\n\n" + "\n".join(f"- {p}" for p in problems))
+
         try:
             registry = self._registry_provider()
         except Exception as error:  # a misconfigured server still answers
@@ -126,6 +140,17 @@ class Dispatcher:
         if structured is not None:
             result.structured_content = structured
         return result
+
+    def _argument_problems(self, name: str, arguments: Dict[str, Any]) -> List[str]:
+        """What is wrong with the arguments, one line per problem; empty if nothing is."""
+        validator = self._validators.get(name)
+        if validator is None:
+            return []
+        problems = []
+        for error in sorted(validator.iter_errors(arguments), key=lambda e: list(map(str, e.absolute_path))):
+            location = ".".join(str(part) for part in error.absolute_path)
+            problems.append(f"{location}: {error.message}" if location else error.message)
+        return problems
 
     @staticmethod
     def _failure(text: str) -> types.CallToolResult:

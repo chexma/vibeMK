@@ -5,6 +5,9 @@
 # between a protocol error and a tool execution error.
 mcp>=2.0.0
 
+# Validates tool arguments against each tool's inputSchema.
+jsonschema>=4.0.0
+
 # Development dependencies (install with: pip install -e ".[dev]")
 # pytest>=7.0.0
 # pytest-asyncio>=0.21.0
