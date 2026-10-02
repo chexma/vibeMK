@@ -97,3 +97,45 @@ jobs:
           path: dist/
 
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+
+  registry:
+    # Lists the release in the official MCP Registry. The registry proves the
+    # PyPI package belongs to io.github.chexma by finding the mcp-name marker
+    # in the README that shipped with it, and proves this repository belongs to
+    # chexma through the same kind of OIDC token PyPI accepts.
+    name: publish to the MCP Registry
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      # Pinned like the actions are: a release downloaded by name alone runs
+      # whatever was uploaded under that name today.
+      PUBLISHER_VERSION: v1.8.1
+      PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum --check
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+
+      - name: Publish
+        # The registry checks the version against PyPI, whose JSON API can
+        # still answer from a cache that predates the upload a minute ago.
+        run: |
+          ./mcp-publisher login github-oidc
+          for attempt in 1 2 3 4 5; do
+            ./mcp-publisher publish && exit 0
+            echo "::warning::attempt $attempt failed; PyPI may not list the release yet"
+            sleep 30
+          done
+          exit 1

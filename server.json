@@ -1,0 +1,59 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.chexma/vibemk",
+  "title": "vibeMK",
+  "description": "Query and configure CheckMK monitoring: hosts, services, rules, downtimes, metrics",
+  "repository": {
+    "url": "https://github.com/chexma/vibeMK",
+    "source": "github"
+  },
+  "version": "0.6.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "vibemk",
+      "version": "0.6.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "CHECKMK_SERVER_URL",
+          "description": "CheckMK server URL, e.g. https://monitoring.example.com",
+          "isRequired": true
+        },
+        {
+          "name": "CHECKMK_SITE",
+          "description": "CheckMK site name, e.g. cmk",
+          "isRequired": true
+        },
+        {
+          "name": "CHECKMK_USERNAME",
+          "description": "CheckMK automation user",
+          "isRequired": true
+        },
+        {
+          "name": "CHECKMK_PASSWORD",
+          "description": "Automation secret of that user",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "CHECKMK_VERIFY_SSL",
+          "description": "Verify the server's TLS certificate",
+          "default": "true"
+        },
+        {
+          "name": "NEVER_ACTIVATE_CHANGES",
+          "description": "Never activate configuration changes in CheckMK",
+          "default": "false"
+        },
+        {
+          "name": "VIBEMK_READ_ONLY",
+          "description": "Offer only the tools that read and refuse every write",
+          "default": "false"
+        }
+      ]
+    }
+  ]
+}
