@@ -264,6 +264,36 @@ class DowntimeHandler(BaseHandler):
                 f"Could not get downtime list: {error_data.get('title', str(error_data))}",
             )
 
+    def _delete_downtime_by_id(self, downtime_id: Any) -> List[Dict[str, Any]]:
+        """Delete exactly the downtime with this id."""
+        result = self.client.post(
+            "domain-types/downtime/actions/delete/invoke",
+            data={
+                "delete_type": "by_id",
+                "downtime_id": str(downtime_id),
+                "site_id": self.client.config.site,
+            },
+        )
+
+        if result.get("success"):
+            return [
+                {
+                    "type": "text",
+                    "text": (
+                        f"✅ **Downtime Deleted**\n\n"
+                        f"**Downtime ID:** {downtime_id}\n"
+                        f"**Status:** Removed from monitoring schedule\n\n"
+                        f"💡 **Tip:** Use `vibemk_list_downtimes` to view remaining active downtimes"
+                    ),
+                }
+            ]
+
+        error_data = result.get("data", {})
+        return self.error_response(
+            "Failed to delete downtime",
+            f"Could not delete downtime {downtime_id}: {error_data.get('title', str(error_data))}",
+        )
+
     async def _delete_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Delete downtimes using query-based deletion (based on working CheckMK example)"""
         # Support both specific downtime_id deletion and bulk deletion by criteria
@@ -277,41 +307,15 @@ class DowntimeHandler(BaseHandler):
         if service_description and not service_descriptions:
             service_descriptions = [service_description]
 
-        # If downtime_id is provided, get the specific downtime details first
+        # An id identifies exactly one downtime, and CheckMK can delete it that
+        # way. Resolving the id into a host-and-comment query, as this used to
+        # do, turns "delete this downtime" into "delete everything that looks
+        # like it" -- and a downtime without a comment (which the API allows)
+        # matched every downtime on the host.
         if downtime_id:
-            self.logger.debug(f"Getting downtime details for ID: {downtime_id}")
+            return self._delete_downtime_by_id(downtime_id)
 
-            # Get all downtimes to find the specific one and extract required info
-            list_result = self.client.get("domain-types/downtime/collections/all")
-            if not list_result.get("success"):
-                return self.error_response("Failed to get downtime info", "Could not retrieve downtime details")
-
-            downtimes = list_result["data"].get("value", [])
-            target_downtime = None
-
-            for downtime in downtimes:
-                if str(downtime.get("id")) == str(downtime_id):
-                    target_downtime = downtime
-                    break
-
-            if not target_downtime:
-                return self.error_response("Downtime not found", f"No downtime found with ID {downtime_id}")
-
-            # Extract information from the specific downtime for query-based deletion
-            extensions = target_downtime.get("extensions", {})
-            host_name = extensions.get("host_name")
-            service_desc = extensions.get("service_description")
-            comment = comment or extensions.get("comment")  # Use existing comment if not provided
-            is_service_raw = extensions.get("is_service", 0)
-            is_service = is_service_raw == 1 or is_service_raw == "yes"
-
-            if is_service and service_desc:
-                service_descriptions = [service_desc]
-
-            if not host_name:
-                return self.error_response("Invalid downtime", "Could not determine host name for downtime")
-
-        elif not host_name:
+        if not host_name:
             return self.error_response("Missing parameter", "host_name or downtime_id is required")
 
         # Check existing downtimes before deletion (based on working example)
