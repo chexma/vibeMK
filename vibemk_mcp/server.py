@@ -28,11 +28,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from typing import Any, Optional
 
 import mcp.types as types
-from api import CheckMKClient
-from config import CheckMKConfig, MCPConfig
 from mcp.server.lowlevel import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
+
+from api import CheckMKClient
+from config import CheckMKConfig, MCPConfig
 from utils import get_logger
 from vibemk_mcp.dispatch import Dispatcher
 from vibemk_mcp.registry import ToolRegistry
