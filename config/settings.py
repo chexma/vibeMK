@@ -62,9 +62,11 @@ class CheckMKConfig:
         if not url:
             return url
 
-        # Add http:// if no protocol specified
+        # Assume TLS when no scheme is given: credentials travel in a Basic
+        # auth header, so defaulting to plain HTTP would put them on the wire
+        # in the clear. An explicit http:// is still honoured.
         if not url.startswith(("http://", "https://")):
-            url = f"http://{url}"
+            url = f"https://{url}"
 
         # Remove trailing slash for consistency
         if url.endswith("/") and len(url) > 1:

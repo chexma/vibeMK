@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+- Deleting one downtime no longer deletes others on the same host
+- Acknowledgement lists now show acknowledgements, not similar-looking comments
+- Bulk discovery no longer removes services unless you ask it to
+- A failed write is no longer retried, so it cannot take effect twice
+
+### Changed
+- A server URL without `http://` or `https://` now assumes HTTPS
+
+### Added
+- Service param tools, agent bakery, active checks, audit log, aux tags,
+  event console and site management (149 tools in total)
+- CheckMK 2.4 compatibility fixes for monitoring data and host listings
 
 ## [0.3.10] - 2025-08-23
 ### Added

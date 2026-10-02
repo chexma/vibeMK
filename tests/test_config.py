@@ -101,7 +101,8 @@ class TestCheckMKConfig:
             ("http://checkmk.local", "http://checkmk.local"),
             ("http://checkmk.local/", "http://checkmk.local"),
             ("https://checkmk.local:8080/", "https://checkmk.local:8080"),
-            ("checkmk.local", "http://checkmk.local"),  # Should add http
+            # A scheme-less host assumes TLS: credentials go in a Basic auth header
+            ("checkmk.local", "https://checkmk.local"),
         ]
 
         for input_url, expected_url in test_cases:
@@ -219,3 +220,19 @@ class TestConfigurationIntegration:
 
             assert "checkmk-container" in config.server_url
             assert config.verify_ssl is False
+
+
+class TestSchemeDefault:
+    """Credentials travel in a Basic auth header, so the default must be TLS."""
+
+    def _config(self, url: str) -> CheckMKConfig:
+        return CheckMKConfig(server_url=url, site="cmk", username="automation", password="secret")
+
+    def test_a_bare_host_defaults_to_https(self):
+        assert self._config("checkmk.example.com").server_url == "https://checkmk.example.com"
+
+    def test_an_explicit_http_url_is_respected(self):
+        assert self._config("http://localhost:8080").server_url == "http://localhost:8080"
+
+    def test_an_explicit_https_url_is_respected(self):
+        assert self._config("https://checkmk.example.com").server_url == "https://checkmk.example.com"
