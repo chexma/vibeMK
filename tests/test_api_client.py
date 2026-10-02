@@ -20,7 +20,7 @@ class TestCheckMKClient:
         client = CheckMKClient(mock_config, skip_url_detection=True)
 
         assert client.config == mock_config
-        assert client.api_base_url.startswith("http://test-checkmk.local:8080")
+        assert client.api_base_url == "http://test-checkmk.local:8080/cmk/check_mk/api/1.0"
         assert "Authorization" in client.headers
         assert client.headers["Content-Type"] == "application/json"
         assert client.headers["Accept"] == "application/json"
