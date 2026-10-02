@@ -1273,7 +1273,7 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_get_custom_graph",
-            "description": "📊 Get custom graph - Retrieve predefined custom graph data",
+            "description": "📊 Get custom graph - Retrieve predefined custom graph data Enterprise/Cloud only: a Raw site does not serve this endpoint and answers 404.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1290,7 +1290,7 @@ def get_metrics_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_search_metrics",
-            "description": "🔍 Search metrics - Filter and search performance data across hosts/services",
+            "description": "🔍 Search metrics - Filter and search performance data across hosts/services Enterprise/Cloud only: a Raw site does not serve this endpoint and answers 404.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -2937,12 +2937,12 @@ def get_agent_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_baking_status",
-            "description": "🍞 Baking status - Get current agent baking status",
+            "description": "🍞 Baking status - Get current agent baking status Enterprise/Cloud only: a Raw site does not serve this endpoint and answers 404.",
             "inputSchema": {"type": "object", "properties": {}},
         },
         {
             "name": "vibemk_download_agent_by_host",
-            "description": "📦 Download agent - Get download URL for the agent package of a specific host",
+            "description": "📦 Download agent - Get download URL for the agent package of a specific host Enterprise/Cloud only: a Raw site does not serve this endpoint and answers 404.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
