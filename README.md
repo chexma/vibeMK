@@ -2,6 +2,8 @@
 
 **CheckMK Monitoring via LLM - Professional MCP Server**
 
+<!-- mcp-name: io.github.chexma/vibemk -->
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CheckMK 2.3+](https://img.shields.io/badge/CheckMK-2.3+-green.svg)](https://checkmk.com/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)

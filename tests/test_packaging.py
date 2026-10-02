@@ -215,3 +215,35 @@ class TestTheDistributionMetadata:
             pytest.skip("package is not installed; nothing to compare the handshake against")
 
         assert MCPConfig().version == installed
+
+
+@pytest.fixture(scope="module")
+def server_json():
+    import json
+
+    return json.loads((PROJECT_ROOT / "server.json").read_text(encoding="utf-8"))
+
+
+class TestTheRegistryEntry:
+    """server.json is what the release publishes to the MCP Registry."""
+
+    def test_the_versions_match_the_package(self, server_json):
+        """The registry rejects an entry naming a PyPI version that does not exist.
+
+        A release that bumps version.py and forgets server.json would upload to
+        PyPI and then fail to register -- or register the previous version.
+        """
+        from vibemk.config.version import __version__
+
+        assert server_json["version"] == __version__
+        assert [package["version"] for package in server_json["packages"]] == [__version__]
+
+    def test_the_readme_carries_the_ownership_marker(self, server_json):
+        """The registry proves the PyPI package is ours by finding this in its README.
+
+        The README ships as the long description, so a marker that drifts from
+        server.json's name fails the publish only after PyPI already has the release.
+        """
+        readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+
+        assert f"mcp-name: {server_json['name']} " in readme
