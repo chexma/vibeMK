@@ -71,7 +71,7 @@ class DebugHandler(BaseHandler):
             except Exception as e:
                 results.append(f"💥 **{endpoint}**\\n   Exception: {str(e)}")
 
-        return [{"type": "text", "text": (f"🔍 **CheckMK API Endpoints Debug**\\n\\n" + "\\n\\n".join(results))}]
+        return [{"type": "text", "text": ("🔍 **CheckMK API Endpoints Debug**\\n\\n" + "\\n\\n".join(results))}]
 
     async def _test_all_host_endpoints(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Test all possible host-related endpoints for a specific host"""
@@ -81,8 +81,8 @@ class DebugHandler(BaseHandler):
         host_endpoints = [
             f"objects/host/{host_name}",
             f"objects/host_config/{host_name}",
-            f"domain-types/host/collections/all",
-            f"domain-types/host_config/collections/all",
+            "domain-types/host/collections/all",
+            "domain-types/host_config/collections/all",
             f"objects/host/{host_name}/actions/show_service/invoke",
         ]
 
@@ -208,7 +208,7 @@ class DebugHandler(BaseHandler):
                     response_data = result.get("data", {})
 
                     # Deep analysis of the response structure
-                    results.append(f"   ✅ Success!")
+                    results.append("   ✅ Success!")
                     results.append(f"   📋 Response type: {type(response_data)}")
 
                     if isinstance(response_data, dict):
@@ -256,11 +256,11 @@ class DebugHandler(BaseHandler):
                                             value = ext.get(field)
                                             results.append(f"      {field}: {value} ({type(value)})")
                                     else:
-                                        results.append(f"   ⚠️ No obvious state fields found")
+                                        results.append("   ⚠️ No obvious state fields found")
                                         # Show all extension data for analysis
                                         results.append(f"   🔍 All extensions: {str(ext)[:400]}...")
                                 else:
-                                    results.append(f"   ⚠️ No extensions found")
+                                    results.append("   ⚠️ No extensions found")
                             else:
                                 results.append(f"   ❌ Host {host_name} not found in response")
                                 if items:
@@ -271,7 +271,7 @@ class DebugHandler(BaseHandler):
 
                         elif response_data.get("id") == host_name:
                             # Direct host object
-                            results.append(f"   🎯 Direct host object found")
+                            results.append("   🎯 Direct host object found")
                             results.append(f"   🔑 Host keys: {list(response_data.keys())}")
 
                             if "extensions" in response_data:
@@ -323,7 +323,7 @@ class DebugHandler(BaseHandler):
 
                 if success:
                     response_data = result.get("data", {})
-                    results.append(f"   ✅ Success!")
+                    results.append("   ✅ Success!")
 
                     if isinstance(response_data, dict) and "value" in response_data:
                         services = response_data["value"]
@@ -357,7 +357,7 @@ class DebugHandler(BaseHandler):
             except Exception as e:
                 results.append(f"   💥 Exception: {str(e)}")
 
-        return [{"type": "text", "text": (f"🔬 **Service Data Structure Analysis**\\n" + "\\n".join(results))}]
+        return [{"type": "text", "text": ("🔬 **Service Data Structure Analysis**\\n" + "\\n".join(results))}]
 
     async def _debug_permissions(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Debug automation user permissions"""
@@ -378,7 +378,7 @@ class DebugHandler(BaseHandler):
                 success = result.get("success", False)
 
                 if success:
-                    results.append(f"   ✅ Access granted")
+                    results.append("   ✅ Access granted")
                 else:
                     error_data = result.get("data", {})
                     results.append(f"   ❌ Access denied: {error_data}")
@@ -420,9 +420,9 @@ class DebugHandler(BaseHandler):
                         word in str(error_data).lower()
                         for word in ["permission", "forbidden", "unauthorized", "access"]
                     ):
-                        results.append(f"   🚫 Likely permission issue detected")
+                        results.append("   🚫 Likely permission issue detected")
 
             except Exception as e:
                 results.append(f"   💥 Exception: {str(e)}")
 
-        return [{"type": "text", "text": (f"🔐 **Permissions Debug**\\n" + "\\n".join(results))}]
+        return [{"type": "text", "text": ("🔐 **Permissions Debug**\\n" + "\\n".join(results))}]

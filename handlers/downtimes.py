@@ -90,11 +90,11 @@ class DowntimeHandler(BaseHandler):
 
         if existing_downtimes and not force:
             self.logger.info(f"Host {host_name} already has downtime with comment '{comment}'")
-            response = f"⚠️ **Downtime Already Exists**\n\n"
+            response = "⚠️ **Downtime Already Exists**\n\n"
             response += f"**Host:** {host_name}\n"
             response += f"**Existing Comment:** {comment}\n"
-            response += f"**Status:** Not creating duplicate downtime\n\n"
-            response += f"💡 **Tip:** Use `force=true` parameter to create anyway, or use different comment"
+            response += "**Status:** Not creating duplicate downtime\n\n"
+            response += "💡 **Tip:** Use `force=true` parameter to create anyway, or use different comment"
             return [{"type": "text", "text": response}]
 
         # Build downtime request data with correct CheckMK format
@@ -121,7 +121,7 @@ class DowntimeHandler(BaseHandler):
             # Verify downtime creation with retry logic (based on working example)
             verified = await self._verify_downtime_creation(host_name, comment, max_retries=5)
 
-            response = f"✅ **Host Downtime Scheduled Successfully**\n\n"
+            response = "✅ **Host Downtime Scheduled Successfully**\n\n"
             response += f"**Host:** {host_name}\n"
             if downtime_id != "Unknown":
                 response += f"**Downtime ID:** {downtime_id}\n"
@@ -130,7 +130,7 @@ class DowntimeHandler(BaseHandler):
             response += f"**Duration:** {duration_minutes} minutes\n"
             response += f"**Comment:** {comment}\n"
             response += f"**Verification:** {'✅ Confirmed' if verified else '⚠️ Pending (may take a moment)'}\n"
-            response += f"\n💡 **Tip:** Use `vibemk_list_downtimes` to view all active downtimes"
+            response += "\n💡 **Tip:** Use `vibemk_list_downtimes` to view all active downtimes"
 
             return [{"type": "text", "text": response}]
         else:
@@ -184,12 +184,12 @@ class DowntimeHandler(BaseHandler):
         if not force:
             services_to_schedule = [s for s in service_descriptions if s not in existing_downtimes]
             if not services_to_schedule:
-                response = f"⚠️ **All Services Already Have Downtime**\n\n"
+                response = "⚠️ **All Services Already Have Downtime**\n\n"
                 response += f"**Host:** {host_name}\n"
                 response += f"**Services:** {', '.join(service_descriptions)}\n"
                 response += f"**Existing Comment:** {comment}\n"
-                response += f"**Status:** Not creating duplicate downtimes\n\n"
-                response += f"💡 **Tip:** Use `force=true` parameter to create anyway, or use different comment"
+                response += "**Status:** Not creating duplicate downtimes\n\n"
+                response += "💡 **Tip:** Use `force=true` parameter to create anyway, or use different comment"
                 return [{"type": "text", "text": response}]
         else:
             services_to_schedule = service_descriptions
@@ -221,7 +221,7 @@ class DowntimeHandler(BaseHandler):
                 host_name, comment, max_retries=5, services=services_to_schedule
             )
 
-            response = f"✅ **Service Downtime Scheduled Successfully**\n\n"
+            response = "✅ **Service Downtime Scheduled Successfully**\n\n"
             response += f"**Host:** {host_name}\n"
             response += f"**Services:** {', '.join(services_to_schedule)}\n"
             if downtime_id != "Unknown":
@@ -236,7 +236,7 @@ class DowntimeHandler(BaseHandler):
                 skipped = [s for s in service_descriptions if s not in services_to_schedule]
                 response += f"**Skipped (existing):** {', '.join(skipped)}\n"
 
-            response += f"\n💡 **Tip:** Use `vibemk_list_downtimes` to view all active downtimes"
+            response += "\n💡 **Tip:** Use `vibemk_list_downtimes` to view all active downtimes"
 
             return [{"type": "text", "text": response}]
         else:
@@ -389,15 +389,15 @@ class DowntimeHandler(BaseHandler):
             item = f"{host_name}/[{', '.join(service_descriptions)}]" if is_service else host_name
             downtime_type = "Service" if is_service else "Host"
 
-            response = f"✅ **Downtime Deleted Successfully**\n\n"
+            response = "✅ **Downtime Deleted Successfully**\n\n"
             if downtime_id:
                 response += f"**Downtime ID:** {downtime_id}\n"
             response += f"**Type:** {downtime_type} downtime\n"
             response += f"**Target:** {item}\n"
             if comment:
                 response += f"**Comment:** {comment}\n"
-            response += f"**Status:** Removed from monitoring schedule\n"
-            response += f"\n💡 **Tip:** Use `vibemk_list_downtimes` to view remaining active downtimes"
+            response += "**Status:** Removed from monitoring schedule\n"
+            response += "\n💡 **Tip:** Use `vibemk_list_downtimes` to view remaining active downtimes"
 
             return [{"type": "text", "text": response}]
         else:
@@ -450,7 +450,6 @@ class DowntimeHandler(BaseHandler):
         self, start_time: Optional[str], end_time: Optional[str], duration_minutes: int
     ) -> Dict[str, str]:
         """Parse and convert downtime start/end times to ISO format with enhanced natural language support"""
-        import re
         from datetime import datetime, timedelta
 
         # Use datetime.utcnow() to match CheckMK working example
@@ -783,7 +782,7 @@ class DowntimeHandler(BaseHandler):
 
                     response += f"  • Downtime #{downtime_id}: {start_time_only} - {end_time_only}\n"
                     response += f'    Comment: "{comment}"\n'
-                    response += f"    **Effect**: Host DOWN/UNREACHABLE + ALL service alerts suppressed\n\n"
+                    response += "    **Effect**: Host DOWN/UNREACHABLE + ALL service alerts suppressed\n\n"
 
         # Section 2: SERVICE DOWNTIMES (only suppress specific service alerts)
         if service_downtimes:
@@ -1056,13 +1055,13 @@ class DowntimeHandler(BaseHandler):
         if status["has_host_downtime"]:
             response += f"🏠 **Host Object Downtime:** ✅ **YES** - Host is covered by {status['host_downtime_count']} active host-level downtime(s)\n"
         else:
-            response += f"🏠 **Host Object Downtime:** ❌ **NO** - Host object has no active downtimes\n"
+            response += "🏠 **Host Object Downtime:** ❌ **NO** - Host object has no active downtimes\n"
 
         # Service-level downtime status
         if status["has_service_downtimes"]:
             response += f"🔧 **Service Downtimes:** ✅ **YES** - {status['service_downtime_count']} service(s) on this host have active downtimes\n"
         else:
-            response += f"🔧 **Service Downtimes:** ❌ **NO** - No services on this host have active downtimes\n"
+            response += "🔧 **Service Downtimes:** ❌ **NO** - No services on this host have active downtimes\n"
 
         response += "\n"
 

@@ -313,7 +313,7 @@ class UserHandler(BaseHandler):
 
         # Note: Contact group members are managed through user assignments, not directly
         if members is not None:
-            self.logger.debug(f"Note: Contact group members should be managed via user configurations")
+            self.logger.debug("Note: Contact group members should be managed via user configurations")
 
         if not data:
             return self.error_response("No data to update", "At least alias must be provided")

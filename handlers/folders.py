@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler
-from utils.folder_validator import FolderValidator, validate_folder_path
+from utils.folder_validator import validate_folder_path
 
 
 class FolderHandler(BaseHandler):

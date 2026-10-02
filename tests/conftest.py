@@ -2,8 +2,7 @@
 Pytest configuration and shared fixtures for vibeMK tests
 """
 
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

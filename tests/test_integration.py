@@ -6,7 +6,6 @@ Set INTEGRATION_TESTS=true and provide real CheckMK credentials to run.
 """
 
 import os
-from unittest.mock import patch
 
 import pytest
 

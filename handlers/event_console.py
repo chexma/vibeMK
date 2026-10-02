@@ -2,7 +2,7 @@
 Event Console handlers — read and manage CheckMK Event Console (EC) events.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler

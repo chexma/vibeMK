@@ -2,7 +2,6 @@
 CheckMK-specific type definitions for enhanced type safety
 """
 
-from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
 # State definitions

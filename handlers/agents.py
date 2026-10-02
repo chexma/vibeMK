@@ -47,7 +47,7 @@ class AgentHandler(BaseHandler):
             started = data.get("started", "")
             finished = data.get("finished", "")
             lines = [
-                f"🍞 **Agent Baking Status**\n",
+                "🍞 **Agent Baking Status**\n",
                 f"State: {state}",
             ]
             if started:

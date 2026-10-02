@@ -2,8 +2,7 @@
 Service groups management handlers for CheckMK integration
 """
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
 from handlers.base import BaseHandler
@@ -138,10 +137,10 @@ class ServiceGroupHandler(BaseHandler):
         group_data = result.get("data", {})
         extensions = group_data.get("extensions", {})
 
-        response_text = f"📋 **Service Group Details**\n\n"
+        response_text = "📋 **Service Group Details**\n\n"
         response_text += f"**Name:** {name}\n"
         response_text += f"**Alias:** {extensions.get('alias', 'No alias')}\n"
-        response_text += f"**Type:** Service Group Configuration\n\n"
+        response_text += "**Type:** Service Group Configuration\n\n"
 
         # Show links if available
         links = group_data.get("links", [])
@@ -152,7 +151,7 @@ class ServiceGroupHandler(BaseHandler):
                 if rel in ["update", "delete"]:
                     response_text += f"• {rel.title()}\n"
 
-        response_text += f"\n💡 Use 'update_service_group' or 'delete_service_group' to modify this group"
+        response_text += "\n💡 Use 'update_service_group' or 'delete_service_group' to modify this group"
 
         return [{"type": "text", "text": response_text}]
 
@@ -275,14 +274,14 @@ class ServiceGroupHandler(BaseHandler):
             created_count = len(entries)
             group_names = [entry["name"] for entry in entries]
 
-            response_text = f"✅ **Bulk Service Groups Created Successfully**\n\n"
+            response_text = "✅ **Bulk Service Groups Created Successfully**\n\n"
             response_text += f"**Created:** {created_count} service groups\n\n"
             response_text += "📋 **Created Groups:**\n"
 
             for entry in entries:
                 response_text += f"• {entry['name']} ({entry['alias']})\n"
 
-            response_text += f"\n⚠️ **Remember to activate changes!**"
+            response_text += "\n⚠️ **Remember to activate changes!**"
 
             return [{"type": "text", "text": response_text}]
         else:
@@ -317,7 +316,7 @@ class ServiceGroupHandler(BaseHandler):
         if result.get("success"):
             updated_count = len(entries)
 
-            response_text = f"✅ **Bulk Service Groups Updated Successfully**\n\n"
+            response_text = "✅ **Bulk Service Groups Updated Successfully**\n\n"
             response_text += f"**Updated:** {updated_count} service groups\n\n"
             response_text += "📋 **Updated Groups:**\n"
 
@@ -325,7 +324,7 @@ class ServiceGroupHandler(BaseHandler):
                 alias = entry["attributes"]["alias"]
                 response_text += f"• {entry['name']} → {alias}\n"
 
-            response_text += f"\n⚠️ **Remember to activate changes!**"
+            response_text += "\n⚠️ **Remember to activate changes!**"
 
             return [{"type": "text", "text": response_text}]
         else:
@@ -357,14 +356,14 @@ class ServiceGroupHandler(BaseHandler):
         if result.get("success"):
             deleted_count = len(entries)
 
-            response_text = f"✅ **Bulk Service Groups Deleted Successfully**\n\n"
+            response_text = "✅ **Bulk Service Groups Deleted Successfully**\n\n"
             response_text += f"**Deleted:** {deleted_count} service groups\n\n"
             response_text += "📋 **Deleted Groups:**\n"
 
             for entry in entries:
                 response_text += f"• {entry}\n"
 
-            response_text += f"\n⚠️ **Remember to activate changes!**"
+            response_text += "\n⚠️ **Remember to activate changes!**"
 
             return [{"type": "text", "text": response_text}]
         else:

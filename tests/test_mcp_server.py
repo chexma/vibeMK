@@ -10,7 +10,6 @@ can act on, and what reaches the log.
 import asyncio
 import logging
 from typing import Any, Dict, List
-from unittest.mock import MagicMock
 
 import pytest
 
