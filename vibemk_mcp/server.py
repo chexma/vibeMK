@@ -31,11 +31,13 @@ import mcp.types as types
 from mcp.server.lowlevel import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
+from mcp.server.transport_security import TransportSecuritySettings
 
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
 from utils import get_logger
 from vibemk_mcp.dispatch import Dispatcher
+from vibemk_mcp.http_auth import BearerTokenMiddleware, read_token
 from vibemk_mcp.registry import ToolRegistry
 from vibemk_mcp.tools import get_all_tools
 
@@ -49,7 +51,9 @@ class CheckMKMCPServer:
         self.mcp_config = MCPConfig()
         self._registry: Optional[ToolRegistry] = None
         self._dispatcher = Dispatcher(self._registry_provider)
-        self._server = Server(self.mcp_config.server_name)
+        # The version belongs on the Server itself, not only in the stdio
+        # InitializationOptions: the HTTP transport reads it from here.
+        self._server = Server(self.mcp_config.server_name, version=self.mcp_config.server_version)
         self._register_handlers()
 
     def _registry_provider(self) -> ToolRegistry:
@@ -73,6 +77,43 @@ class CheckMKMCPServer:
 
         self._server.add_request_handler("tools/list", types.PaginatedRequestParams, list_tools)
         self._server.add_request_handler("tools/call", types.CallToolRequestParams, call_tool)
+
+    def http_app(self, path: str = "/mcp", host: str = "127.0.0.1") -> Any:
+        """A Starlette application serving MCP over Streamable HTTP.
+
+        Every request must carry the bearer token from VIBEMK_HTTP_TOKEN. The
+        SDK's DNS-rebinding protection stays on, so a browser on some other
+        page cannot drive this server through a victim's network.
+        """
+        app = self._server.streamable_http_app(
+            streamable_http_path=path,
+            host=host,
+            transport_security=TransportSecuritySettings(
+                allowed_hosts=[host, f"{host}:*", "localhost", "localhost:*", "127.0.0.1", "127.0.0.1:*"],
+                allowed_origins=[],
+            ),
+        )
+        app.add_middleware(BearerTokenMiddleware, token=read_token())
+        return app
+
+    async def run_http(self, host: str = "127.0.0.1", port: int = 8765, path: str = "/mcp") -> None:
+        """Serve MCP over Streamable HTTP until the process is stopped."""
+        import uvicorn
+
+        # Build the application first: a missing token must stop the server
+        # before it announces that it is starting.
+        app = self.http_app(path=path, host=host)
+
+        logger.info("Starting vibeMK %s on http://%s:%d%s", self.mcp_config.server_version, host, port, path)
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            logger.warning(
+                "Listening on %s, which is reachable beyond this machine. "
+                "The CheckMK account is held here, so the bearer token is the only thing between "
+                "a caller and the monitoring system — put TLS in front of it.",
+                host,
+            )
+        config = uvicorn.Config(app, host=host, port=port, log_level="info")
+        await uvicorn.Server(config).serve()
 
     async def run(self) -> None:
         """Serve MCP requests on stdio until the input ends."""

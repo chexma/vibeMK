@@ -81,6 +81,15 @@ class HostHandler(BaseHandler):
             result[-1]["text"] += "\n" + self._run_activation()
         return result
 
+    # The prose can say "UNKNOWN(5)" to show what CheckMK actually sent. The
+    # structured payload may not: its schema names the states a caller can
+    # branch on, so anything unmapped becomes a plain UNKNOWN.
+    _CANONICAL_STATES = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
+
+    @classmethod
+    def _canonical_state(cls, code: Any) -> str:
+        return cls._CANONICAL_STATES.get(code, "UNKNOWN")
+
     async def _get_hosts(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of hosts with optional filtering"""
         # Use the monitoring 'host' collection, not the Setup 'host_config' one:
@@ -96,7 +105,7 @@ class HostHandler(BaseHandler):
 
         hosts = result["data"].get("value", [])
         if not hosts:
-            return [{"type": "text", "text": "📭 No hosts found"}]
+            return self.structured_response("📭 No hosts found", {"total": 0, "hosts": []})
 
         state_map = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
         host_list = []
@@ -107,7 +116,7 @@ class HostHandler(BaseHandler):
             state = ext.get("state")
             status = state_map.get(state, "UNKNOWN")
             host_list.append(f"🖥️ {host_id} ({status})")
-            entries.append({"host_name": host_id, "state": status})
+            entries.append({"host_name": host_id, "state": self._canonical_state(state)})
 
         return self.structured_response(
             (f"🖥️ **CheckMK Hosts** ({len(hosts)} total, showing first {len(host_list)}):\n\n" + "\n".join(host_list)),
@@ -233,7 +242,7 @@ class HostHandler(BaseHandler):
                             ),
                             {
                                 "host_name": host_name,
-                                "state": status,
+                                "state": self._canonical_state(effective_state),
                                 "state_code": effective_state,
                                 "is_hard_state": state_type == 1,
                                 "has_been_checked": bool(has_been_checked),
@@ -291,17 +300,24 @@ class HostHandler(BaseHandler):
                                 else:
                                     status_display = f"⚪ **{status}**"
 
-                                return [
+                                return self.structured_response(
+                                    (
+                                        f"✅ **Host Status: {host_name}** (Fallback Method)\n\n"
+                                        f"**Status:** {status_display}\n"
+                                        f"**State Code:** {state}\n\n"
+                                        f"✅ **Data from CheckMK host collections API**"
+                                    ),
                                     {
-                                        "type": "text",
-                                        "text": (
-                                            f"✅ **Host Status: {host_name}** (Fallback Method)\n\n"
-                                            f"**Status:** {status_display}\n"
-                                            f"**State Code:** {state}\n\n"
-                                            f"✅ **Data from CheckMK host collections API**"
-                                        ),
-                                    }
-                                ]
+                                        "host_name": host_name,
+                                        "state": self._canonical_state(state),
+                                        "state_code": state,
+                                        "is_hard_state": False,
+                                        "has_been_checked": True,
+                                        "plugin_output": "",
+                                        "last_check": None,
+                                        "last_state_change": None,
+                                    },
+                                )
 
                     # Host not found in collections
                     return self.error_response("Host not found", f"Host '{host_name}' not found in host collections")
@@ -312,23 +328,30 @@ class HostHandler(BaseHandler):
         try:
             host_config = self.client.get(f"objects/host_config/{host_name}")
             if host_config.get("success"):
-                return [
+                return self.structured_response(
+                    (
+                        f"⚪ **Host Status: {host_name}**\n\n"
+                        f"**Status:** MONITORING DATA UNAVAILABLE\n\n"
+                        f"✅ Host is configured in CheckMK\n"
+                        f"❌ Live monitoring state not accessible\n\n"
+                        f"**Possible Issues:**\n"
+                        f"• Host not actively monitored\n"
+                        f"• Monitoring core not running\n"
+                        f"• API permissions insufficient\n\n"
+                        f"**Recommendation:**\n"
+                        f"Check CheckMK GUI for actual status"
+                    ),
                     {
-                        "type": "text",
-                        "text": (
-                            f"⚪ **Host Status: {host_name}**\n\n"
-                            f"**Status:** MONITORING DATA UNAVAILABLE\n\n"
-                            f"✅ Host is configured in CheckMK\n"
-                            f"❌ Live monitoring state not accessible\n\n"
-                            f"**Possible Issues:**\n"
-                            f"• Host not actively monitored\n"
-                            f"• Monitoring core not running\n"
-                            f"• API permissions insufficient\n\n"
-                            f"**Recommendation:**\n"
-                            f"Check CheckMK GUI for actual status"
-                        ),
-                    }
-                ]
+                        "host_name": host_name,
+                        "state": "UNKNOWN",
+                        "state_code": -1,
+                        "is_hard_state": False,
+                        "has_been_checked": False,
+                        "plugin_output": "",
+                        "last_check": None,
+                        "last_state_change": None,
+                    },
+                )
             else:
                 return self.error_response("Host not found", f"Host '{host_name}' not found in CheckMK")
         except Exception as e:

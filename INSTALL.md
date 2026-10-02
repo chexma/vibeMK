@@ -217,6 +217,56 @@ echo "Python Path: $(which python3)"
 - When enabled, `activate_changes` will only display an informational message
 - Changes can still be viewed with `get_pending_changes`
 
+## 🌐 Hosting vibeMK centrally (Streamable HTTP)
+
+By default vibeMK speaks stdio: the LLM client starts the process itself, which
+means Python and this repository have to be on every machine that uses it.
+
+It can instead listen on HTTP, so one instance serves many clients:
+
+```bash
+export VIBEMK_HTTP_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+python main.py --transport http --host 127.0.0.1 --port 8765
+```
+
+Clients then connect to `http://<host>:8765/mcp` and send the token on every
+request:
+
+```
+Authorization: Bearer <VIBEMK_HTTP_TOKEN>
+```
+
+| Setting | Flag | Environment | Default |
+| --- | --- | --- | --- |
+| Transport | `--transport` | `VIBEMK_TRANSPORT` | `stdio` |
+| Bind address | `--host` | `VIBEMK_HTTP_HOST` | `127.0.0.1` |
+| Port | `--port` | `VIBEMK_HTTP_PORT` | `8765` |
+| URL path | `--path` | `VIBEMK_HTTP_PATH` | `/mcp` |
+| Bearer token | — | `VIBEMK_HTTP_TOKEN` | *required* |
+
+**Give the client a generous timeout.** CheckMK operations are not all fast:
+activating changes or running a discovery can take tens of seconds, and a
+client using the usual 5-second default will time out on them while the server
+is still working.
+
+### ⚠️ What hosting it centrally means
+
+The CheckMK account lives in this server's environment, not in the client. Every
+caller that reaches the port inherits it — including the tools that delete
+hosts, users and rules. So:
+
+- **The token is required.** vibeMK refuses to start in HTTP mode without one,
+  and refuses tokens shorter than 16 characters
+- **It binds to `127.0.0.1` by default.** Change that only deliberately
+- **Put TLS in front of it** before it leaves the machine. A bearer token on
+  plain HTTP is readable by anything on the path
+- **One token grants everything.** There is no per-user authorization; if you
+  need that, put a reverse proxy or an OAuth gateway in front
+- **`NEVER_ACTIVATE_CHANGES=true`** is worth considering for a shared instance:
+  it stops any caller from activating configuration changes
+
+stdio needs none of this, because the client already owns the process.
+
 ## 🧪 Step 6: Test Installation
 
 ### 6.2 Test vibeMK Server

@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+- vibeMK can be hosted centrally: `--transport http` serves Streamable HTTP, so
+  clients no longer need Python and a checkout. Requires a bearer token
+  (`VIBEMK_HTTP_TOKEN`) and binds to localhost unless told otherwise
 - Tools now say what they do before they run: whether one only reads, whether
   it can delete something, whether calling it twice differs from calling it
   once. Clients use this to decide what needs a confirmation prompt

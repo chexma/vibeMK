@@ -24,8 +24,12 @@ HOST_STATUS = {
     "type": "object",
     "properties": {
         "host_name": {"type": "string"},
-        "state": {"type": "string", "enum": ["UP", "DOWN", "UNREACHABLE"], "description": "Monitoring state"},
-        "state_code": {"type": "integer", "description": "0 UP, 1 DOWN, 2 UNREACHABLE"},
+        "state": {
+            "type": "string",
+            "enum": ["UP", "DOWN", "UNREACHABLE", "UNKNOWN"],
+            "description": "Monitoring state; UNKNOWN when CheckMK reported none",
+        },
+        "state_code": {"type": "integer", "description": "0 UP, 1 DOWN, 2 UNREACHABLE, -1 unavailable"},
         "is_hard_state": {"type": "boolean", "description": "Whether CheckMK considers the state settled"},
         "has_been_checked": {"type": "boolean"},
         "plugin_output": {"type": "string", "description": "What the check itself reported"},

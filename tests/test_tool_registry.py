@@ -259,3 +259,66 @@ class TestStructuredOutput:
 
         for name, schema in OUTPUT_SCHEMAS.items():
             jsonschema.Draft202012Validator.check_schema(schema)
+
+
+class TestASchemaIsAlwaysHonoured:
+    """A declared output schema binds every successful answer, not the happy one.
+
+    The SDK refuses a result that has an output schema and no structured
+    content -- "has an output schema but did not return structured content" --
+    so an empty list or a fallback path that answers in prose alone breaks the
+    tool for every client. This was found by running against an instance with
+    no hosts, which is exactly the path nobody exercises.
+    """
+
+    @pytest.mark.asyncio
+    async def test_an_empty_host_list_still_carries_structured_content(self, mock_checkmk_client):
+        from handlers.hosts import HostHandler
+        from vibemk_mcp.dispatch import is_error, structured_of
+
+        mock_checkmk_client.get.return_value = {"success": True, "data": {"value": []}}
+
+        content = await HostHandler(mock_checkmk_client).handle("vibemk_get_checkmk_hosts", {})
+
+        assert not is_error(content), "an empty result is not a failure"
+        assert structured_of(content) == {"total": 0, "hosts": []}
+
+    @pytest.mark.asyncio
+    async def test_no_pending_changes_still_carries_structured_content(self, mock_checkmk_client):
+        from handlers.configuration import ConfigurationHandler
+        from vibemk_mcp.dispatch import is_error, structured_of
+
+        mock_checkmk_client.get.return_value = {"success": True, "data": {"value": []}}
+
+        content = await ConfigurationHandler(mock_checkmk_client).handle("vibemk_get_pending_changes", {})
+
+        assert not is_error(content)
+        assert structured_of(content) == {"count": 0, "changes": []}
+
+    @pytest.mark.asyncio
+    async def test_a_state_the_mapping_does_not_know_is_reported_as_unknown(self, mock_checkmk_client):
+        """The prose may say UNKNOWN(7); the structured value may not."""
+        from handlers.hosts import HostHandler
+        from vibemk_mcp.dispatch import structured_of
+
+        mock_checkmk_client.get.return_value = {
+            "success": True,
+            "data": {"value": [{"id": "web01", "extensions": {"state": 7}}]},
+        }
+
+        content = await HostHandler(mock_checkmk_client).handle("vibemk_get_checkmk_hosts", {})
+
+        assert structured_of(content)["hosts"][0]["state"] == "UNKNOWN"
+
+    def test_structured_payloads_satisfy_their_schema(self):
+        """Spot-check the shapes the handlers build against what they declare."""
+        import jsonschema
+
+        from vibemk_mcp.schemas import HOST_LIST, HOST_STATUS, PENDING_CHANGES
+
+        jsonschema.validate({"total": 0, "hosts": []}, HOST_LIST)
+        jsonschema.validate({"count": 0, "changes": []}, PENDING_CHANGES)
+        jsonschema.validate(
+            {"host_name": "web01", "state": "UNKNOWN", "state_code": -1, "is_hard_state": False},
+            HOST_STATUS,
+        )

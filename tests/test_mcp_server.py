@@ -175,3 +175,21 @@ class TestServerWiring:
 
         for tool in get_all_tools():
             types.Tool.model_validate(tool)
+
+
+class TestBothTransportsAgree:
+    """The HTTP transport reads serverInfo from the Server, stdio from its options."""
+
+    def test_the_server_carries_its_version(self):
+        from config import MCPConfig
+
+        server = CheckMKMCPServer()
+
+        assert server._server.server_info.version == MCPConfig().server_version
+
+    def test_the_server_carries_its_name(self):
+        from config import MCPConfig
+
+        server = CheckMKMCPServer()
+
+        assert server._server.server_info.name == MCPConfig().server_name
