@@ -70,5 +70,5 @@ class AuditLogHandler(BaseHandler):
             )
 
         if len(entries) > limit:
-            lines.append(f"\n…{len(entries) - limit} weitere Einträge (erhöhe limit).")
+            lines.append(f"\n…{len(entries) - limit} more entries (raise limit to see them).")
         return [{"type": "text", "text": "\n".join(lines)}]
