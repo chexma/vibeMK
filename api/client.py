@@ -159,8 +159,16 @@ class CheckMKClient:
         custom_headers: Optional[Dict[str, str]] = None,
         retry_count: int = 0,
         use_api_prefix: bool = True,
+        follow_redirects: bool = True,
     ) -> Dict[str, Any]:
-        """Make HTTP request to CheckMK API with retry logic"""
+        """Make HTTP request to CheckMK API with retry logic
+
+        With follow_redirects=False a 3xx comes back as a successful result
+        carrying its status and location. CheckMK uses redirects to report
+        progress: the service discovery endpoints answer 303 when a job
+        starts and 302 to themselves while it runs, which urllib would
+        follow until it gives up with "infinite loop".
+        """
 
         check_endpoint(endpoint)
         if use_api_prefix:
@@ -202,7 +210,15 @@ class CheckMKClient:
 
             logger.debug(f"{method} {url}")
 
-            with urllib.request.urlopen(req, context=self._ssl_context, timeout=self.config.timeout) as response:
+            if follow_redirects:
+                opened = urllib.request.urlopen(req, context=self._ssl_context, timeout=self.config.timeout)
+            else:
+                opener = urllib.request.build_opener(
+                    urllib.request.HTTPSHandler(context=self._ssl_context), _NoRedirectHandler
+                )
+                opened = opener.open(req, timeout=self.config.timeout)
+
+            with opened as response:
                 response_data = response.read().decode()
 
                 try:
@@ -212,18 +228,16 @@ class CheckMKClient:
                         f"Invalid JSON response: {str(e)}", response.status, {"raw": response_data}
                     ) from e
 
-                result = {
-                    "status": response.status,
-                    "data": parsed_data,
-                    "success": True,
-                    "raw_content": response_data,  # Keep raw content for view API parsing
-                    "headers": dict(response.headers),  # Include response headers for ETag support
-                }
+                result = self._result(response.status, parsed_data, response_data, response.headers)
 
                 logger.debug(f"Response: {response.status}")
                 return result
 
         except urllib.error.HTTPError as e:
+            if not follow_redirects and 300 <= e.code < 400:
+                redirect = self._result(e.code, {}, "", e.headers)
+                redirect["location"] = e.headers.get("Location", "") if e.headers else ""
+                return redirect
             return self._handle_http_error(
                 e, endpoint, method, data, params, custom_headers, retry_count, use_api_prefix
             )
@@ -234,6 +248,17 @@ class CheckMKClient:
             return self._handle_general_error(
                 e, endpoint, method, data, params, custom_headers, retry_count, use_api_prefix
             )
+
+    @staticmethod
+    def _result(status: int, data: Any, raw_content: str, headers: Any) -> Dict[str, Any]:
+        """The one shape of a successful result; failures raise instead."""
+        return {
+            "status": status,
+            "data": data,
+            "success": True,
+            "raw_content": raw_content,  # Keep raw content for view API parsing
+            "headers": dict(headers) if headers else {},  # Include response headers for ETag support
+        }
 
     def _handle_http_error(
         self,

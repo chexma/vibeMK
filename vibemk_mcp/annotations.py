@@ -114,6 +114,7 @@ DESTRUCTIVE = frozenset(
         "vibemk_delete_user_role",
         "vibemk_remove_acknowledgement",
         "vibemk_remove_user_from_group",
+        "vibemk_start_service_discovery",
     }
 )
 
@@ -175,7 +176,6 @@ SAFE_WRITES = frozenset(
         "vibemk_set_memory_thresholds",
         "vibemk_set_process_thresholds",
         "vibemk_start_bulk_discovery",
-        "vibemk_start_service_discovery",
         "vibemk_update_aux_tag",
         "vibemk_update_contact_group",
         "vibemk_update_folder",

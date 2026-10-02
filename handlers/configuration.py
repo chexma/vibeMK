@@ -130,11 +130,12 @@ class ConfigurationHandler(BaseHandler):
         change_summary = {"create": 0, "edit": 0, "delete": 0, "move": 0, "other": 0}
 
         for change in changes:
-            extensions = change.get("extensions", {})
-            action = extensions.get("action_name", "Unknown")
-            obj_type = extensions.get("object_type", "Unknown")
-            obj_name = extensions.get("object_name", "Unknown")
-            user = extensions.get("user_id", "unknown")
+            # CheckMK sends each change as a flat object -- id, user_id,
+            # action_name, text, time -- with no extensions and no separate
+            # object type or name; "text" is its own description of the change.
+            action = str(change.get("action_name") or "change")
+            description = str(change.get("text") or action)
+            user = str(change.get("user_id") or "unknown user")
 
             # Categorize changes
             if "create" in action.lower():
@@ -153,10 +154,8 @@ class ConfigurationHandler(BaseHandler):
                 change_summary["other"] += 1
                 icon = "⚙️"
 
-            change_list.append(f"{icon} {action}: {obj_type} '{obj_name}' (by {user})")
-            entries.append(
-                {"change_id": str(change.get("id", "")), "user": user, "text": f"{action}: {obj_type} '{obj_name}'"}
-            )
+            change_list.append(f"{icon} {description} (by {user})")
+            entries.append({"change_id": str(change.get("id", "")), "user": user, "text": description})
 
         # Create summary
         summary_parts = []

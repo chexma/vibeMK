@@ -10,6 +10,7 @@ names need pinning in tests rather than discovering in production.
 import pathlib
 import re
 from typing import Any, List
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -48,11 +49,15 @@ def fetched_paths(client: Any) -> List[str]:
 class TestDiscoveryEndpoints:
     @pytest.mark.asyncio
     async def test_single_host_discovery_uses_service_discovery_run(self, discovery_handler):
-        discovery_handler.client.post.return_value = {"success": True, "data": {}}
+        # Sent through request() rather than post(): the start answers 303,
+        # which has to come back to the handler instead of being followed.
+        discovery_handler.client.request = MagicMock(return_value={"success": True, "status": 303, "data": {}})
 
         await discovery_handler.handle("vibemk_start_service_discovery", {"host_name": "example.com"})
 
-        assert posted_paths(discovery_handler.client) == [SINGLE_HOST_DISCOVERY]
+        call = discovery_handler.client.request.call_args
+        assert (call.args[0], call.args[1]) == (SINGLE_HOST_DISCOVERY, "POST")
+        assert posted_paths(discovery_handler.client) == []
 
     @pytest.mark.asyncio
     async def test_bulk_discovery_uses_discovery_run(self, discovery_handler):
