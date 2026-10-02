@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Active checks can be created with their options on CheckMK 2.5: thresholds,
+  certificate lifetimes, passwords and host choices of the HTTP, TCP, ICMP,
+  SMTP, LDAP, SMB and Event Console checks were refused
+- FTP checks no longer offer a passive mode, which CheckMK does not have
+- Event Console events can be acknowledged, changed and deleted again
+- The agent download link points at the right address; the baking status
+  shows the actual state, and Raw/Community says it has no agent bakery
+- The bulk discovery status shows the job's state and per-host results
+- A service group's alias is shown
+
 ## [0.6.3] - 2026-10-03
 
 ### Added

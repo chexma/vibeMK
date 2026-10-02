@@ -392,27 +392,23 @@ class DiscoveryHandler(BaseHandler):
                 data = result.get("data", {})
                 extensions = data.get("extensions", {})
 
-                # Extract job information
-                job_state = extensions.get("state", "unknown")
-                started = extensions.get("started", "Unknown")
-                duration = extensions.get("duration", "Unknown")
-                progress = extensions.get("progress", {})
-
-                # Format progress information
+                # The job reports under extensions.status, with its progress as
+                # log lines; reading extensions.state found nothing on 2.5.
+                status = extensions.get("status", {})
+                job_state = str(status.get("state") or extensions.get("state") or "unknown")
+                log_info = status.get("log_info", {})
+                progress_lines = [
+                    line
+                    for line in log_info.get("JobProgressUpdate", [])
+                    if not line.startswith(("Waiting to acquire lock", "Acquired lock"))
+                ]
                 progress_text = ""
-                if progress:
-                    total = progress.get("total", 0)
-                    completed = progress.get("completed", 0)
-                    failed = progress.get("failed", 0)
-                    percentage = (completed / total * 100) if total > 0 else 0
+                if progress_lines:
+                    progress_text = "📊 **Progress:**\n" + "\n".join(f"  • {line}" for line in progress_lines) + "\n\n"
+                for line in log_info.get("JobException", []):
+                    progress_text += f"⚠️ {line}\n"
 
-                    progress_text = (
-                        f"📊 **Progress:**\n"
-                        f"  • Completed: {completed}/{total} ({percentage:.1f}%)\n"
-                        f"  • Failed: {failed}\n\n"
-                    )
-
-                status_emoji = {"running": "🔄", "finished": "✅", "stopped": "⏹️", "exception": "❌"}.get(
+                status_emoji = {"running": "🔄", "finished": "✅", "stopped": "⏹️", "exception": "⚠️"}.get(
                     job_state, "❓"
                 )
 
@@ -421,9 +417,7 @@ class DiscoveryHandler(BaseHandler):
                         "type": "text",
                         "text": f"{status_emoji} **Bulk Discovery Job Status**\n\n"
                         f"Job ID: **{job_id}**\n"
-                        f"State: {job_state.upper()}\n"
-                        f"Started: {started}\n"
-                        f"Duration: {duration}\n\n"
+                        f"State: {job_state.upper()}\n\n"
                         f"{progress_text}"
                         f"💡 Use 'get_discovery_status' on individual hosts for detailed results.",
                     }

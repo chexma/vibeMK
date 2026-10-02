@@ -150,7 +150,7 @@ class ServiceParamsHandler(BaseHandler):
                 + (f"CPU averaged over: {cpu_average_min} minutes\n" if cpu_average_min else "")
                 + (f"Virtual memory: warn {mem_warn_mb} MB, crit {mem_crit_mb} MB\n" if mem_warn_mb else "")
                 + (
-                    f"Resident-Speicher: warn {resident_warn_mb} MB, crit {resident_crit_mb} MB\n"
+                    f"Resident memory: warn {resident_warn_mb} MB, crit {resident_crit_mb} MB\n"
                     if resident_warn_mb
                     else ""
                 )

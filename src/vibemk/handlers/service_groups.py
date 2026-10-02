@@ -113,7 +113,8 @@ class ServiceGroupHandler(BaseHandler):
         for i, group in enumerate(service_groups, 1):
             group_id = group.get("id", "Unknown")
             extensions = group.get("extensions", {})
-            alias = extensions.get("alias", "No alias")
+            # CheckMK returns the alias as the object's title; extensions are empty
+            alias = extensions.get("alias") or group.get("title") or "No alias"
 
             response_text += f"**{i}. Service Group: {group_id}**\n"
             response_text += f"   Alias: {alias}\n"
@@ -140,7 +141,7 @@ class ServiceGroupHandler(BaseHandler):
 
         response_text = "📋 **Service Group Details**\n\n"
         response_text += f"**Name:** {name}\n"
-        response_text += f"**Alias:** {extensions.get('alias', 'No alias')}\n"
+        response_text += f"**Alias:** {extensions.get('alias') or group_data.get('title') or 'No alias'}\n"
         response_text += "**Type:** Service Group Configuration\n\n"
 
         # Show links if available
