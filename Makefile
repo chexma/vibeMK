@@ -9,7 +9,7 @@ help:
 	@echo "============================="
 	@echo ""
 	@echo "make format     - Format code with black and isort"
-	@echo "make check      - Run all quality checks (format + type + test)"
+	@echo "make check      - Run all quality checks (format + lint + type + test)"
 	@echo "make lint       - Run only linting/formatting checks (black, isort, ruff)"
 	@echo "make package    - Build the wheel and check it installs and runs"
 	@echo "make test       - Run test suite"
@@ -68,7 +68,7 @@ clean:
 # Install development dependencies
 install-dev:
 	@echo "📦 Installing development dependencies..."
-	@pip install black isort mypy pytest pytest-asyncio
+	@pip install black isort ruff mypy pytest pytest-asyncio
 	@echo "✅ Development dependencies installed"
 
 # Show git status after formatting
