@@ -8,6 +8,7 @@ reachable.
 """
 
 import ast
+import inspect
 import pathlib
 from typing import Dict
 from unittest.mock import MagicMock
@@ -163,3 +164,22 @@ def test_every_dispatch_branch_belongs_to_the_handler_that_holds_it(registry):
                 misrouted[node.value] = f"branch in {path.name}, routed to {routed_to}"
 
     assert misrouted == {}, f"dispatch branches that can never run: {misrouted}"
+
+
+def test_every_registered_tool_is_dispatched_by_its_handler(registry):
+    """A handler can be wired for a tool and still not act on it.
+
+    The registry maps a name to a handler instance; whether that handler's
+    own `handle()` has a branch for the name is a separate question. When a
+    handler is replaced wholesale and loses a branch, the tool stays
+    advertised and stays routed, and answers "Unknown tool" at runtime --
+    which no registry-level check can see.
+    """
+    missing = {}
+    for name in sorted(registry.tool_names()):
+        handler = registry.handler_for(name)
+        module = pathlib.Path(inspect.getfile(type(handler)))
+        if f'"{name}"' not in module.read_text():
+            missing[name] = module.name
+
+    assert missing == {}, f"routed to a handler that never mentions them: {missing}"

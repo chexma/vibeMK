@@ -37,6 +37,8 @@ class MonitoringHandler(BaseHandler):
                 return await self._acknowledge_problem(arguments)
             if tool_name == "vibemk_get_downtimes":
                 return await self._get_downtimes(arguments)
+            if tool_name == "vibemk_delete_comment":
+                return await self._delete_comment(arguments)
             if tool_name == "vibemk_get_comments":
                 return await self._get_comments(arguments)
             if tool_name == "vibemk_add_comment":
@@ -318,3 +320,40 @@ class MonitoringHandler(BaseHandler):
                 }
             ]
         return self.error_response("Comment creation failed", f"Could not add comment to {target}")
+
+    async def _delete_comment(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Delete a host or service comment."""
+        delete_type = arguments.get("delete_type", "by_id")
+        comment_id = arguments.get("comment_id")
+        host_name = arguments.get("host_name")
+        service_description = arguments.get("service_description")
+        site_id = arguments.get("site_id", self.client.config.site)
+
+        if delete_type == "by_id":
+            if not comment_id:
+                return self.error_response("Missing parameter", "comment_id is required for delete_type=by_id")
+            data: Dict[str, Any] = {
+                "delete_type": "by_id",
+                "comment_id": int(comment_id),
+                "site_id": site_id,
+            }
+        elif delete_type == "by_query":
+            if not host_name:
+                return self.error_response("Missing parameter", "host_name is required for delete_type=by_query")
+            data = {"delete_type": "by_query", "host_name": host_name}
+            if service_description:
+                data["service_description"] = service_description
+        else:
+            return self.error_response("Invalid delete_type", "delete_type must be 'by_id' or 'by_query'")
+
+        result = self.client.post("domain-types/comment/actions/delete/invoke", data=data)
+
+        if result.get("success"):
+            if delete_type == "by_id":
+                target = f"comment #{comment_id}"
+            else:
+                target = host_name + (f"/{service_description}" if service_description else "")
+            return [{"type": "text", "text": f"💬 **Comment Deleted**\n\nTarget: {target}"}]
+        else:
+            detail = result.get("data", {})
+            return self.error_response("Comment deletion failed", str(detail))

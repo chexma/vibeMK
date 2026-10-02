@@ -217,9 +217,12 @@ class RulesHandler(BaseHandler):
         if not rule_config:
             return self.error_response("Missing parameter", "rule_config is required")
 
-        # Build rule data structure according to CheckMK 2.3 OpenAPI specification
-        # Convert folder path: "/" -> "~", "/hosts/linux" -> "~hosts~linux"
-        if folder.startswith("/"):
+        # Convert folder path: "/" -> "~", "/hosts/linux" -> "~hosts~linux".
+        # A path that already uses tilde notation is passed through: prefixing
+        # it again turned "~" into "~~", which CheckMK rejects.
+        if folder.startswith("~"):
+            api_folder = folder
+        elif folder.startswith("/"):
             api_folder = "~" + folder[1:].replace("/", "~") if folder != "/" else "~"
         else:
             api_folder = "~" + folder.replace("/", "~")

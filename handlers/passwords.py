@@ -180,7 +180,10 @@ class PasswordsHandler(BaseHandler):
         if not check_result.get("success"):
             return self.error_response("Password not found", f"Password '{ident}' does not exist")
 
-        result = self.client.delete(f"objects/password/{ident}")
+        # CheckMK declares If-Match required on this delete and answers 428
+        # without it.
+        headers = self._if_match_header(f"objects/password/{ident}")
+        result = self.client.delete(f"objects/password/{ident}", headers=headers)
 
         if result.get("success"):
             return [

@@ -839,60 +839,39 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_create_rule",
-            "description": (
-                "➕ Create rule - Add new monitoring rule. "
-                "REGELREIHENFOLGE: CheckMK wertet Regeln von oben nach unten aus — erste passende Regel gewinnt. "
-                "Subfolder-Regeln werden VOR Root-Folder-Regeln ausgewertet. "
-                "Neue Regel IMMER im Ordner des Hosts anlegen (nicht in Root '~'), sonst greifen vorhandene "
-                "Subfolder-Regeln trotzdem zuerst! "
-                "WICHTIG value_raw: Muss ein Python-Literal sein (mit Tuples!), kein JSON. "
-                "Nutze 'value_raw' als String direkt (z.B. \"{'levels': ('perc_used', (80.0, 90.0))}\") "
-                "statt 'rule_config' (JSON kennt keine Tuples → API 400). "
-                "Für dedizierte Tools (Memory, Prozesse, Interface) bitte vibemk_set_* Tools nutzen."
-            ),
+            "description": "➕ Create rule - Add new monitoring rule",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "ruleset_name": {"type": "string", "description": "Ruleset name"},
-                    "value_raw": {
-                        "type": "string",
-                        "description": (
-                            "Python-Literal als String (bevorzugt). "
-                            "Beispiel: \"{'levels': ('perc_used', (80.0, 90.0))}\" — Tuples bleiben Tuples."
-                        ),
-                    },
-                    "rule_config": {
-                        "type": "object",
-                        "description": "Rule config als JSON-Objekt (Fallback, verlustbehaftet — Tuples werden zu Listen!)",
-                    },
-                    "conditions": {"type": "object", "description": "Rule conditions (host_name etc.)"},
+                    "rule_config": {"type": "object", "description": "Rule configuration"},
+                    "conditions": {"type": "object", "description": "Rule conditions"},
                     "comment": {"type": "string", "description": "Rule comment"},
                     "folder": {"type": "string", "description": "Target folder", "default": "/"},
+                    "position": {
+                        "type": "string",
+                        "enum": ["top_of_folder", "bottom_of_folder", "before_specific_rule", "after_specific_rule"],
+                        "description": (
+                            "Where to place the new rule. Omit to leave placement to CheckMK. "
+                            "The two *_specific_rule values need target_rule_id."
+                        ),
+                    },
+                    "target_rule_id": {
+                        "type": "string",
+                        "description": "Rule to position relative to, for before_specific_rule/after_specific_rule",
+                    },
                 },
-                "required": ["ruleset_name"],
+                "required": ["ruleset_name", "rule_config"],
             },
         },
         {
             "name": "vibemk_update_rule",
-            "description": (
-                "📝 Update rule - Modify existing monitoring rule. "
-                "WICHTIG: Nutze 'value_raw' als Python-Literal-String statt 'rule_config' "
-                "wenn der Wert Tuples enthält (z.B. CheckMK-Schwellwerte). "
-                "Tipp: Beim Aktualisieren bestehender Regeln (statt neue anlegen) wird das Reihenfolge-Problem "
-                "vermieden — vorhandene Position bleibt erhalten."
-            ),
+            "description": "📝 Update rule - Modify existing monitoring rule",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "rule_id": {"type": "string", "description": "Rule ID"},
-                    "value_raw": {
-                        "type": "string",
-                        "description": "Python-Literal als String (bevorzugt, z.B. \"{'levels': ('perc_used', (80.0, 90.0))}\")",
-                    },
-                    "rule_config": {
-                        "type": "object",
-                        "description": "Rule config als JSON-Objekt (Fallback, verlustbehaftet)",
-                    },
+                    "rule_config": {"type": "object", "description": "Rule configuration"},
                     "conditions": {"type": "object", "description": "Rule conditions"},
                     "comment": {"type": "string", "description": "Rule comment"},
                     "disabled": {"type": "boolean", "description": "Disable rule"},
@@ -911,33 +890,20 @@ def get_rule_management_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_move_rule",
-            "description": (
-                "🔄 Move rule - Change rule position within its folder. "
-                "REGELREIHENFOLGE: CheckMK evaluiert von oben nach unten, erste Match gewinnt. "
-                "top_of_folder = höchste Priorität im Ordner. "
-                "WICHTIG: Subfolder-Regeln gewinnen IMMER gegen Root-Ordner-Regeln, egal welche Position. "
-                "Deshalb immer im Host-Ordner anlegen/verschieben, nicht in Root."
-            ),
+            "description": "🔄 Move rule - Change rule position in ruleset",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "rule_id": {"type": "string", "description": "Rule ID to move"},
+                    "rule_id": {"type": "string", "description": "Rule ID"},
                     "position": {
                         "type": "string",
-                        "description": (
-                            "Position enum: top_of_folder (default), bottom_of_folder, "
-                            "before_specific_rule, after_specific_rule. "
-                            "Short aliases top/bottom/before/after are also accepted."
-                        ),
+                        "enum": ["top_of_folder", "bottom_of_folder", "before_specific_rule", "after_specific_rule"],
+                        "description": "Where to move the rule. The two *_specific_rule values need target_rule_id.",
                         "default": "top_of_folder",
-                    },
-                    "folder": {
-                        "type": "string",
-                        "description": "Folder path (e.g. '~muenchen~mue-0') for top_of_folder/bottom_of_folder. Defaults to root '~'.",
                     },
                     "target_rule_id": {
                         "type": "string",
-                        "description": "Target rule ID for before_specific_rule / after_specific_rule",
+                        "description": "Rule to position relative to, for before_specific_rule/after_specific_rule",
                     },
                 },
                 "required": ["rule_id"],

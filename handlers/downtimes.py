@@ -16,6 +16,8 @@ class DowntimeHandler(BaseHandler):
         """Handle downtime-related tool calls"""
 
         try:
+            if tool_name == "vibemk_schedule_downtime":
+                return await self._schedule_downtime(arguments)
             if tool_name == "vibemk_schedule_host_downtime":
                 return await self._schedule_host_downtime(arguments)
             elif tool_name == "vibemk_schedule_service_downtime":
@@ -38,6 +40,27 @@ class DowntimeHandler(BaseHandler):
         except Exception as e:
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
+
+    async def _schedule_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Dispatch the generic scheduling tool to the host or service path.
+
+        This tool used to have its own implementation in MonitoringHandler,
+        posting to `domain-types/downtime/collections/all` — a path CheckMK
+        serves for GET only, so every call it made was rejected. The working
+        implementation was here all along, split in two because the API splits
+        it in two: `collections/host` and `collections/service`.
+        """
+        downtime_type = arguments.get("downtime_type")
+
+        if downtime_type == "host":
+            return await self._schedule_host_downtime(arguments)
+        if downtime_type == "service":
+            return await self._schedule_service_downtime(arguments)
+
+        return self.error_response(
+            "Unsupported downtime_type",
+            f"'{downtime_type}' cannot be scheduled here. Use 'host' or 'service'.",
+        )
 
     async def _schedule_host_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Schedule downtime for a host using CheckMK API"""

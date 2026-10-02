@@ -204,6 +204,25 @@ class AcknowledgementHandler:
             logger.exception(f"Error acknowledging service problem for {host_name}/{service_description}")
             return [{"type": "text", "text": f"❌ Error acknowledging service problem: {str(e)}"}]
 
+    def _delete_comment(self, comment_id: Any) -> Dict[str, Any]:
+        """Delete one comment through the action endpoint.
+
+        `objects/comment/{id}` serves GET only and answers 405 on DELETE.
+        Deletion goes through `domain-types/comment/actions/delete/invoke`,
+        which discriminates on `delete_type` and requires the site. The schema
+        types comment_id as an integer, so a string id is converted rather
+        than sent on.
+        """
+        try:
+            numeric_id = int(comment_id)
+        except (TypeError, ValueError):
+            return {"success": False, "data": {"detail": f"'{comment_id}' is not a comment id"}}
+
+        return self.client.post(
+            "domain-types/comment/actions/delete/invoke",
+            data={"delete_type": "by_id", "comment_id": numeric_id, "site_id": self.client.config.site},
+        )
+
     async def list_acknowledgements(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """List all current acknowledgements"""
         try:
@@ -304,7 +323,7 @@ class AcknowledgementHandler:
                         "acknowledge" in comment_text.lower() or "ack" in comment_text.lower()
                     ):
 
-                        delete_result = self.client.delete(f"objects/comment/{comment_id}")
+                        delete_result = self._delete_comment(comment_id)
                         if delete_result.get("success"):
                             deleted_count += 1
 
@@ -323,7 +342,13 @@ class AcknowledgementHandler:
             elif host_name:
                 # For CheckMK 2.4, we need to find and delete acknowledgements by comment ID
                 # since there are no direct host/service action endpoints for removal
-                list_result = self.client.get("domain-types/comment/collections/all")
+                # Ask CheckMK for acknowledgements (entry_type 4) rather than
+                # guessing from the comment text, for the same reason the
+                # listing does: the ids found here are the ids deleted below.
+                list_result = self.client.get(
+                    ACKNOWLEDGEMENT_COMMENTS,
+                    params={"query": {"op": "=", "left": "entry_type", "right": ACKNOWLEDGEMENT_ENTRY_TYPE}},
+                )
                 if not list_result.get("success"):
                     return [{"type": "text", "text": "❌ Unable to retrieve acknowledgements for removal"}]
 
@@ -338,7 +363,7 @@ class AcknowledgementHandler:
                     is_service = extensions.get("is_service", False)
 
                     # Check if this is an acknowledgement for the specified host/service
-                    if comment_host == host_name and ("acknowledge" in comment_text or "ack" in comment_text):
+                    if comment_host == host_name:
 
                         # If service_description is specified, only match service acknowledgements
                         if service_description and not is_service:
@@ -347,7 +372,7 @@ class AcknowledgementHandler:
                         if not service_description and is_service:
                             continue
 
-                        delete_result = self.client.delete(f"objects/comment/{comment_id}")
+                        delete_result = self._delete_comment(comment_id)
                         if delete_result.get("success"):
                             deleted_count += 1
 

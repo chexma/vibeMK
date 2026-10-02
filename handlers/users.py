@@ -327,9 +327,9 @@ class UserHandler(BaseHandler):
                 {
                     "type": "text",
                     "text": (
-                        f"✅ **Contact Group Updated Successfully**\\n\\n"
-                        f"Name: {name}\\n"
-                        f"Updated fields: {', '.join(data.keys())}\\n\\n"
+                        f"✅ **Contact Group Updated Successfully**\n\n"
+                        f"Name: {name}\n"
+                        f"Updated fields: {', '.join(data.keys())}\n\n"
                         f"⚠️ **Remember to activate changes!**"
                     ),
                 }
@@ -356,11 +356,11 @@ class UserHandler(BaseHandler):
                 {
                     "type": "text",
                     "text": (
-                        f"✅ **Contact Group Deleted Successfully**\\n\\n"
-                        f"Name: {name}\\n\\n"
-                        f"📝 **Next Steps:**\\n"
-                        f"1️⃣ Use 'get_pending_changes' to review the deletion\\n"
-                        f"2️⃣ Use 'activate_changes' to apply the configuration\\n\\n"
+                        f"✅ **Contact Group Deleted Successfully**\n\n"
+                        f"Name: {name}\n\n"
+                        f"📝 **Next Steps:**\n"
+                        f"1️⃣ Use 'get_pending_changes' to review the deletion\n"
+                        f"2️⃣ Use 'activate_changes' to apply the configuration\n\n"
                         f"💡 **Important:** The contact group is only marked for deletion until you activate changes!"
                     ),
                 }
