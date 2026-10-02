@@ -1854,7 +1854,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                         "description": "URL path, or a full URL (default: '/')",
                     },
                     "port": {"type": "integer", "description": "HTTP port (default: 80, or 443 with SSL)"},
-                    "ssl": {"type": "boolean", "description": "HTTPS/SSL verwenden (default: false)"},
+                    "ssl": {"type": "boolean", "description": "Use HTTPS/SSL (default: false)"},
                     "virt_host": {
                         "type": "string",
                         "description": "Virtual host header, when it differs from the host name",
@@ -1869,7 +1869,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "proxy_port": {
                         "type": "integer",
-                        "description": "HTTP-Proxy Port (default: 80)",
+                        "description": "HTTP proxy port (default: 80)",
                     },
                     "address_family": {
                         "type": "string",
@@ -1885,11 +1885,11 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "expect_response": {
                         "type": "string",
-                        "description": "Erwarteter HTTP-Status-String (z.B. 'HTTP/1.1 200', 'HTTP/1.1 404')",
+                        "description": "Expected HTTP status line, e.g. 'HTTP/1.1 200' or 'HTTP/1.1 404'",
                     },
                     "method": {
                         "type": "string",
-                        "description": "HTTP-Methode: GET, POST, HEAD, PUT, DELETE, OPTIONS, CONNECT (default: GET)",
+                        "description": "HTTP method: GET, POST, HEAD, PUT, DELETE, OPTIONS, CONNECT (default: GET)",
                     },
                     "no_body": {
                         "type": "boolean",
@@ -1897,7 +1897,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "onredirect": {
                         "type": "string",
-                        "description": "Redirect-Verhalten: 'ok', 'warning', 'critical', 'follow', 'sticky', 'stickyport'",
+                        "description": "Redirect handling: 'ok', 'warning', 'critical', 'follow', 'sticky', 'stickyport'",
                     },
                     "timeout": {
                         "type": "integer",
@@ -1956,11 +1956,11 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
-                    "port": {"type": "integer", "description": "TCP-Port (z.B. 8080)"},
+                    "port": {"type": "integer", "description": "TCP port, e.g. 8080"},
                     "name": {"type": "string", "description": "Optional service name"},
                     "ssl": {
                         "type": "boolean",
-                        "description": "SSL/TLS verwenden (default: false)",
+                        "description": "Use SSL/TLS (default: false)",
                     },
                     "cert_days_warn": {
                         "type": "integer",
@@ -2021,19 +2021,19 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "rta_warn_ms": {
                         "type": "number",
-                        "description": "Warn-Schwelle Round-Trip-Zeit in Millisekunden (z.B. 200)",
+                        "description": "Round-trip time WARN threshold in milliseconds, e.g. 200",
                     },
                     "rta_crit_ms": {
                         "type": "number",
-                        "description": "Krit-Schwelle Round-Trip-Zeit in Millisekunden (z.B. 500)",
+                        "description": "Round-trip time CRIT threshold in milliseconds, e.g. 500",
                     },
                     "loss_warn_percent": {
                         "type": "number",
-                        "description": "Warn-Schwelle Paketverlust in Prozent (z.B. 20)",
+                        "description": "Packet loss WARN threshold in percent, e.g. 20",
                     },
                     "loss_crit_percent": {
                         "type": "number",
-                        "description": "Krit-Schwelle Paketverlust in Prozent (z.B. 100)",
+                        "description": "Packet loss CRIT threshold in percent, e.g. 100",
                     },
                     "min_pings": {
                         "type": "integer",
@@ -2139,7 +2139,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "cert_days_crit": {
                         "type": "integer",
-                        "description": "Krit-Tage vor Zertifikat-Ablauf (default: 7)",
+                        "description": "CRIT this many days before the certificate expires (default: 7, with starttls or check_cert)",
                     },
                     "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
@@ -2157,7 +2157,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
-                    "port": {"type": "integer", "description": "FTP-Port (default: 21)"},
+                    "port": {"type": "integer", "description": "FTP port (default: 21)"},
                     "timeout": {"type": "integer", "description": "Timeout in seconds (optional)"},
                     "passive": {
                         "type": "boolean",
@@ -2165,7 +2165,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "refuse_state": {
                         "type": "string",
-                        "description": "Status wenn Verbindung abgelehnt: 'crit', 'warn', 'ok' (default: 'crit')",
+                        "description": "State when the connection is refused: 'crit', 'warn', 'ok' (default: 'crit')",
                     },
                     "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
@@ -2186,7 +2186,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     "name": {"type": "string", "description": "Service name (default: 'LDAP')"},
                     "base_dn": {
                         "type": "string",
-                        "description": "LDAP Base-DN (z.B. 'DC=example,DC=com')",
+                        "description": "LDAP base DN, e.g. 'DC=example,DC=com'",
                     },
                     "bind_dn": {
                         "type": "string",
@@ -2200,11 +2200,11 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "response_time_warn_ms": {
                         "type": "number",
-                        "description": "Warn-Schwelle in Millisekunden (default: 500)",
+                        "description": "Response time WARN threshold in milliseconds (default: 500)",
                     },
                     "response_time_crit_ms": {
                         "type": "number",
-                        "description": "Krit-Schwelle in Millisekunden (default: 800)",
+                        "description": "Response time CRIT threshold in milliseconds (default: 800)",
                     },
                     "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
@@ -2263,11 +2263,11 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     "hostname": {"type": "string", "description": "Hostname"},
                     "ignore_acknowledged": {
                         "type": "boolean",
-                        "description": "Quittierte Events ignorieren (default: true)",
+                        "description": "Ignore acknowledged events (default: true)",
                     },
                     "show_last_log": {
                         "type": "string",
-                        "description": "'none', 'summary' oder 'long' (default: 'summary')",
+                        "description": "'none', 'summary' or 'long' (default: 'summary')",
                     },
                     "remote_ec_host": {
                         "type": "string",
@@ -2309,7 +2309,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "status_data_inventory": {
                         "type": "boolean",
-                        "description": "Status-Data-Inventarisierung aktivieren (default: true)",
+                        "description": "Enable status data inventory (default: true)",
                     },
                     "folder": {"type": "string", "description": "Checkmk folder (optional)"},
                     "description": {
@@ -2380,25 +2380,25 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "phase": {
                         "type": "string",
-                        "description": "Phase: 'open' (default) oder 'ack' (quittiert)",
+                        "description": "Phase: 'open' (default) or 'ack' (acknowledged)",
                     },
                     "state": {
                         "type": "string",
-                        "description": "Status-Filter: 'ok', 'warning', 'critical', 'unknown'",
+                        "description": "State filter: 'ok', 'warning', 'critical', 'unknown'",
                     },
                     "host": {"type": "string", "description": "Host name filter"},
-                    "application": {"type": "string", "description": "Applikations-Filter"},
-                    "site_id": {"type": "string", "description": "Site-ID (z.B. 'im', 'uel')"},
+                    "application": {"type": "string", "description": "Application filter"},
+                    "site_id": {"type": "string", "description": "Site ID, e.g. 'im' or 'uel'"},
                 },
             },
         },
         {
             "name": "vibemk_acknowledge_event",
-            "description": "✅ EC-Event quittieren (acknowledge).",
+            "description": "✅ Acknowledge an Event Console event.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "event_id": {"type": "integer", "description": "Event-ID"},
+                    "event_id": {"type": "integer", "description": "Event ID"},
                     "comment": {"type": "string", "description": "Comment recorded with the acknowledgement"},
                 },
                 "required": ["event_id"],
@@ -2410,10 +2410,10 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "event_id": {"type": "integer", "description": "Event-ID"},
+                    "event_id": {"type": "integer", "description": "Event ID"},
                     "new_state": {
                         "type": "string",
-                        "description": "Neuer Status: 'ok', 'warning', 'critical', 'unknown'",
+                        "description": "New state: 'ok', 'warning', 'critical', 'unknown'",
                     },
                 },
                 "required": ["event_id", "new_state"],
@@ -2432,7 +2432,7 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
                         "items": {"type": "integer"},
                         "description": "List of event IDs; when empty, phase and host are used as the filter",
                     },
-                    "phase": {"type": "string", "description": "Phase-Filter: 'open', 'ack' (default: 'open')"},
+                    "phase": {"type": "string", "description": "Phase filter: 'open', 'ack' (default: 'open')"},
                     "host": {"type": "string", "description": "Delete only the events of this host"},
                 },
             },
@@ -2454,24 +2454,27 @@ def get_aux_tag_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "tag_id": {"type": "string", "description": "Eindeutige Tag-ID (z.B. 'sys-linux')"},
-                    "title": {"type": "string", "description": "Anzeigename (z.B. 'Linux System')"},
-                    "topic": {"type": "string", "description": "Thema/Gruppe (z.B. 'Operating System')"},
-                    "help": {"type": "string", "description": "Hilfetext"},
+                    "tag_id": {"type": "string", "description": "Unique tag ID, e.g. 'sys-linux'"},
+                    "title": {"type": "string", "description": "Display name, e.g. 'Linux System'"},
+                    "topic": {
+                        "type": "string",
+                        "description": "Topic the tag is grouped under, e.g. 'Operating System'",
+                    },
+                    "help": {"type": "string", "description": "Help text"},
                 },
                 "required": ["tag_id", "title"],
             },
         },
         {
             "name": "vibemk_update_aux_tag",
-            "description": "🏷️ Aux-Tag aktualisieren.",
+            "description": "🏷️ Update an auxiliary tag.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "tag_id": {"type": "string", "description": "Tag-ID"},
-                    "title": {"type": "string", "description": "Neuer Anzeigename"},
-                    "topic": {"type": "string", "description": "Neues Thema"},
-                    "help": {"type": "string", "description": "Neuer Hilfetext"},
+                    "tag_id": {"type": "string", "description": "Tag ID"},
+                    "title": {"type": "string", "description": "New display name"},
+                    "topic": {"type": "string", "description": "New topic"},
+                    "help": {"type": "string", "description": "New help text"},
                 },
                 "required": ["tag_id"],
             },
@@ -2482,7 +2485,7 @@ def get_aux_tag_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "tag_id": {"type": "string", "description": "Tag-ID"},
+                    "tag_id": {"type": "string", "description": "Tag ID"},
                 },
                 "required": ["tag_id"],
             },
@@ -2503,11 +2506,11 @@ def get_audit_log_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "date": {
                         "type": "string",
-                        "description": "Startdatum (YYYY-MM-DD, default: heute)",
+                        "description": "Start date (YYYY-MM-DD, default: today)",
                     },
                     "object_type": {
                         "type": "string",
-                        "description": "Objekttyp-Filter: 'All', 'Folder', 'Host', 'User', 'Rule', 'Ruleset'",
+                        "description": "Object type filter: 'All', 'Folder', 'Host', 'User', 'Rule', 'Ruleset'",
                     },
                     "object_id": {
                         "type": "string",
@@ -2542,7 +2545,7 @@ def get_site_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "site_id": {"type": "string", "description": "Site-ID (z.B. 'uel', 'ham')"},
+                    "site_id": {"type": "string", "description": "Site ID, e.g. 'uel' or 'ham'"},
                     "username": {"type": "string", "description": "User name"},
                     "password": {"type": "string", "description": "Password"},
                 },
@@ -2555,7 +2558,7 @@ def get_site_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "site_id": {"type": "string", "description": "Site-ID"},
+                    "site_id": {"type": "string", "description": "Site ID"},
                 },
                 "required": ["site_id"],
             },
@@ -2792,8 +2795,8 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
                     "expected_speed_mbit": {
                         "type": "integer",
                         "description": (
-                            "Erwartete Interface-Geschwindigkeit in Mbit/s. "
-                            "Typische Werte: 10, 100, 1000 (1 GBit/s), 10000 (10 GBit/s)."
+                            "Expected interface speed in Mbit/s. "
+                            "Typical values: 10, 100, 1000 (1 Gbit/s), 10000 (10 Gbit/s)."
                         ),
                     },
                     "folder": {
@@ -2826,7 +2829,7 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
                     },
                     "ram_crit_percent": {
                         "type": "number",
-                        "description": "Total virtual memory CRIT in % (levels_virtual, z.B. 95). Pflicht wenn ram_warn gesetzt.",
+                        "description": "Total virtual memory CRIT in percent (levels_virtual, e.g. 95). Required when ram_warn is set.",
                     },
                     "swap_warn_percent": {
                         "type": "number",
@@ -2834,7 +2837,7 @@ def get_service_param_tools() -> List[Dict[str, Any]]:
                     },
                     "swap_crit_percent": {
                         "type": "number",
-                        "description": "Swap-Auslastung CRIT-Schwelle in % (z.B. 50). Pflicht wenn swap_warn gesetzt.",
+                        "description": "Swap usage CRIT threshold in percent (e.g. 50). Required when swap_warn is set.",
                     },
                     "folder": {
                         "type": "string",

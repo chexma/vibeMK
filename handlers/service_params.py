@@ -6,6 +6,7 @@ Process thresholds: inventory_processes_rules + service discovery (refresh).
 Interface params: checkgroup_parameters:if + activate (no discovery needed).
 """
 
+import ast
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
@@ -205,10 +206,11 @@ class ServiceParamsHandler(BaseHandler):
 
             disabled = props.get("disabled", False)
             status = "🔴" if disabled else "🟢"
-            hosts_str = ", ".join(hosts) if hosts else "alle Hosts"
+            hosts_str = ", ".join(hosts) if hosts else "all hosts"
 
             try:
-                v = eval(vr)
+                # value_raw comes from the server: read it as a literal, never run it
+                v = ast.literal_eval(vr)
                 descr = v.get("descr", "?")
                 match = v.get("match", "?")
                 dp = v.get("default_params", {})
@@ -216,7 +218,7 @@ class ServiceParamsHandler(BaseHandler):
                 if levels:
                     details = f"min warn/crit: {levels[0]}/{levels[1]}, max warn/crit: {levels[2]}/{levels[3]}"
                 else:
-                    details = "(keine Schwellwerte)"
+                    details = "(no thresholds)"
                 cpu = dp.get("cpulevels", None)
                 if cpu:
                     details += f", CPU warn/crit: {cpu[0]}%/{cpu[1]}%"
@@ -232,7 +234,7 @@ class ServiceParamsHandler(BaseHandler):
             )
 
         if len(lines) == 1:
-            lines.append("Keine Prozess-Monitoring-Regeln gefunden.")
+            lines.append("No process monitoring rules found.")
         return [{"type": "text", "text": "\n".join(lines)}]
 
     # Speed lookup: Mbit/s → bits/s
