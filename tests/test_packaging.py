@@ -12,11 +12,12 @@ artefact, the private `claude.md` notes and the `tmp/` planning files.
 """
 
 import glob
+import os
 import pathlib
 import subprocess
 import sys
 import zipfile
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, distribution, version
 
 import pytest
 
@@ -98,7 +99,20 @@ def wheel(tmp_path_factory):
     actually produced -- and the portable one: tomllib only exists from
     Python 3.11, and this project supports 3.10.
     """
-    pytest.importorskip("build", reason="python-build is needed to inspect the distribution")
+    # Asking for the distribution, not `find_spec("build")`: setuptools leaves
+    # a build/ directory in the project root, which import machinery happily
+    # resolves as a namespace package. The spec check therefore succeeds
+    # exactly when it is least true -- right after a build.
+    try:
+        distribution("build")
+    except PackageNotFoundError:
+        # Locally, skipping is a courtesy to someone who installed neither the
+        # dev extras nor python-build. In CI it is the failure mode this whole
+        # module exists to prevent: a guard that reports green because it never
+        # ran. `build` is in the dev extras precisely so this cannot happen.
+        if os.environ.get("CI"):
+            pytest.fail("python-build is missing, so the distribution guards did not run")
+        pytest.skip("python-build is needed to inspect the distribution")
 
     outdir = tmp_path_factory.mktemp("dist")
     completed = subprocess.run(

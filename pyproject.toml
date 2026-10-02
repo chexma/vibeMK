@@ -76,7 +76,12 @@ dev = [
     "isort>=5.0.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
-    "coverage>=7.0.0"
+    "coverage>=7.0.0",
+    # tests/test_packaging.py builds the wheel to check what is in it. Without
+    # this it importorskips, and the guards against shipping scratch files
+    # report green without ever running -- which is how the defects they cover
+    # survived in the first place.
+    "build>=1.0.0",
 ]
 
 [tool.black]
