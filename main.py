@@ -21,8 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import sys
 
-from vibemk_mcp.server import CheckMKMCPServer
 from utils import setup_logging
+from vibemk_mcp.server import CheckMKMCPServer
 
 
 async def main():

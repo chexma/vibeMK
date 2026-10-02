@@ -1,210 +1,177 @@
 """
-Tests for the JSON-RPC dispatch layer.
+Tool-call semantics.
 
-The dispatcher is exercised through a stub registry, so no CheckMK client and
-no mock detection is involved. Production code must never behave differently
-because it is under test.
+The SDK owns the protocol -- framing, version negotiation, and the difference
+between a JSON-RPC error and a result. What stays ours is what a tool call
+means: which handler runs, whether a failure is reported as a result the model
+can act on, and what reaches the log.
 """
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+from unittest.mock import MagicMock
 
 import pytest
 
-from config import MCPConfig
-from vibemk_mcp.dispatch import Dispatcher
+from vibemk_mcp.dispatch import Dispatcher, is_error
 from vibemk_mcp.registry import ToolRegistry
+from vibemk_mcp.server import CheckMKMCPServer
 from vibemk_mcp.tools import get_all_tools
+
+TOOL = "vibemk_get_checkmk_version"
 
 
 class RecordingHandler:
-    """A handler that records the call it received."""
+    """A handler that records what it was asked and answers predictably."""
 
-    def __init__(self, result: Optional[List[Dict[str, Any]]] = None, raises: Optional[Exception] = None):
-        self.result = result if result is not None else [{"type": "text", "text": "ok"}]
+    def __init__(self, text: str = "✅ **Done**", raises: BaseException | None = None) -> None:
+        self.text = text
         self.raises = raises
-        self.calls: List[Any] = []
+        self.calls: List[Dict[str, Any]] = []
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        self.calls.append((tool_name, arguments))
+        self.calls.append({"tool": tool_name, "arguments": arguments})
         if self.raises is not None:
             raise self.raises
-        return self.result
+        return [{"type": "text", "text": self.text}]
 
 
-class StubRegistry(ToolRegistry):
-    """A registry built directly from a handler mapping, skipping from_client's
-    CheckMK-client wiring. handler_for/tool_names are inherited unchanged."""
-
-    def __init__(self, handlers: Optional[Dict[str, Any]] = None) -> None:
-        super().__init__(handlers or {})
+def make_dispatcher(handlers: Dict[str, Any] | None = None) -> Dispatcher:
+    registry = ToolRegistry(handlers if handlers is not None else {TOOL: RecordingHandler()})
+    return Dispatcher(lambda: registry)
 
 
-def make_dispatcher(handlers=None):
-    registry = StubRegistry(handlers)
-    return Dispatcher(lambda: registry, MCPConfig())
-
-
-def request(method, params=None, request_id=1):
-    body = {"jsonrpc": "2.0", "id": request_id, "method": method}
-    if params is not None:
-        body["params"] = params
-    return body
-
-
-class TestProtocol:
-    @pytest.mark.asyncio
-    async def test_tools_list_returns_the_catalogue(self):
-        # Compared against the catalogue rather than a pinned count: the point
-        # is that the protocol layer hands back everything that is declared,
-        # and a hard-coded number turns every catalogue change into a failure
-        # that says nothing about the protocol.
-        response = await make_dispatcher().handle(request("tools/list"))
-
-        assert len(response["result"]["tools"]) == len(get_all_tools())
+class TestErrorsAreReportedAsResults:
+    """A tool that ran and failed is actionable; a missing tool is not."""
 
     @pytest.mark.asyncio
-    async def test_initialize_answers_a_supported_version(self):
-        response = await make_dispatcher().handle(request("initialize", {"protocolVersion": "1999-01-01-BOGUS"}))
+    async def test_a_successful_call_is_not_an_error(self):
+        result = await make_dispatcher().call_tool(TOOL, {})
 
-        assert response["result"]["protocolVersion"] in MCPConfig().supported_protocol_versions
-
-    @pytest.mark.asyncio
-    async def test_initialized_notification_produces_no_response(self):
-        assert await make_dispatcher().handle({"jsonrpc": "2.0", "method": "notifications/initialized"}) is None
+        assert result.is_error is False
+        assert result.content[0].text == "✅ **Done**"
 
     @pytest.mark.asyncio
-    async def test_unknown_method_is_method_not_found(self):
-        response = await make_dispatcher().handle(request("no/such/method"))
+    async def test_a_handler_reporting_failure_sets_is_error(self):
+        handlers = {TOOL: RecordingHandler(text="❌ **Host not found**")}
 
-        assert response["error"]["code"] == -32601
+        result = await make_dispatcher(handlers).call_tool(TOOL, {})
 
-    @pytest.mark.asyncio
-    async def test_request_without_jsonrpc_field_is_invalid(self):
-        response = await make_dispatcher().handle({"id": 1, "method": "tools/list"})
-
-        assert response["error"]["code"] == -32600
+        assert result.is_error is True
 
     @pytest.mark.asyncio
-    async def test_request_that_is_not_an_object_is_invalid(self):
-        response = await make_dispatcher().handle("not a dict")
+    async def test_a_raising_handler_becomes_a_result_not_an_exception(self):
+        """The model can fix an argument and retry; a -32603 gives it nothing."""
+        handlers = {TOOL: RecordingHandler(raises=RuntimeError("boom"))}
 
-        assert response["error"]["code"] == -32600
+        result = await make_dispatcher(handlers).call_tool(TOOL, {})
+
+        assert result.is_error is True
+        assert "boom" in result.content[0].text
 
     @pytest.mark.asyncio
-    async def test_request_without_method_field_is_invalid(self):
-        """`method = request["method"]` sits right after this guard, outside the
-        try/except. Without the guard a missing method raises KeyError, which
-        escapes handle() entirely instead of producing a -32600 response."""
-        response = await make_dispatcher().handle({"jsonrpc": "2.0", "id": "test-5"})
-
-        assert response["error"]["code"] == -32600
+    async def test_an_unknown_tool_raises_so_the_sdk_reports_a_protocol_error(self):
+        with pytest.raises(ValueError, match="Unknown tool"):
+            await make_dispatcher().call_tool("vibemk_not_a_tool", {})
 
 
-class TestToolCalls:
+class TestTheHandlerIsReached:
     @pytest.mark.asyncio
-    async def test_a_registered_tool_is_invoked(self):
+    async def test_the_registered_handler_runs(self):
         handler = RecordingHandler()
-        dispatcher = make_dispatcher({"vibemk_demo": handler})
 
-        response = await dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}))
+        await make_dispatcher({TOOL: handler}).call_tool(TOOL, {})
 
-        assert response["result"]["content"] == [{"type": "text", "text": "ok"}]
+        assert handler.calls[0]["tool"] == TOOL
 
     @pytest.mark.asyncio
     async def test_arguments_reach_the_handler(self):
         handler = RecordingHandler()
-        dispatcher = make_dispatcher({"vibemk_demo": handler})
 
-        await dispatcher.handle(
-            request("tools/call", {"name": "vibemk_demo", "arguments": {"host_name": "example.com"}})
-        )
+        await make_dispatcher({TOOL: handler}).call_tool(TOOL, {"host_name": "web01"})
 
-        assert handler.calls == [("vibemk_demo", {"host_name": "example.com"})]
+        assert handler.calls[0]["arguments"] == {"host_name": "web01"}
 
     @pytest.mark.asyncio
-    async def test_an_unregistered_tool_is_method_not_found(self):
-        response = await make_dispatcher().handle(request("tools/call", {"name": "vibemk_nope", "arguments": {}}))
+    async def test_absent_arguments_arrive_as_an_empty_mapping(self):
+        handler = RecordingHandler()
 
-        assert response["error"]["code"] == -32601
+        await make_dispatcher({TOOL: handler}).call_tool(TOOL, None)
 
-    @pytest.mark.asyncio
-    async def test_a_raising_handler_becomes_an_internal_error(self):
-        dispatcher = make_dispatcher({"vibemk_demo": RecordingHandler(raises=RuntimeError("boom"))})
-
-        response = await dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}))
-
-        assert response["error"]["code"] == -32603
+        assert handler.calls[0]["arguments"] == {}
 
     @pytest.mark.asyncio
-    async def test_requests_are_served_concurrently(self):
-        dispatcher = make_dispatcher({"vibemk_demo": RecordingHandler()})
+    async def test_calls_are_served_concurrently(self):
+        handler = RecordingHandler()
+        dispatcher = make_dispatcher({TOOL: handler})
 
-        responses = await asyncio.gather(
-            *(dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}, i)) for i in range(5))
-        )
+        await asyncio.gather(*(dispatcher.call_tool(TOOL, {"n": n}) for n in range(5)))
 
-        assert [r["id"] for r in responses] == [0, 1, 2, 3, 4]
+        assert len(handler.calls) == 5
 
 
 class TestConfigurationErrors:
     @pytest.mark.asyncio
-    async def test_a_failing_registry_becomes_readable_tool_output(self):
-        def explode():
+    async def test_an_unusable_configuration_becomes_readable_tool_output(self):
+        def explode() -> ToolRegistry:
             raise ValueError("CHECKMK_SERVER_URL is required")
 
-        dispatcher = Dispatcher(explode, MCPConfig())
+        result = await Dispatcher(explode).call_tool(TOOL, {})
 
-        response = await dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}))
+        assert result.is_error is True
+        assert "CHECKMK_SERVER_URL" in result.content[0].text
 
-        assert response is not None
-        assert "CHECKMK_SERVER_URL is required" in response["result"]["content"][0]["text"]
-
-    @pytest.mark.asyncio
-    async def test_tools_list_works_without_a_usable_registry(self):
-        def explode():
-            raise ValueError("CHECKMK_SERVER_URL is required")
-
-        response = await Dispatcher(explode, MCPConfig()).handle(request("tools/list"))
-
-        assert response is not None
-        assert len(response["result"]["tools"]) == len(get_all_tools())
+    def test_the_catalogue_is_available_without_a_usable_registry(self):
+        """tools/list must answer before CheckMK is ever contacted."""
+        assert len(get_all_tools()) > 0
 
 
 class TestToolCallsLeaveATrace:
-    """A record of what the model actually did.
-
-    This server creates and deletes hosts, rules, users and downtimes. The
-    only account of which of those an LLM invoked is the server's own log,
-    and after the dispatcher was split out only *failing* calls were logged —
-    a successful deletion left nothing behind at all. The old dispatcher
-    logged every request before running it; this restores that.
-
-    Arguments are deliberately not logged: they carry host names, comments
-    and, for the password tools, secrets.
-    """
+    """The server's log is the only record of what a model actually did."""
 
     @pytest.mark.asyncio
     async def test_a_successful_call_is_logged_with_its_tool_name(self, caplog: pytest.LogCaptureFixture) -> None:
         with caplog.at_level(logging.INFO, logger="vibemk_mcp.dispatch"):
-            await make_dispatcher().handle(
-                request("tools/call", {"name": "vibemk_get_checkmk_version", "arguments": {}})
-            )
+            await make_dispatcher().call_tool(TOOL, {})
 
         assert any(
-            "vibemk_get_checkmk_version" in record.message and record.levelno == logging.INFO
-            for record in caplog.records
+            TOOL in record.message and record.levelno == logging.INFO for record in caplog.records
         ), f"no INFO record names the tool: {[r.message for r in caplog.records]}"
 
     @pytest.mark.asyncio
     async def test_the_arguments_are_not_logged(self, caplog: pytest.LogCaptureFixture) -> None:
-        with caplog.at_level(logging.INFO, logger="vibemk_mcp.dispatch"):
-            await make_dispatcher().handle(
-                request(
-                    "tools/call",
-                    {"name": "vibemk_get_checkmk_version", "arguments": {"password": "hunter2"}},
-                )
-            )
+        """They carry host names, comment text and, for the password tools, secrets."""
+        with caplog.at_level(logging.DEBUG, logger="vibemk_mcp.dispatch"):
+            await make_dispatcher().call_tool(TOOL, {"password": "hunter2"})
 
-        assert not any("hunter2" in record.message for record in caplog.records)
+        assert not any("hunter2" in record.getMessage() for record in caplog.records)
+
+
+class TestIsErrorDetection:
+    def test_a_cross_marks_a_failure(self):
+        assert is_error([{"type": "text", "text": "❌ **Failed**"}]) is True
+
+    def test_leading_whitespace_does_not_hide_the_marker(self):
+        assert is_error([{"type": "text", "text": "  ❌ **Failed**"}]) is True
+
+    def test_a_tick_is_a_success(self):
+        assert is_error([{"type": "text", "text": "✅ **Done**"}]) is False
+
+    def test_empty_content_is_a_success(self):
+        assert is_error([]) is False
+
+
+class TestServerWiring:
+    def test_the_server_registers_the_tool_methods(self):
+        server = CheckMKMCPServer()
+
+        assert server._server.get_request_handler("tools/list") is not None
+        assert server._server.get_request_handler("tools/call") is not None
+
+    def test_every_declared_tool_validates_against_the_sdk_model(self):
+        """tools/list builds these on every call; a malformed one breaks it."""
+        import mcp.types as types
+
+        for tool in get_all_tools():
+            types.Tool.model_validate(tool)

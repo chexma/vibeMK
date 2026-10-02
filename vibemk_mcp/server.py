@@ -1,9 +1,13 @@
 """
 vibeMK MCP Server
 
-Wires the transport, the dispatcher and the tool registry together. The
-CheckMK connection is established on the first tool call, not at startup, so a
-misconfigured server still answers initialize and tools/list.
+Wires the tool catalogue and the dispatcher onto the official MCP SDK. The SDK
+owns the protocol: version negotiation, JSON-RPC framing, the stdio and
+Streamable HTTP transports, and the distinction between a protocol error and a
+tool execution error.
+
+The CheckMK connection is established on the first tool call, not at startup,
+so a misconfigured server still answers initialize and tools/list.
 
 Copyright (C) 2024 Andre <andre@example.com>
 
@@ -21,14 +25,18 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
+import mcp.types as types
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
+from mcp.server.lowlevel import Server
+from mcp.server.models import InitializationOptions
+from mcp.server.stdio import stdio_server
+from utils import get_logger
 from vibemk_mcp.dispatch import Dispatcher
 from vibemk_mcp.registry import ToolRegistry
-from vibemk_mcp.transport import StdioTransport
-from utils import get_logger
+from vibemk_mcp.tools import get_all_tools
 
 logger = get_logger(__name__)
 
@@ -39,8 +47,9 @@ class CheckMKMCPServer:
     def __init__(self) -> None:
         self.mcp_config = MCPConfig()
         self._registry: Optional[ToolRegistry] = None
-        self._dispatcher = Dispatcher(self._registry_provider, self.mcp_config)
-        self._transport = StdioTransport(self._dispatcher.handle)
+        self._dispatcher = Dispatcher(self._registry_provider)
+        self._server = Server(self.mcp_config.server_name)
+        self._register_handlers()
 
     def _registry_provider(self) -> ToolRegistry:
         """Build the registry on first use; raises when configuration is unusable."""
@@ -52,11 +61,28 @@ class CheckMKMCPServer:
             logger.info("Registry initialized: %d tools", len(self._registry.tool_names()))
         return self._registry
 
-    async def handle_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Handle one MCP request directly, without going through the transport."""
-        return await self._dispatcher.handle(request)
+    def _register_handlers(self) -> None:
+        async def list_tools(_ctx: Any, _params: Any) -> types.ListToolsResult:
+            # The catalogue is declared as plain dictionaries in camelCase,
+            # which is the shape the Tool model validates from directly.
+            return types.ListToolsResult(tools=[types.Tool.model_validate(tool) for tool in get_all_tools()])
+
+        async def call_tool(_ctx: Any, params: types.CallToolRequestParams) -> types.CallToolResult:
+            return await self._dispatcher.call_tool(params.name, params.arguments)
+
+        self._server.add_request_handler("tools/list", types.PaginatedRequestParams, list_tools)
+        self._server.add_request_handler("tools/call", types.CallToolRequestParams, call_tool)
 
     async def run(self) -> None:
         """Serve MCP requests on stdio until the input ends."""
         logger.info("Starting vibeMK %s", self.mcp_config.server_version)
-        await self._transport.run()
+        async with stdio_server() as (read_stream, write_stream):
+            await self._server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name=self.mcp_config.server_name,
+                    server_version=self.mcp_config.server_version,
+                    capabilities=self._server.get_capabilities(notification_options=None),
+                ),
+            )
