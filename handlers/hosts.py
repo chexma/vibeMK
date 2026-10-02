@@ -14,19 +14,6 @@ from utils.folder_validator import validate_folder_path
 class HostHandler(BaseHandler):
     """Handle host management operations"""
 
-    _WRITE_TOOLS = frozenset(
-        {
-            "vibemk_create_host",
-            "vibemk_bulk_create_hosts",
-            "vibemk_update_host",
-            "vibemk_delete_host",
-            "vibemk_move_host",
-            "vibemk_bulk_update_hosts",
-            "vibemk_create_cluster_host",
-            "vibemk_clone_host",
-        }
-    )
-
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Handle host-related tool calls"""
 
@@ -72,13 +59,6 @@ class HostHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (
-            tool_name in self._WRITE_TOOLS
-            and arguments.get("activate_changes")
-            and result
-            and "❌" not in result[-1].get("text", "")
-        ):
-            result[-1]["text"] += "\n" + self._run_activation()
         return result
 
     # The prose can say "UNKNOWN(5)" to show what CheckMK actually sent. The

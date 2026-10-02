@@ -14,23 +14,6 @@ from handlers.base import BaseHandler
 class ActiveChecksHandler(BaseHandler):
     """Handle active check rule creation"""
 
-    _WRITE_TOOLS = frozenset(
-        {
-            "vibemk_create_http_check",
-            "vibemk_create_tcp_check",
-            "vibemk_create_icmp_check",
-            "vibemk_create_custom_check",
-            "vibemk_create_dns_check",
-            "vibemk_create_smtp_check",
-            "vibemk_create_ftp_check",
-            "vibemk_create_ldap_check",
-            "vibemk_create_smb_check",
-            "vibemk_create_mkevents_check",
-            "vibemk_create_inventory_check",
-            "vibemk_delete_active_check",
-        }
-    )
-
     _ALL_RULESETS = [
         "active_checks:http",
         "active_checks:tcp",
@@ -82,13 +65,6 @@ class ActiveChecksHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (
-            tool_name in self._WRITE_TOOLS
-            and arguments.get("activate_changes")
-            and result
-            and "❌" not in result[-1].get("text", "")
-        ):
-            result[-1]["text"] += "\n" + self._run_activation()
         return result
 
     def _host_condition(self, hostname: str) -> Dict[str, Any]:

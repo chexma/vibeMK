@@ -14,14 +14,6 @@ from handlers.base import BaseHandler
 class AuxTagsHandler(BaseHandler):
     """Handle auxiliary tag CRUD"""
 
-    _WRITE_TOOLS = frozenset(
-        {
-            "vibemk_create_aux_tag",
-            "vibemk_update_aux_tag",
-            "vibemk_delete_aux_tag",
-        }
-    )
-
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         try:
             if tool_name == "vibemk_get_aux_tags":
@@ -41,13 +33,6 @@ class AuxTagsHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (
-            tool_name in self._WRITE_TOOLS
-            and arguments.get("activate_changes")
-            and result
-            and "❌" not in result[-1].get("text", "")
-        ):
-            result[-1]["text"] += "\n" + self._run_activation()
         return result
 
     async def _get_aux_tags(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:

@@ -17,15 +17,6 @@ from handlers.base import BaseHandler
 class ServiceParamsHandler(BaseHandler):
     """Handle service parameter threshold rules"""
 
-    _WRITE_TOOLS = frozenset(
-        {
-            "vibemk_set_process_thresholds",
-            "vibemk_set_interface_params",
-            "vibemk_set_memory_thresholds",
-            "vibemk_delete_service_param_rule",
-        }
-    )
-
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         try:
             if tool_name == "vibemk_set_process_thresholds":
@@ -47,13 +38,6 @@ class ServiceParamsHandler(BaseHandler):
             self.logger.exception(f"Error in {tool_name}")
             return self.error_response("Unexpected Error", str(e))
 
-        if (
-            tool_name in self._WRITE_TOOLS
-            and arguments.get("activate_changes")
-            and result
-            and "❌" not in result[-1].get("text", "")
-        ):
-            result[-1]["text"] += "\n" + self._run_activation()
         return result
 
     def _resolve_folder(self, hostname: str, explicit_folder: Optional[str]) -> str:
