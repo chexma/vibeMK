@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- The `vibemk` command works after `pip install`; it previously exited
+  without starting the server
+- An installed vibeMK no longer places `examples`, `tmp` and stale build
+  output into the Python environment
+- The full GNU GPL v3 text is included; the file was previously abridged
+
 ## [0.5.1] - 2026-10-02
 
 ### Fixed
