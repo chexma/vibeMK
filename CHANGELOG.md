@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Tools now say what they do before they run: whether one only reads, whether
+  it can delete something, whether calling it twice differs from calling it
+  once. Clients use this to decide what needs a confirmation prompt
+- Host status, host lists and pending changes return machine-readable data
+  alongside the usual text
+
+### Changed
+- vibeMK now speaks MCP through the official SDK. The handshake negotiates a
+  current protocol revision instead of a fixed 2024-11-05, a failing tool
+  reports a failure the model can act on, and Streamable HTTP is available
+- Requires Python 3.10 or newer, and installs one dependency (the MCP SDK)
+
 ### Fixed
 - Deleting one downtime no longer deletes others on the same host
 - Acknowledgement lists now show acknowledgements, not similar-looking comments

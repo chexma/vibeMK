@@ -31,7 +31,7 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 - **🔧 Modular Architecture**: Clean handler structure for different CheckMK areas
 - **⚡ Optimized Performance**: Efficient API clients and connection management
 - **🛡️ Robust Security**: Comprehensive input validation and error handling
-- **🧪 Zero Dependencies**: Uses exclusively Python standard library
+- **🧪 One Dependency**: The official MCP SDK; everything else is Python standard library
 
 ### 📊 Tool Overview (82 Tools)
 - **CheckMK Core**: `vibemk_get_checkmk_version`, `vibemk_debug_checkmk_connection`
@@ -65,13 +65,17 @@ cd vibeMK
 
 ## 📦 Step 2: Verify Dependencies
 
-### ⚡ Zero Dependencies Required
+### ⚡ One Dependency
 
-vibeMK uses **only Python standard library** - no external packages needed!
+vibeMK speaks MCP through the official SDK, which owns protocol version
+negotiation, JSON-RPC framing and the transports. Everything else is Python
+standard library.
 
 ```bash
-# Verify all required modules are available
-python -c "import json, urllib.request, asyncio; print('✅ All dependencies available')"
+pip install -r requirements.txt
+
+# Verify
+python -c "import mcp; print('✅ MCP SDK available')"
 ```
 
 **Optional: Development Dependencies (only for contributors)**
@@ -307,7 +311,7 @@ open -a Claude
 | "Authentication failed" | 401 Unauthorized | Check API key and username |
 | "Permission denied" | 403 Forbidden | Check user permissions in CheckMK |
 | "Python not found" | Server won't start | Check python3 installation |
-| "Module not found" | Import error | Verify Python 3.8+ installation |
+| "Module not found" | Import error | Verify Python 3.10+ installation |
 
 ### 8.2 Enable Debug Logs
 
