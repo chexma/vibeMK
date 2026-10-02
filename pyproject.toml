@@ -34,18 +34,39 @@ Repository = "https://github.com/chexma/vibeMK"
 Issues = "https://github.com/chexma/vibeMK/issues"
 
 [project.scripts]
-vibemk = "main:main"
+vibemk = "vibemk_mcp.cli:cli"
 
 [tool.setuptools.dynamic]
 version = {attr = "config.version.__version__"}
 
+[tool.setuptools]
+# Defaults to true under pyproject.toml, which sweeps every file sitting in a
+# package directory into the distribution -- including the gitignored, private
+# claude.md notes. What ships is listed in package-data instead.
+include-package-data = false
+
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["*"]
-exclude = ["tests*"]
+# Named explicitly rather than globbed. In pyproject.toml this table defaults
+# to namespaces = true, which collects any directory -- including ones with no
+# __init__.py -- so include = ["*"] was shipping examples/, tmp/, scripts/ and
+# the local build/ artefact as importable top-level packages.
+include = [
+    "api*",
+    "checkmk_types*",
+    "config*",
+    "handlers*",
+    "utils*",
+    "vibemk_mcp*",
+]
+exclude = ["tests*", "examples*", "scripts*", "tmp*", "build*"]
+namespaces = false
 
 [tool.setuptools.package-data]
-"*" = ["*.md", "*.txt", "*.yaml", "*.yml"]
+# Only the PEP 561 marker. A blanket "*.md" shipped the gitignored, private
+# claude.md notes from api/, config/, handlers/ and vibemk_mcp/ into the
+# distribution.
+"*" = ["py.typed"]
 
 [project.optional-dependencies]
 dev = [
