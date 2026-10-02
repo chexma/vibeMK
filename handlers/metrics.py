@@ -372,7 +372,9 @@ class MetricsHandler(BaseHandler):
             data_points = metric.get("data_points", [])
 
             if data_points:
-                latest_value = data_points[-1] if data_points else "No data"
+                # The most recent bucket is often still empty, so report the
+                # last point that actually carries a value.
+                latest_value = next((point for point in reversed(data_points) if point is not None), "No data")
                 response += f"📈 **{title}**\n"
                 response += f"   Latest: {latest_value}\n"
                 response += f"   Data points: {len(data_points)}\n"
@@ -581,8 +583,23 @@ class MetricsHandler(BaseHandler):
         time_range = arguments.get("time_range", "1h")
         reduce_function = arguments.get("reduce", "max")
 
+        graph_id = arguments.get("graph_id")
+        metric_id = arguments.get("metric_id")
+
         if not host_filter:
             return self.error_response("Missing parameter", "host_filter is required")
+
+        # The endpoint returns one named graph or one named metric across every
+        # host the filter matches; it has no mode that searches without one.
+        if graph_id and metric_id:
+            return self.error_response("Conflicting parameters", "Give either graph_id or metric_id, not both")
+        if not graph_id and not metric_id:
+            return self.error_response(
+                "Missing parameter",
+                "Either graph_id or metric_id is required. Both are shown in the service view "
+                "once 'Show internal IDs' is enabled in its display options — a graph ID in the "
+                "graph title, a metric ID in the legend.",
+            )
 
         # Parse time range
         time_data = self._parse_time_range(time_range)
@@ -593,7 +610,13 @@ class MetricsHandler(BaseHandler):
         if service_filter:
             filter_data["service"] = {"service": service_filter}
 
-        data = {"time_range": time_data, "reduce": reduce_function, "filter": filter_data, "type": "predefined_graph"}
+        data: Dict[str, Any] = {"time_range": time_data, "reduce": reduce_function, "filter": filter_data}
+        if graph_id:
+            data["type"] = "predefined_graph"
+            data["graph_id"] = graph_id
+        else:
+            data["type"] = "single_metric"
+            data["metric_id"] = metric_id
 
         result = self.client.post("domain-types/metric/actions/filter/invoke", data=data)
 

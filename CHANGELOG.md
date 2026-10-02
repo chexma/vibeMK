@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - `activate_changes` works again on host, service parameter, active check and
   auxiliary tag writes; it raised an internal error instead of activating
 - Custom graph and metric search results render again instead of failing
+- Metric search works: it now takes the `graph_id` or `metric_id` CheckMK
+  requires, instead of always answering HTTP 400
+- A metric's latest value skips a still-empty final bucket instead of
+  reporting "None"
 
 ## [0.5.0] - 2026-10-02
 
