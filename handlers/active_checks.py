@@ -422,6 +422,8 @@ class ActiveChecksHandler(BaseHandler):
             return self.error_response("Missing parameter", "hostname is required")
 
         value: Dict[str, Any] = {"name": name}
+        if port:
+            value["port"] = int(port)
         if starttls:
             value["starttls"] = True
         if starttls or arguments.get("check_cert"):
