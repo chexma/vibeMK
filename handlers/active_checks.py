@@ -620,7 +620,7 @@ class ActiveChecksHandler(BaseHandler):
         )
 
         lines = ["🔍 **Active Checks**\n"]
-        for ruleset, result in zip(rulesets, self._map_concurrently(self._rules_of, rulesets)):
+        for ruleset, result in zip(rulesets, self._map_concurrently(self._rules_of, rulesets), strict=True):
             if not result.get("success"):
                 continue
             rules = result["data"].get("value", [])
@@ -660,7 +660,7 @@ class ActiveChecksHandler(BaseHandler):
                 else ["custom_checks"] if check_type == "custom" else self._ALL_RULESETS
             )
             matches = []
-            for rs, res in zip(rulesets, self._map_concurrently(self._rules_of, rulesets)):
+            for rs, res in zip(rulesets, self._map_concurrently(self._rules_of, rulesets), strict=True):
                 if not res.get("success"):
                     continue
                 for rule in res["data"].get("value", []):
