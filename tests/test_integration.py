@@ -3,13 +3,20 @@ Integration Tests for vibeMK
 
 These tests require a running CheckMK instance and can be run optionally.
 Set INTEGRATION_TESTS=true and provide real CheckMK credentials to run.
+
+The client is synchronous: it blocks in urllib and returns a dict, and a
+failed request raises one of the exceptions in api.exceptions rather than
+returning success=False.
 """
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from mcp import Client
 
 from api import CheckMKClient
+from api.exceptions import CheckMKAuthenticationError, CheckMKNotFoundError
 from config import CheckMKConfig
 from vibemk_mcp.server import CheckMKMCPServer
 
@@ -42,20 +49,18 @@ def real_client(integration_config):
 class TestIntegration:
     """Integration tests with real CheckMK instance"""
 
-    @pytest.mark.asyncio
-    async def test_real_connection(self, real_client):
+    def test_real_connection(self, real_client):
         """Test connection to real CheckMK instance"""
-        result = await real_client.get("version")
+        result = real_client.get("version")
 
         assert result["success"] is True
         assert "data" in result
         assert "versions" in result["data"]
         assert "checkmk" in result["data"]["versions"]
 
-    @pytest.mark.asyncio
-    async def test_real_hosts_list(self, real_client):
+    def test_real_hosts_list(self, real_client):
         """Test listing real hosts"""
-        result = await real_client.get("domain-types/host/collections/all")
+        result = real_client.get("domain-types/host/collections/all")
 
         assert result["success"] is True
         assert "data" in result
@@ -64,8 +69,8 @@ class TestIntegration:
 
     @pytest.mark.asyncio
     async def test_real_mcp_server_workflow(self):
-        """Test complete MCP server workflow with real CheckMK"""
-        # Skip if credentials not provided
+        """Test complete MCP server workflow with real CheckMK, over the protocol"""
+        # The server reads its configuration from the environment
         if not all(
             [
                 os.environ.get("CHECKMK_SERVER_URL"),
@@ -75,79 +80,57 @@ class TestIntegration:
         ):
             pytest.skip("Real CheckMK credentials not provided")
 
-        # Initialize MCP server
         server = CheckMKMCPServer()
 
-        # Test tools list
-        tools_request = {"jsonrpc": "2.0", "id": "integration-1", "method": "tools/list"}
+        # The legacy mode runs the initialize handshake and JSON-RPC framing,
+        # as a stdio client would
+        async with Client(server._server, mode="legacy") as client:
+            tools = await client.list_tools()
+            assert len(tools.tools) > 0
 
-        tools_response = await server.handle_request(tools_request)
-        assert tools_response["jsonrpc"] == "2.0"
-        assert "result" in tools_response
-        assert len(tools_response["result"]["tools"]) > 0
+            result = await client.call_tool("vibemk_debug_checkmk_connection", {})
 
-        # Test connection tool
-        connection_request = {
-            "jsonrpc": "2.0",
-            "id": "integration-2",
-            "method": "tools/call",
-            "params": {"name": "vibemk_debug_checkmk_connection", "arguments": {}},
-        }
-
-        connection_response = await server.handle_request(connection_request)
-        assert "result" in connection_response
-        assert len(connection_response["result"]["content"]) > 0
-
-        # Should contain success indicator
-        content_text = connection_response["result"]["content"][0]["text"]
+        assert result.is_error is False
+        assert len(result.content) > 0
+        content_text = result.content[0].text
         assert "✅" in content_text or "Connection successful" in content_text
 
-    @pytest.mark.asyncio
-    async def test_host_operations_workflow(self, real_client):
+    def test_host_operations_workflow(self, real_client):
         """Test complete host operations workflow"""
         # This test should only run if we have a test host available
         test_host = os.environ.get("TEST_HOST_NAME")
         if not test_host:
             pytest.skip("TEST_HOST_NAME not provided for host operations test")
 
-        # Test host status
-        host_status = await real_client.get(f"objects/host/{test_host}", params={"columns": ["state", "plugin_output"]})
-
-        if host_status["success"]:
-            # Host exists, test status retrieval
-            assert "data" in host_status
-            assert "extensions" in host_status["data"]
-        else:
+        try:
+            host_status = real_client.get(f"objects/host/{test_host}", params={"columns": ["state", "plugin_output"]})
+        except CheckMKNotFoundError:
             # Host doesn't exist, which is also a valid test result
-            assert host_status["data"]["status"] == 404
+            return
 
-    @pytest.mark.asyncio
-    async def test_service_discovery_workflow(self, real_client):
-        """Test service discovery workflow if test host available"""
+        assert host_status["success"] is True
+        assert "extensions" in host_status["data"]
+
+    def test_service_discovery_workflow(self, real_client):
+        """Test reading the service discovery result if a test host is available"""
         test_host = os.environ.get("TEST_HOST_NAME")
         if not test_host:
             pytest.skip("TEST_HOST_NAME not provided for service discovery test")
 
-        # Test service discovery
-        discovery_result = await real_client.post(f"objects/host/{test_host}/actions/discover_services/invoke")
+        # Read-only: starting a discovery run would change the host's services
+        discovery_result = real_client.get(f"objects/service_discovery/{test_host}")
 
-        # Discovery might succeed or fail depending on host state
-        # Both are valid outcomes for this test
-        assert "success" in discovery_result
-        assert "data" in discovery_result
+        assert discovery_result["success"] is True
+        assert "extensions" in discovery_result["data"]
 
-    @pytest.mark.asyncio
-    async def test_error_handling_with_invalid_host(self, real_client):
+    def test_error_handling_with_invalid_host(self, real_client):
         """Test error handling with invalid host"""
-        # Try to get status of non-existent host
-        result = await real_client.get("objects/host/definitely-not-existing-host-12345")
+        with pytest.raises(CheckMKNotFoundError) as error:
+            real_client.get("objects/host/definitely-not-existing-host-12345")
 
-        # Should get 404 error
-        assert result["success"] is False
-        assert result["data"]["status"] == 404
+        assert error.value.status_code == 404
 
-    @pytest.mark.asyncio
-    async def test_authentication_validation(self):
+    def test_authentication_validation(self):
         """Test authentication validation"""
         # Create client with invalid credentials
         invalid_config = CheckMKConfig(
@@ -159,47 +142,36 @@ class TestIntegration:
 
         invalid_client = CheckMKClient(invalid_config)
 
-        # Should get authentication error
-        from api.exceptions import CheckMKAuthenticationError
-
         with pytest.raises(CheckMKAuthenticationError):
-            await invalid_client.get("version")
+            invalid_client.get("version")
 
 
 class TestLoadTesting:
     """Load testing for vibeMK (optional)"""
 
-    @pytest.mark.asyncio
-    async def test_concurrent_requests_load(self, real_client):
+    def test_concurrent_requests_load(self, real_client):
         """Test handling multiple concurrent requests"""
-        import asyncio
 
-        # Create multiple concurrent version requests
-        tasks = []
-        for _ in range(10):
-            task = real_client.get("version")
-            tasks.append(task)
+        def get_version(_: int) -> bool:
+            try:
+                return bool(real_client.get("version").get("success"))
+            except Exception:
+                return False
 
-        # Execute all requests concurrently
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Verify all succeeded (or failed gracefully)
-        success_count = 0
-        for result in results:
-            if isinstance(result, dict) and result.get("success"):
-                success_count += 1
+        # The client blocks, so concurrency has to come from threads
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            results = list(pool.map(get_version, range(10)))
 
         # At least some should succeed (depending on server load)
-        assert success_count > 0
+        assert sum(results) > 0
 
-    @pytest.mark.asyncio
-    async def test_rapid_sequential_requests(self, real_client):
+    def test_rapid_sequential_requests(self, real_client):
         """Test rapid sequential requests"""
         # Make 20 rapid sequential requests
         success_count = 0
         for _ in range(20):
             try:
-                result = await real_client.get("version")
+                result = real_client.get("version")
                 if result.get("success"):
                     success_count += 1
             except Exception:
