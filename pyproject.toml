@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,14 +7,16 @@ name = "vibemk"
 dynamic = ["version"]
 description = "vibeMK - CheckMK monitoring via LLM - MCP Server"
 readme = "README.md"
-license = {text = "GPL-3.0-or-later"}
+# An SPDX expression (PEP 639); it replaces the License classifier, which
+# setuptools refuses alongside it.
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
     {name = "Andre", email = "chexma@gmx.de"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -217,6 +219,19 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 known_first_party = ["vibemk"]
+
+[tool.coverage.run]
+source = ["vibemk"]
+branch = true
+
+[tool.coverage.report]
+# A floor, not a target: CI fails when the suite stops reaching code it used to
+# reach. Measured at 59.5% (branch coverage) when introduced; the margin
+# absorbs the small differences between the Python versions in the matrix.
+# Raise it when coverage rises; lowering it needs a reason in the PR.
+fail_under = 58
+show_missing = true
+skip_covered = true
 
 [tool.pytest.ini_options]
 # The single source of pytest configuration. There used to be a pytest.ini

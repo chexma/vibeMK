@@ -1,7 +1,7 @@
 # vibeMK Development Makefile
 # Provides convenient commands for code quality checks
 
-.PHONY: format check test lint clean help package typecheck push-ready install-dev status
+.PHONY: format check test coverage lint clean help package typecheck push-ready install-dev status
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "make lint       - Run only linting/formatting checks (black, isort, ruff)"
 	@echo "make package    - Build the wheel and check it installs and runs"
 	@echo "make test       - Run test suite"
+	@echo "make coverage   - Run test suite with coverage (fails below the floor)"
 	@echo "make clean      - Clean up temporary files"
 	@echo "make push-ready - Prepare code for push (format + check)"
 	@echo ""
@@ -41,6 +42,12 @@ typecheck:
 test:
 	@echo "🧪 Running tests..."
 	@pytest -v
+
+# Run the test suite with coverage, as CI does
+coverage:
+	@echo "📊 Running tests with coverage..."
+	@coverage run -m pytest -q
+	@coverage report
 
 # Run all quality checks
 check: format lint typecheck test

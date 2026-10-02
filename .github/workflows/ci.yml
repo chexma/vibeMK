@@ -71,7 +71,7 @@ jobs:
       - run: pip install -e ".[dev]"
 
       - name: Tests
-        run: pytest -v
+        run: coverage run -m pytest -v
         env:
           # tests/test_packaging.py turns a missing python-build into an
           # error rather than a skip when this is set, so the distribution
@@ -81,6 +81,13 @@ jobs:
           CHECKMK_SITE: test
           CHECKMK_USERNAME: automation
           CHECKMK_PASSWORD: test-password
+
+      - name: Coverage
+        # Fails below fail_under in pyproject.toml. The table lands in the run's
+        # summary page, so nobody has to dig through the log for it.
+        run: |
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          coverage report
 
   package:
     name: package
