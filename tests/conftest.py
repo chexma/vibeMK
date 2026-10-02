@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from api import CheckMKClient
-from config import CheckMKConfig, MCPConfig
+from vibemk.api import CheckMKClient
+from vibemk.config import CheckMKConfig, MCPConfig
 
 
 @pytest.fixture

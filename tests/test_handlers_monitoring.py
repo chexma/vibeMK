@@ -14,8 +14,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from handlers.monitoring import MonitoringHandler
-from vibemk_mcp.tools import get_all_tools
+from vibemk.handlers.monitoring import MonitoringHandler
+from vibemk.server.tools import get_all_tools
 
 HOST_COLUMNS = ["name", "state"]
 

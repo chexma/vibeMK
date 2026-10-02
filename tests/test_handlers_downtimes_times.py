@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from handlers.downtimes import DowntimeHandler
+from vibemk.handlers.downtimes import DowntimeHandler
 
 
 @pytest.fixture

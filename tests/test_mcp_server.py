@@ -17,10 +17,10 @@ from unittest.mock import patch
 
 import pytest
 
-from vibemk_mcp.dispatch import Dispatcher, is_error
-from vibemk_mcp.registry import ToolRegistry
-from vibemk_mcp.server import CheckMKMCPServer
-from vibemk_mcp.tools import get_all_tools
+from vibemk.server.dispatch import Dispatcher, is_error
+from vibemk.server.registry import ToolRegistry
+from vibemk.server.server import CheckMKMCPServer
+from vibemk.server.tools import get_all_tools
 
 TOOL = "vibemk_get_checkmk_version"
 OTHER_TOOL = "vibemk_get_host_status"
@@ -176,9 +176,9 @@ class TestTheConnectionIsBuiltOnce:
             return registry
 
         with (
-            patch("vibemk_mcp.server.CheckMKConfig.from_env"),
-            patch("vibemk_mcp.server.CheckMKClient"),
-            patch("vibemk_mcp.server.ToolRegistry.from_client", side_effect=slow_registry),
+            patch("vibemk.server.server.CheckMKConfig.from_env"),
+            patch("vibemk.server.server.CheckMKClient"),
+            patch("vibemk.server.server.ToolRegistry.from_client", side_effect=slow_registry),
             ThreadPoolExecutor(max_workers=4) as pool,
         ):
             registries = list(pool.map(lambda _: server._registry_provider(), range(4)))
@@ -208,7 +208,7 @@ class TestToolCallsLeaveATrace:
 
     @pytest.mark.asyncio
     async def test_a_successful_call_is_logged_with_its_tool_name(self, caplog: pytest.LogCaptureFixture) -> None:
-        with caplog.at_level(logging.INFO, logger="vibemk_mcp.dispatch"):
+        with caplog.at_level(logging.INFO, logger="vibemk.server.dispatch"):
             await make_dispatcher().call_tool(TOOL, {})
 
         assert any(
@@ -218,7 +218,7 @@ class TestToolCallsLeaveATrace:
     @pytest.mark.asyncio
     async def test_the_arguments_are_not_logged(self, caplog: pytest.LogCaptureFixture) -> None:
         """They carry host names, comment text and, for the password tools, secrets."""
-        with caplog.at_level(logging.DEBUG, logger="vibemk_mcp.dispatch"):
+        with caplog.at_level(logging.DEBUG, logger="vibemk.server.dispatch"):
             await make_dispatcher().call_tool(TOOL, {"password": "hunter2"})
 
         assert not any("hunter2" in record.getMessage() for record in caplog.records)
@@ -257,14 +257,14 @@ class TestBothTransportsAgree:
     """The HTTP transport reads serverInfo from the Server, stdio from its options."""
 
     def test_the_server_carries_its_version(self):
-        from config import MCPConfig
+        from vibemk.config import MCPConfig
 
         server = CheckMKMCPServer()
 
         assert server._server.server_info.version == MCPConfig().server_version
 
     def test_the_server_carries_its_name(self):
-        from config import MCPConfig
+        from vibemk.config import MCPConfig
 
         server = CheckMKMCPServer()
 

@@ -12,10 +12,10 @@ from typing import Any, Dict, List
 import pytest
 from mcp import Client
 
-from vibemk_mcp.dispatch import Dispatcher
-from vibemk_mcp.registry import ToolRegistry
-from vibemk_mcp.server import CheckMKMCPServer
-from vibemk_mcp.tools import get_all_tools
+from vibemk.server.dispatch import Dispatcher
+from vibemk.server.registry import ToolRegistry
+from vibemk.server.server import CheckMKMCPServer
+from vibemk.server.tools import get_all_tools
 
 SCHEMA = {
     "type": "object",
@@ -178,7 +178,7 @@ class TestHandlersOnlyReadDeclaredArguments:
     async def test_no_handler_reads_an_undeclared_argument(self, mock_config):
         from unittest.mock import AsyncMock, MagicMock, patch
 
-        from api.client import CheckMKClient
+        from vibemk.api.client import CheckMKClient
 
         response = {"success": True, "status": 200, "data": {"value": [], "extensions": {}}, "headers": {}}
         client = CheckMKClient(mock_config, skip_url_detection=True)

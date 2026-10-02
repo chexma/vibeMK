@@ -16,9 +16,9 @@ from typing import Any, Dict, List
 
 import pytest
 
-from vibemk_mcp.dispatch import Dispatcher
-from vibemk_mcp.registry import ToolRegistry
-from vibemk_mcp.tools import get_all_tools
+from vibemk.server.dispatch import Dispatcher
+from vibemk.server.registry import ToolRegistry
+from vibemk.server.tools import get_all_tools
 
 WRITE_SCHEMA = {
     "type": "object",
@@ -79,7 +79,7 @@ class TestTheDispatcherActivates:
 class TestEveryOfferIsHonoured:
     def test_the_handlers_leave_activation_to_the_dispatcher(self):
         """One place decides. A handler with its own copy would activate twice."""
-        handlers = pathlib.Path(__file__).resolve().parent.parent / "handlers"
+        handlers = pathlib.Path(__file__).resolve().parent.parent / "src" / "vibemk" / "handlers"
         copies = [path.name for path in sorted(handlers.glob("*.py")) if '.get("activate_changes")' in path.read_text()]
         assert copies == []
 

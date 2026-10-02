@@ -9,7 +9,7 @@ that includes an ordinary comment is a listing that can delete one.
 
 import pytest
 
-from handlers.acknowledgements import AcknowledgementHandler
+from vibemk.handlers.acknowledgements import AcknowledgementHandler
 
 
 def _comment(comment_id: str, text: str, persistent: bool = False) -> dict:

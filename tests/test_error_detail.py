@@ -15,8 +15,8 @@ exercise one is testing something that cannot happen.
 
 import inspect
 
-from api.client import CheckMKClient
-from api.exceptions import CheckMKAPIError, CheckMKError
+from vibemk.api.client import CheckMKClient
+from vibemk.api.exceptions import CheckMKAPIError, CheckMKError
 
 
 class TestTheExplanationSurvivesToTheMessage:

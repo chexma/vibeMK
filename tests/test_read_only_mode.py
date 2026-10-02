@@ -13,12 +13,12 @@ from unittest.mock import patch
 import pytest
 from mcp import Client
 
-from vibemk_mcp.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
-from vibemk_mcp.cli import parse_arguments
-from vibemk_mcp.dispatch import Dispatcher
-from vibemk_mcp.registry import ToolRegistry
-from vibemk_mcp.server import CheckMKMCPServer
-from vibemk_mcp.tools import get_all_tools
+from vibemk.server.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
+from vibemk.server.cli import parse_arguments
+from vibemk.server.dispatch import Dispatcher
+from vibemk.server.registry import ToolRegistry
+from vibemk.server.server import CheckMKMCPServer
+from vibemk.server.tools import get_all_tools
 
 
 class RecordingHandler:

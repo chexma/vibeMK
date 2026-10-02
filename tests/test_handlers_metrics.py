@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from handlers.metrics import MetricsHandler
+from vibemk.handlers.metrics import MetricsHandler
 
 TIMEZONES = ("Europe/Berlin", "UTC", "America/New_York")
 

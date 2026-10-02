@@ -9,7 +9,7 @@ endpoints declares an etag, so no If-Match is sent.
 
 import pytest
 
-from handlers.notifications import NotificationHandler
+from vibemk.handlers.notifications import NotificationHandler
 
 COLLECTION = "domain-types/notification_rule/collections/all"
 

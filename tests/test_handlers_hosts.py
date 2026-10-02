@@ -4,9 +4,9 @@ Tests for Host Handler
 
 import pytest
 
-from api.exceptions import CheckMKAPIError
-from handlers.hosts import HostHandler
-from vibemk_mcp.dispatch import structured_of
+from vibemk.api.exceptions import CheckMKAPIError
+from vibemk.handlers.hosts import HostHandler
+from vibemk.server.dispatch import structured_of
 
 
 class TestHostHandler:

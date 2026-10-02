@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
-from handlers.rules import RulesHandler
+from vibemk.handlers.rules import RulesHandler
 
 RULE_ID = "f8b74720-a454-4242-99c4-62994ef0f2bf"
 TARGET_ID = "0e3b1a44-9a2e-4c17-8f5d-2b6c1d0e7a93"

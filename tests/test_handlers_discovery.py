@@ -9,7 +9,7 @@ for.
 
 import pytest
 
-from handlers.discovery import DiscoveryHandler
+from vibemk.handlers.discovery import DiscoveryHandler
 
 
 @pytest.fixture
@@ -88,8 +88,8 @@ class TestModeTableMatchesSchema:
     """The table and the advertised enum must not drift apart."""
 
     def test_every_advertised_mode_has_a_mapping(self):
-        from handlers.discovery import _BULK_OPTIONS_BY_MODE
-        from vibemk_mcp.tools import get_all_tools
+        from vibemk.handlers.discovery import _BULK_OPTIONS_BY_MODE
+        from vibemk.server.tools import get_all_tools
 
         tool = next(t for t in get_all_tools() if t["name"] == "vibemk_start_service_discovery")
         advertised = set(tool["inputSchema"]["properties"]["mode"]["enum"])
@@ -98,8 +98,8 @@ class TestModeTableMatchesSchema:
         assert unmapped == [], f"advertised but not mapped: {unmapped}"
 
     def test_every_mapping_is_advertised(self):
-        from handlers.discovery import _BULK_OPTIONS_BY_MODE
-        from vibemk_mcp.tools import get_all_tools
+        from vibemk.handlers.discovery import _BULK_OPTIONS_BY_MODE
+        from vibemk.server.tools import get_all_tools
 
         tool = next(t for t in get_all_tools() if t["name"] == "vibemk_start_service_discovery")
         advertised = set(tool["inputSchema"]["properties"]["mode"]["enum"])

@@ -34,20 +34,25 @@ Thank you for your interest in contributing to vibeMK! This document provides gu
 
 ### Project Structure
 ```
-vibemk/
+src/vibemk/
 ├── api/           # Checkmk API client
 ├── config/        # Configuration management
 ├── handlers/      # Tool handlers (modular design)
-├── vibemk_mcp/    # MCP server implementation
-└── utils/        # Utility functions
+├── server/        # MCP server implementation and the `vibemk` command
+├── checkmk_types/ # Shared type definitions
+└── utils/         # Utility functions
 ```
+
+Everything ships as the single `vibemk` package. Install it with
+`pip install -e ".[dev]"` before running the tests: they import the installed
+package, not the files in the working directory.
 
 ### Adding New Features
 
-1. **New Handler**: Create in `handlers/` directory
-2. **New Tool**: Add to `vibemk_mcp/tools.py`
-3. **Register Handler**: Add the tool to the map in `vibemk_mcp/registry.py`
-4. **Classify it**: Declare its behaviour in `vibemk_mcp/annotations.py` (read-only, write or destructive) -- the test suite fails until you do
+1. **New Handler**: Create in `src/vibemk/handlers/`
+2. **New Tool**: Add to `src/vibemk/server/tools.py`
+3. **Register Handler**: Add the tool to the map in `src/vibemk/server/registry.py`
+4. **Classify it**: Declare its behaviour in `src/vibemk/server/annotations.py` (read-only, write or destructive) -- the test suite fails until you do
 
 Example handler structure:
 ```python
@@ -143,6 +148,6 @@ By contributing, you agree that your contributions will be licensed under the GP
 
 - Create an issue for questions
 - Check existing documentation
-- Look at similar implementations in handlers/
+- Look at similar implementations in src/vibemk/handlers/
 
 Thank you for contributing to vibeMK! 🎉

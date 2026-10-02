@@ -22,17 +22,8 @@ import pytest
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# The only top-level names this project is entitled to in site-packages.
-EXPECTED_PACKAGES = frozenset(
-    {
-        "api",
-        "checkmk_types",
-        "config",
-        "handlers",
-        "utils",
-        "vibemk_mcp",
-    }
-)
+# The only top-level name this project is entitled to in site-packages.
+EXPECTED_PACKAGES = frozenset({"vibemk"})
 
 
 class TestTheConsoleScript:
@@ -47,7 +38,7 @@ class TestTheConsoleScript:
         """
         import inspect
 
-        from vibemk_mcp.cli import cli
+        from vibemk.server.cli import cli
 
         assert not inspect.iscoroutinefunction(cli), "the console script target must not be a coroutine function"
 
@@ -114,8 +105,12 @@ def wheel(tmp_path_factory):
         pytest.skip("python-build is needed to inspect the distribution")
 
     outdir = tmp_path_factory.mktemp("dist")
+    # sdist first, then the wheel from the unpacked sdist -- the default, and
+    # what the CI package job and a release do. `--wheel` alone builds in the
+    # checkout and reuses a local build/lib, so a stale one from an older
+    # layout ended up in the wheel and failed this check on one machine only.
     completed = subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--outdir", str(outdir), str(PROJECT_ROOT)],
+        [sys.executable, "-m", "build", "--outdir", str(outdir), str(PROJECT_ROOT)],
         capture_output=True,
         text=True,
     )
@@ -143,7 +138,7 @@ class TestTheShippedEntryPoint:
     """What `pip install` wires the `vibemk` command to."""
 
     def test_the_wheel_declares_the_console_script(self, wheel):
-        assert "vibemk = vibemk_mcp.cli:cli" in wheel["entry_points"], wheel["entry_points"]
+        assert "vibemk = vibemk.server.cli:cli" in wheel["entry_points"], wheel["entry_points"]
 
     def test_the_target_module_is_actually_in_the_wheel(self, wheel):
         """The original target, `main:cli`, never shipped.
@@ -167,7 +162,8 @@ class TestTheWheel:
 
         Four of those names -- api, config, handlers, utils -- are generic
         enough to collide with unrelated distributions in the same
-        environment, and three more were never packages at all.
+        environment, and three more were never packages at all. The src
+        layout leaves a single name, vibemk.
         """
         tops = {name.split("/")[0] for name in built_wheel}
         tops = {top for top in tops if not top.endswith(".dist-info")}
@@ -211,7 +207,7 @@ class TestTheDistributionMetadata:
         publishes, so it skipped on every run including a correctly installed
         one -- a green test that never executed.
         """
-        from config import MCPConfig
+        from vibemk.config import MCPConfig
 
         try:
             installed = version("vibemk")

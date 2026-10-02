@@ -18,10 +18,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from vibemk_mcp.registry import ToolRegistry
-from vibemk_mcp.tools import get_all_tools
+from vibemk.server.registry import ToolRegistry
+from vibemk.server.tools import get_all_tools
 
-HANDLERS_DIR = pathlib.Path(__file__).resolve().parent.parent / "handlers"
+HANDLERS_DIR = pathlib.Path(__file__).resolve().parent.parent / "src" / "vibemk" / "handlers"
 
 
 @pytest.fixture
@@ -152,7 +152,7 @@ def test_every_dispatch_branch_belongs_to_the_handler_that_holds_it(registry):
     """
     misrouted: Dict[str, str] = {}
     for path in sorted(HANDLERS_DIR.glob("*.py")):
-        module = f"handlers.{path.stem}"
+        module = f"vibemk.handlers.{path.stem}"
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if not (isinstance(node, ast.Constant) and isinstance(node.value, str)):
@@ -198,7 +198,7 @@ class TestEveryToolIsClassified:
     """
 
     def test_each_tool_is_in_exactly_one_bucket(self):
-        from vibemk_mcp.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
+        from vibemk.server.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
 
         declared = {tool["name"] for tool in get_all_tools()}
         buckets = (READ_ONLY, SAFE_WRITES, DESTRUCTIVE)
@@ -210,7 +210,7 @@ class TestEveryToolIsClassified:
         assert twice == [], f"classified more than once: {twice}"
 
     def test_no_classification_names_a_tool_that_is_gone(self):
-        from vibemk_mcp.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
+        from vibemk.server.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
 
         declared = {tool["name"] for tool in get_all_tools()}
         stale = sorted((READ_ONLY | SAFE_WRITES | DESTRUCTIVE) - declared)
@@ -218,7 +218,7 @@ class TestEveryToolIsClassified:
         assert stale == [], f"classified but no longer declared: {stale}"
 
     def test_a_read_only_tool_never_claims_to_be_destructive(self):
-        from vibemk_mcp.annotations import annotations_for
+        from vibemk.server.annotations import annotations_for
 
         for tool in get_all_tools():
             hints = annotations_for(tool["name"])
@@ -240,7 +240,7 @@ class TestStructuredOutput:
     """
 
     def test_every_output_schema_belongs_to_a_declared_tool(self):
-        from vibemk_mcp.schemas import OUTPUT_SCHEMAS
+        from vibemk.server.schemas import OUTPUT_SCHEMAS
 
         declared = {tool["name"] for tool in get_all_tools()}
         orphans = sorted(set(OUTPUT_SCHEMAS) - declared)
@@ -249,8 +249,8 @@ class TestStructuredOutput:
 
     def test_a_tool_with_an_output_schema_only_reads(self):
         """Structured output is for results a model works with, not for writes."""
-        from vibemk_mcp.annotations import READ_ONLY
-        from vibemk_mcp.schemas import OUTPUT_SCHEMAS
+        from vibemk.server.annotations import READ_ONLY
+        from vibemk.server.schemas import OUTPUT_SCHEMAS
 
         writes = sorted(name for name in OUTPUT_SCHEMAS if name not in READ_ONLY)
         assert writes == [], f"output schema on a tool that writes: {writes}"
@@ -258,7 +258,7 @@ class TestStructuredOutput:
     def test_each_output_schema_is_a_valid_json_schema(self):
         import jsonschema
 
-        from vibemk_mcp.schemas import OUTPUT_SCHEMAS
+        from vibemk.server.schemas import OUTPUT_SCHEMAS
 
         for schema in OUTPUT_SCHEMAS.values():
             jsonschema.Draft202012Validator.check_schema(schema)
@@ -276,8 +276,8 @@ class TestASchemaIsAlwaysHonoured:
 
     @pytest.mark.asyncio
     async def test_an_empty_host_list_still_carries_structured_content(self, mock_checkmk_client):
-        from handlers.hosts import HostHandler
-        from vibemk_mcp.dispatch import is_error, structured_of
+        from vibemk.handlers.hosts import HostHandler
+        from vibemk.server.dispatch import is_error, structured_of
 
         mock_checkmk_client.get.return_value = {"success": True, "data": {"value": []}}
 
@@ -288,8 +288,8 @@ class TestASchemaIsAlwaysHonoured:
 
     @pytest.mark.asyncio
     async def test_no_pending_changes_still_carries_structured_content(self, mock_checkmk_client):
-        from handlers.configuration import ConfigurationHandler
-        from vibemk_mcp.dispatch import is_error, structured_of
+        from vibemk.handlers.configuration import ConfigurationHandler
+        from vibemk.server.dispatch import is_error, structured_of
 
         mock_checkmk_client.get.return_value = {"success": True, "data": {"value": []}}
 
@@ -301,8 +301,8 @@ class TestASchemaIsAlwaysHonoured:
     @pytest.mark.asyncio
     async def test_a_state_the_mapping_does_not_know_is_reported_as_unknown(self, mock_checkmk_client):
         """The prose may say UNKNOWN(7); the structured value may not."""
-        from handlers.hosts import HostHandler
-        from vibemk_mcp.dispatch import structured_of
+        from vibemk.handlers.hosts import HostHandler
+        from vibemk.server.dispatch import structured_of
 
         mock_checkmk_client.get.return_value = {
             "success": True,
@@ -317,7 +317,7 @@ class TestASchemaIsAlwaysHonoured:
         """Spot-check the shapes the handlers build against what they declare."""
         import jsonschema
 
-        from vibemk_mcp.schemas import HOST_LIST, HOST_STATUS, PENDING_CHANGES
+        from vibemk.server.schemas import HOST_LIST, HOST_STATUS, PENDING_CHANGES
 
         jsonschema.validate({"total": 0, "hosts": []}, HOST_LIST)
         jsonschema.validate({"count": 0, "changes": []}, PENDING_CHANGES)
@@ -389,7 +389,11 @@ class TestTheCatalogueIsInEnglish:
         and the language policy for them is enforced in review.
         """
         guilty = []
-        for path in sorted(pathlib.Path("handlers").glob("*.py")):
+        # Absolute: a path relative to the working directory found nothing
+        # once the handlers moved, and an empty loop passes.
+        sources = sorted(HANDLERS_DIR.glob("*.py"))
+        assert sources, f"no handler sources under {HANDLERS_DIR}"
+        for path in sources:
             with path.open("rb") as source:
                 tokens = [t for t in tokenize.tokenize(source.readline) if t.type not in self._INSIGNIFICANT]
             for previous, token in itertools.pairwise(tokens):

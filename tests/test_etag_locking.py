@@ -15,15 +15,15 @@ from typing import Any, Optional
 
 import pytest
 
-from api.exceptions import CheckMKNotFoundError
-from handlers.configuration import ConfigurationHandler
-from handlers.folders import FolderHandler
-from handlers.groups import GroupsHandler
-from handlers.passwords import PasswordsHandler
-from handlers.rules import RulesHandler
-from handlers.tags import TagsHandler
-from handlers.timeperiods import TimePeriodsHandler
-from handlers.users import UserHandler
+from vibemk.api.exceptions import CheckMKNotFoundError
+from vibemk.handlers.configuration import ConfigurationHandler
+from vibemk.handlers.folders import FolderHandler
+from vibemk.handlers.groups import GroupsHandler
+from vibemk.handlers.passwords import PasswordsHandler
+from vibemk.handlers.rules import RulesHandler
+from vibemk.handlers.tags import TagsHandler
+from vibemk.handlers.timeperiods import TimePeriodsHandler
+from vibemk.handlers.users import UserHandler
 
 ETAG = '"a1b2c3d4"'
 

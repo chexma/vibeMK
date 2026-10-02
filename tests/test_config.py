@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from config.settings import CheckMKConfig, MCPConfig
+from vibemk.config.settings import CheckMKConfig, MCPConfig
 
 
 class TestCheckMKConfig:

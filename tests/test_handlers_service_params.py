@@ -13,7 +13,7 @@ import pathlib
 
 import pytest
 
-from handlers.service_params import ServiceParamsHandler
+from vibemk.handlers.service_params import ServiceParamsHandler
 
 
 def rule(value_raw: str) -> dict:
@@ -71,10 +71,11 @@ def test_no_shipped_module_calls_eval_or_exec():
     """Every value CheckMK returns is data. Reading one should never run it."""
     root = pathlib.Path(__file__).resolve().parent.parent
     guilty = []
-    for package in ("api", "config", "handlers", "utils", "vibemk_mcp"):
-        for path in sorted((root / package).rglob("*.py")):
-            for node in ast.walk(ast.parse(path.read_text())):
-                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec"):
-                    guilty.append(f"{path.relative_to(root)}:{node.lineno}: {node.func.id}()")
+    sources = sorted((root / "src" / "vibemk").rglob("*.py"))
+    assert sources, "no shipped source found"
+    for path in sources:
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec"):
+                guilty.append(f"{path.relative_to(root)}:{node.lineno}: {node.func.id}()")
 
     assert guilty == [], f"eval/exec in shipped source: {guilty}"

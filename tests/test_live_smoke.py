@@ -28,9 +28,9 @@ from typing import Any, Dict, Optional
 
 import pytest
 
-from api import CheckMKClient
-from config import CheckMKConfig
-from vibemk_mcp.registry import ToolRegistry
+from vibemk.api import CheckMKClient
+from vibemk.config import CheckMKConfig
+from vibemk.server.registry import ToolRegistry
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("LIVE_SMOKE_TEST") != "true",

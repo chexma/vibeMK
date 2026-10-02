@@ -17,7 +17,7 @@ import ast
 
 import pytest
 
-from handlers.active_checks import ActiveChecksHandler
+from vibemk.handlers.active_checks import ActiveChecksHandler
 
 
 @pytest.fixture
