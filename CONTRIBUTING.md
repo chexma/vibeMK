@@ -45,7 +45,8 @@ vibemk/
 
 1. **New Handler**: Create in `handlers/` directory
 2. **New Tool**: Add to `vibemk_mcp/tools.py`
-3. **Register Handler**: Update `vibemk_mcp/server.py`
+3. **Register Handler**: Add the tool to the map in `vibemk_mcp/registry.py`
+4. **Classify it**: Declare its behaviour in `vibemk_mcp/annotations.py` (read-only, write or destructive) -- the test suite fails until you do
 
 Example handler structure:
 ```python

@@ -6,7 +6,7 @@
 [![CheckMK 2.1+](https://img.shields.io/badge/CheckMK-2.1+-green.svg)](https://checkmk.com/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://spec.modelcontextprotocol.io/)
-[![No Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](https://github.com/your-username/vibemk)
+[![MCP SDK](https://img.shields.io/badge/MCP%20SDK-official-purple.svg)](https://github.com/modelcontextprotocol/python-sdk)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Typed](https://img.shields.io/badge/typed-mypy-blue.svg)](https://mypy-lang.org/)
 
@@ -48,6 +48,7 @@ This project is in the alpha stage and under development. I accept no liability 
 
 ```bash
 1. git clone https://github.com/chexma/vibeMK.git
+1b. pip install -r requirements.txt
 2. Edit the configuration file of your LLM Client, e.g. Claude Desktop - claude_desktop_config.json (See examples)
 3. Start your LLM Client
 4. CheckMK automation user setup (Administrator permissions or a customized role if changes are to be made, read-only if only analyses are to be performed.)
@@ -57,6 +58,23 @@ This project is in the alpha stage and under development. I accept no liability 
 **More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)  
 **Visual Examples**: See `examples/Screenshots/` for example prompts and usage patterns  
 
+## 🔌 Running it
+
+**Locally (default).** The LLM client starts vibeMK itself over stdio. Nothing
+to host, nothing to secure -- the client already owns the process.
+
+**Centrally.** One instance can serve many clients over Streamable HTTP, so
+they need neither Python nor a checkout:
+
+```bash
+export VIBEMK_HTTP_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+python main.py --transport http --port 8765
+```
+
+Clients connect to `http://<host>:8765/mcp` and send `Authorization: Bearer <token>`.
+The token is mandatory, and vibeMK binds to localhost unless told otherwise:
+the CheckMK account lives on the server, so whoever reaches the port inherits
+it. See [INSTALL.md](INSTALL.md) for what that means before you expose it.
 
 ## 💡 Practical Prompt Examples
 
