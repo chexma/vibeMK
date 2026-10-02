@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-import urllib.parse
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
@@ -33,24 +33,40 @@ class MonitoringHandler(BaseHandler):
         try:
             if tool_name == "vibemk_get_current_problems":
                 return await self._get_current_problems(arguments)
-            elif tool_name == "vibemk_acknowledge_problem":
+            if tool_name == "vibemk_acknowledge_problem":
                 return await self._acknowledge_problem(arguments)
-            elif tool_name == "vibemk_get_downtimes":
+            if tool_name == "vibemk_get_downtimes":
                 return await self._get_downtimes(arguments)
-            elif tool_name == "vibemk_get_comments":
+            if tool_name == "vibemk_get_comments":
                 return await self._get_comments(arguments)
-            elif tool_name == "vibemk_add_comment":
+            if tool_name == "vibemk_add_comment":
                 return await self._add_comment(arguments)
-            elif tool_name == "vibemk_delete_comment":
-                return await self._delete_comment(arguments)
-            else:
-                return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
+            return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 
         except CheckMKError as e:
             return self.error_response("CheckMK API Error", str(e))
         except Exception as e:
-            self.logger.exception(f"Error in {tool_name}")
+            self.logger.exception("Error in %s", tool_name)
             return self.error_response("Unexpected Error", str(e))
+
+    @staticmethod
+    def _format_service_problem(
+        host_name: str, description: str, state_name: str, plugin_output: str, last_state_change: int
+    ) -> str:
+        """One problem line, carrying why it is failing and since when.
+
+        Without the check output the answer to "what is wrong" is only a list
+        of names, and the caller has to ask again per service — CheckMK's
+        show_service action does not return the output at all, so that second
+        question has no good answer. The collection already returns it here.
+        """
+        line = f"🔧 SERVICE: {host_name}/{description} - {state_name}"
+        if plugin_output:
+            line += f"\n    {plugin_output.strip()}"
+        if last_state_change:
+            since = datetime.fromtimestamp(last_state_change, tz=timezone.utc)
+            line += f"\n    since {since:%Y-%m-%d %H:%M} UTC"
+        return line
 
     async def _get_current_problems(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get current problems (hosts and services with issues)"""
@@ -87,7 +103,15 @@ class MonitoringHandler(BaseHandler):
             # ~1500 services — slow and incomplete.)
             service_list_result = self.client.get(
                 "domain-types/service/collections/all",
-                params={"columns": ["host_name", "description", "state", "plugin_output"]},
+                params={
+                    "columns": [
+                        "host_name",
+                        "description",
+                        "state",
+                        "plugin_output",
+                        "last_state_change",
+                    ]
+                },
             )
 
             if service_list_result.get("success"):
@@ -103,10 +127,18 @@ class MonitoringHandler(BaseHandler):
                     if state != 0:
                         description = ext.get("description", "Unknown")
                         state_name = {1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN"}.get(state, f"STATE({state})")
-                        problems.append(f"🔧 SERVICE: {host_name}/{description} - {state_name}")
+                        problems.append(
+                            self._format_service_problem(
+                                host_name,
+                                description,
+                                state_name,
+                                ext.get("plugin_output", ""),
+                                ext.get("last_state_change", 0),
+                            )
+                        )
 
         except Exception as e:
-            self.logger.error(f"Error getting current problems: {e}")
+            self.logger.exception("Error getting current problems")
             return self.error_response("Error retrieving problems", str(e))
 
         if not problems:
@@ -124,13 +156,22 @@ class MonitoringHandler(BaseHandler):
         if not ack_type or not host_name or not comment:
             return self.error_response("Missing parameters", "acknowledge_type, host_name, and comment are required")
 
+        # CheckMK's own defaults, and steerable. These used to be wired to True
+        # with no way to change them, and the schema mentioned neither -- so a
+        # caller who wanted a silent acknowledgement had no way to ask, and no
+        # way to find out that the flags existed.
+        sticky = arguments.get("sticky", True)
+        notify = arguments.get("notify", True)
+        persistent = arguments.get("persistent", False)
+
         if ack_type == "host":
             data = {
                 "acknowledge_type": "host",
                 "host_name": host_name,
                 "comment": comment,
-                "sticky": True,
-                "notify": True,
+                "sticky": sticky,
+                "notify": notify,
+                "persistent": persistent,
             }
             result = self.client.post("domain-types/acknowledge/collections/host", data=data)
             target = f"host '{host_name}'"
@@ -146,8 +187,9 @@ class MonitoringHandler(BaseHandler):
                 "host_name": host_name,
                 "service_description": service_description,
                 "comment": comment,
-                "sticky": True,
-                "notify": True,
+                "sticky": sticky,
+                "notify": notify,
+                "persistent": persistent,
             }
             result = self.client.post("domain-types/acknowledge/collections/service", data=data)
             target = f"service '{host_name}/{service_description}'"
@@ -158,57 +200,10 @@ class MonitoringHandler(BaseHandler):
             return [
                 {
                     "type": "text",
-                    "text": (f"✅ **Problem Acknowledged**\n\n" f"Target: {target}\n" f"Comment: {comment}"),
+                    "text": f"✅ **Problem Acknowledged**\n\nTarget: {target}\nComment: {comment}",
                 }
             ]
-        else:
-            return self.error_response("Acknowledgment failed", f"Could not acknowledge {target}")
-
-    async def _schedule_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Schedule maintenance downtime"""
-        downtime_type = arguments.get("downtime_type")
-        host_name = arguments.get("host_name")
-        service_description = arguments.get("service_description")
-        start_time = arguments.get("start_time")
-        end_time = arguments.get("end_time")
-        comment = arguments.get("comment")
-
-        if not downtime_type or not start_time or not end_time or not comment:
-            return self.error_response(
-                "Missing parameters", "downtime_type, start_time, end_time, and comment are required"
-            )
-
-        data = {"downtime_type": downtime_type, "start_time": start_time, "end_time": end_time, "comment": comment}
-
-        if downtime_type == "host" and host_name:
-            data["host_name"] = host_name
-            target = f"host '{host_name}'"
-        elif downtime_type == "service" and host_name and service_description:
-            data["host_name"] = host_name
-            data["service_description"] = service_description
-            target = f"service '{host_name}/{service_description}'"
-        else:
-            return self.error_response(
-                "Invalid parameters", "Invalid downtime_type or missing host/service information"
-            )
-
-        result = self.client.post("domain-types/downtime/collections/all", data=data)
-
-        if result.get("success"):
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"⏰ **Downtime Scheduled**\n\n"
-                        f"Target: {target}\n"
-                        f"Start: {start_time}\n"
-                        f"End: {end_time}\n"
-                        f"Comment: {comment}"
-                    ),
-                }
-            ]
-        else:
-            return self.error_response("Downtime scheduling failed", f"Could not schedule downtime for {target}")
+        return self.error_response("Acknowledgment failed", f"Could not acknowledge {target}")
 
     async def _get_downtimes(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of scheduled downtimes"""
@@ -244,62 +239,6 @@ class MonitoringHandler(BaseHandler):
                 "text": f"⏰ **Scheduled Downtimes** ({len(downtimes)} total):\n\n" + "\n".join(downtime_list),
             }
         ]
-
-    async def _delete_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Delete a scheduled downtime"""
-        downtime_id = arguments.get("downtime_id")
-
-        if not downtime_id:
-            return self.error_response("Missing parameter", "downtime_id is required")
-
-        result = self.client.delete(f"objects/downtime/{downtime_id}")
-
-        if result.get("success"):
-            return [
-                {
-                    "type": "text",
-                    "text": f"✅ **Downtime Deleted**\n\nDowntime ID: {downtime_id}\nThe downtime has been removed.",
-                }
-            ]
-        else:
-            return self.error_response("Downtime deletion failed", f"Could not delete downtime '{downtime_id}'")
-
-    async def _reschedule_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Force immediate check execution"""
-        check_type = arguments.get("check_type")
-        host_name = arguments.get("host_name")
-        service_description = arguments.get("service_description")
-
-        if not check_type or not host_name:
-            return self.error_response("Missing parameters", "check_type and host_name are required")
-
-        if check_type == "host":
-            # Host check reschedule
-            data = {"host_name": host_name}
-            result = self.client.post(f"objects/host/{host_name}/actions/reschedule_check/invoke", data=data)
-            target = f"host '{host_name}'"
-        elif check_type == "service":
-            if not service_description:
-                return self.error_response("Missing parameter", "service_description is required for service checks")
-            data = {"host_name": host_name, "service_description": service_description}
-            # URL-encode the service description to handle spaces and special characters
-            encoded_service = urllib.parse.quote(service_description, safe="")
-            result = self.client.post(
-                f"objects/service/{host_name}/{encoded_service}/actions/reschedule_check/invoke", data=data
-            )
-            target = f"service '{host_name}/{service_description}'"
-        else:
-            return self.error_response("Invalid check_type", "check_type must be 'host' or 'service'")
-
-        if result.get("success"):
-            return [
-                {
-                    "type": "text",
-                    "text": f"🔄 **Check Rescheduled**\n\nTarget: {target}\nImmediate check has been scheduled.",
-                }
-            ]
-        else:
-            return self.error_response("Check reschedule failed", f"Could not reschedule check for {target}")
 
     async def _get_comments(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of comments"""
@@ -378,42 +317,4 @@ class MonitoringHandler(BaseHandler):
                     ),
                 }
             ]
-        else:
-            return self.error_response("Comment creation failed", f"Could not add comment to {target}")
-
-    async def _delete_comment(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Delete a host or service comment."""
-        delete_type = arguments.get("delete_type", "by_id")
-        comment_id = arguments.get("comment_id")
-        host_name = arguments.get("host_name")
-        service_description = arguments.get("service_description")
-        site_id = arguments.get("site_id", self.client.config.site)
-
-        if delete_type == "by_id":
-            if not comment_id:
-                return self.error_response("Missing parameter", "comment_id is required for delete_type=by_id")
-            data: Dict[str, Any] = {
-                "delete_type": "by_id",
-                "comment_id": int(comment_id),
-                "site_id": site_id,
-            }
-        elif delete_type == "by_query":
-            if not host_name:
-                return self.error_response("Missing parameter", "host_name is required for delete_type=by_query")
-            data = {"delete_type": "by_query", "host_name": host_name}
-            if service_description:
-                data["service_description"] = service_description
-        else:
-            return self.error_response("Invalid delete_type", "delete_type must be 'by_id' or 'by_query'")
-
-        result = self.client.post("domain-types/comment/actions/delete/invoke", data=data)
-
-        if result.get("success"):
-            if delete_type == "by_id":
-                target = f"comment #{comment_id}"
-            else:
-                target = host_name + (f"/{service_description}" if service_description else "")
-            return [{"type": "text", "text": f"💬 **Comment Deleted**\n\nTarget: {target}"}]
-        else:
-            detail = result.get("data", {})
-            return self.error_response("Comment deletion failed", str(detail))
+        return self.error_response("Comment creation failed", f"Could not add comment to {target}")
