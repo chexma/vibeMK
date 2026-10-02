@@ -87,10 +87,9 @@ warn_redundant_casts = true
 show_error_codes = true
 # Ignore missing imports for external libraries
 ignore_missing_imports = true
-# Specific module configurations
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false  # Allow untyped tests during migration
+# Type-check the shipped source only: build/ is a local artefact and the
+# test suite is deliberately untyped.
+exclude = ["^build/", "^tests/"]
 
 [tool.isort]
 profile = "black"

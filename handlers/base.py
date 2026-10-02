@@ -73,6 +73,42 @@ class BaseHandler(ABC):
             etag = response.get("data", {}).get("extensions", {}).get("meta_data", {}).get("etag")
         return etag or "*"
 
+    def _run_activation(self) -> str:
+        """Activate pending changes and return a single status line.
+
+        The write handlers append this to a result that has already said what
+        was written, so it stays to one line. Honours NEVER_ACTIVATE_CHANGES
+        and never raises: a failed activation must not discard the report of
+        a write that did succeed.
+
+        CheckMK runs the activation as a background job, so a success here
+        means it was accepted, not that it has finished.
+        """
+        if self.client.config.never_activate_changes:
+            return "🚫 Changes were not activated: NEVER_ACTIVATE_CHANGES is set."
+
+        try:
+            pending = self.client.get("domain-types/activation_run/collections/pending_changes")
+            if not pending.get("success"):
+                return "⚠️ Could not read pending changes; nothing was activated."
+            if not pending.get("data", {}).get("value", []):
+                return "ℹ️ No pending changes to activate."
+
+            result = self.client.post(
+                "domain-types/activation_run/actions/activate-changes/invoke",
+                data={
+                    "redirect": False,
+                    "sites": [self.client.config.site],
+                    "force_foreign_changes": True,
+                },
+                headers={"If-Match": self._extract_etag(pending)},
+            )
+        except CheckMKError as error:
+            return f"⚠️ Activation failed: {error}"
+        if not result.get("success"):
+            return "⚠️ Activation was not accepted; the changes are still pending."
+        return "✅ Changes activated."
+
     def success_response(self, message: str, data: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Create success response"""
         text = f"✅ **{message}**"

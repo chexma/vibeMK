@@ -185,7 +185,7 @@ class RulesetsHandler(BaseHandler):
             else:
                 return self.error_response("Failed to list rulesets", str(e))
 
-    def _format_rulesets_search_response(self, rulesets: List[Dict], search_params: Dict) -> str:
+    def _format_rulesets_search_response(self, rulesets: List[Dict[str, Any]], search_params: Dict[str, Any]) -> str:
         """Format search results for display"""
         response = f"🔍 **Ruleset Search Results**\n\n"
 
@@ -230,7 +230,7 @@ class RulesetsHandler(BaseHandler):
 
         return response
 
-    def _format_ruleset_details(self, ruleset_name: str, ruleset_data: Dict) -> str:
+    def _format_ruleset_details(self, ruleset_name: str, ruleset_data: Dict[str, Any]) -> str:
         """Format detailed ruleset information"""
         extensions = ruleset_data.get("extensions", {})
 
@@ -265,7 +265,9 @@ class RulesetsHandler(BaseHandler):
 
         return response
 
-    def _format_rulesets_list(self, rulesets: List[Dict], limit: int, truncated: bool, show_deprecated: bool) -> str:
+    def _format_rulesets_list(
+        self, rulesets: List[Dict[str, Any]], limit: int, truncated: bool, show_deprecated: bool
+    ) -> str:
         """Format rulesets list for display"""
         response = f"📋 **Available Rulesets**\n\n"
 
@@ -275,8 +277,8 @@ class RulesetsHandler(BaseHandler):
         response += f"**Showing {len(rulesets)} rulesets" + (f" (limited to {limit})" if truncated else "") + "**\n\n"
 
         # Group by category if possible
-        categorized = {}
-        uncategorized = []
+        categorized: Dict[str, List[Dict[str, Any]]] = {}
+        uncategorized: List[Dict[str, Any]] = []
 
         for ruleset in rulesets:
             extensions = ruleset.get("extensions", {})

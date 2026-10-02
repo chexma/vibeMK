@@ -42,7 +42,7 @@ jobs:
         
     - name: Type check with mypy
       run: |
-        echo "mypy checks temporarily disabled for CI - type annotations need to be improved"
+        mypy .
       env:
         PYTHONPATH: ${{ github.workspace }}
         

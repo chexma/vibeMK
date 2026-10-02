@@ -281,7 +281,7 @@ class UserRolesHandler(BaseHandler):
             else:
                 return self.error_response("Failed to delete user role", str(e))
 
-    def _format_roles_list(self, roles: List[Dict], show_builtin: bool) -> str:
+    def _format_roles_list(self, roles: List[Dict[str, Any]], show_builtin: bool) -> str:
         """Format user roles list for display"""
         response = "👥 **User Roles**\n\n"
 
@@ -327,7 +327,7 @@ class UserRolesHandler(BaseHandler):
 
         return response
 
-    def _format_role_details(self, role_id: str, role_data: Dict) -> str:
+    def _format_role_details(self, role_id: str, role_data: Dict[str, Any]) -> str:
         """Format detailed role information"""
         extensions = role_data.get("extensions", {})
 

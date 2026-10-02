@@ -386,6 +386,21 @@ class MetricsHandler(BaseHandler):
 
         return response
 
+    def _format_custom_graph_response(self, graph_id: str, metrics_data: Dict[str, Any], time_range: str) -> str:
+        """Format custom graph response"""
+        return f"📊 **Custom Graph: {graph_id}**\n\nTime Range: {time_range}\n\n" + self._format_metrics_response(
+            graph_id, "custom graph", metrics_data, time_range
+        )
+
+    def _format_search_results(
+        self, host_filter: str, service_filter: Optional[str], metrics_data: Dict[str, Any], time_range: str
+    ) -> str:
+        """Format search results"""
+        target = f"{host_filter}" + (f"/{service_filter}" if service_filter else "")
+        return f"🔍 **Metrics Search Results**\n\nFilter: {target}\n\n" + self._format_metrics_response(
+            target, "search", metrics_data, time_range
+        )
+
     def _format_service_metrics_response(
         self, host_name: str, service_description: str, metric_name: str, metrics_data: Dict[str, Any], time_range: str
     ) -> str:

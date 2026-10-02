@@ -38,7 +38,7 @@ class CheckMKConfig:
     debug: bool = False
     never_activate_changes: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization validation and normalization"""
         # Validate required fields
         if not self.server_url:
@@ -112,7 +112,7 @@ class CheckMKConfig:
             raise ValueError("CHECKMK_PASSWORD is required")
 
         # Handle boolean with fallback
-        def safe_bool(value: str, default: bool) -> bool:
+        def safe_bool(value: Optional[str], default: bool) -> bool:
             if not value:
                 return default
             # Invalid values should return default, not False
@@ -125,7 +125,7 @@ class CheckMKConfig:
                 return default  # Return default for invalid values
 
         # Handle integer with fallback
-        def safe_int(value: str, default: int) -> int:
+        def safe_int(value: Optional[str], default: int) -> int:
             if not value:
                 return default
             try:
@@ -159,7 +159,7 @@ class MCPConfig:
     protocol_version: str = "2024-11-05"  # Keep stable version for now
     supported_protocol_versions: Tuple[str, ...] = ("2024-11-05",)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization validation"""
         if not self.name or self.name.strip() == "":
             raise ValueError("name cannot be empty")

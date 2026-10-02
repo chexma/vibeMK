@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- `activate_changes` works again on host, service parameter, active check and
+  auxiliary tag writes; it raised an internal error instead of activating
+- Custom graph and metric search results render again instead of failing
+
 ## [0.5.0] - 2026-10-02
 
 ### Added

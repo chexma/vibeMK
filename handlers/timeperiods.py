@@ -204,7 +204,7 @@ class TimePeriodsHandler(BaseHandler):
         else:
             return self.error_response("Time period deletion failed", f"Could not delete time period '{name}'")
 
-    def _validate_time_range(self, time_range: Dict[str, Any]) -> bool:
+    def _validate_time_range(self, time_range: Any) -> bool:
         """Validate time range structure"""
         if not isinstance(time_range, dict):
             return False

@@ -352,7 +352,7 @@ class MonitoringHandler(BaseHandler):
             if delete_type == "by_id":
                 target = f"comment #{comment_id}"
             else:
-                target = host_name + (f"/{service_description}" if service_description else "")
+                target = f"{host_name}" + (f"/{service_description}" if service_description else "")
             return [{"type": "text", "text": f"💬 **Comment Deleted**\n\nTarget: {target}"}]
         else:
             detail = result.get("data", {})

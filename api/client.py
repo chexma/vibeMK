@@ -60,7 +60,7 @@ class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     here lets the 3xx surface as an HTTPError so the pattern is rejected.
     """
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
         return None
 
 
@@ -194,8 +194,7 @@ class CheckMKClient:
             if custom_headers:
                 request_headers.update(custom_headers)
 
-            req = urllib.request.Request(url, headers=request_headers)
-            req.get_method = lambda: method
+            req = urllib.request.Request(url, headers=request_headers, method=method)
 
             # `is not None` rather than truthiness: a handler that deliberately
             # sends {} means an empty JSON object, not "send no body at all".

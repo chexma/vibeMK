@@ -61,7 +61,7 @@ echo ""
 
 # 5. Type checking with mypy
 echo "🏷️  Step 5: Running type checks..."
-mypy . --ignore-missing-imports --disable-error-code=no-untyped-def --disable-error-code=no-untyped-call
+mypy .
 print_status $? "Type checking"
 echo ""
 

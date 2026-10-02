@@ -142,7 +142,7 @@ class HostGroupRulesHandler(BaseHandler):
             value_raw = f"'{contact_groups}'"
 
         # Build rule data structure using the corrected format we discovered
-        rule_data = {
+        rule_data: Dict[str, Any] = {
             "properties": {"disabled": False},
             "value_raw": value_raw,
             "conditions": host_conditions if host_conditions else {},

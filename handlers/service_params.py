@@ -59,7 +59,7 @@ class ServiceParamsHandler(BaseHandler):
             return explicit_folder
         try:
             result = self.client.get(f"objects/host_config/{hostname}")
-            raw_folder = result["data"].get("extensions", {}).get("folder", "/")
+            raw_folder = str(result["data"].get("extensions", {}).get("folder", "/"))
             return "~" + raw_folder.lstrip("/").replace("/", "~")
         except Exception:
             return "~"

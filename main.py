@@ -22,6 +22,7 @@ import argparse
 import asyncio
 import os
 import sys
+from typing import Optional, Sequence
 
 from utils import setup_logging
 from vibemk_mcp.server import CheckMKMCPServer
@@ -29,7 +30,7 @@ from vibemk_mcp.server import CheckMKMCPServer
 DEFAULT_HTTP_PORT = 8765
 
 
-def parse_arguments(argv=None) -> argparse.Namespace:
+def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     """Read the transport settings from the command line and the environment.
 
     stdio stays the default: it is how an MCP client launches a server it owns.
@@ -61,7 +62,7 @@ def parse_arguments(argv=None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-async def main(argv=None):
+async def main(argv: Optional[Sequence[str]] = None) -> None:
     """Main entry point for vibeMK"""
     options = parse_arguments(argv)
 
@@ -70,9 +71,12 @@ async def main(argv=None):
     # server crashes on Windows with UnicodeEncodeError when the parent process
     # doesn't set PYTHONIOENCODING.
     for stream in (sys.stdout, sys.stdin, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
         try:
-            stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
+            reconfigure(encoding="utf-8")
+        except ValueError:
             pass
 
     # Setup logging with debug mode if LOGFILE is specified for better troubleshooting

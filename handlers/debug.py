@@ -2,7 +2,7 @@
 Debug handler for CheckMK API analysis
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler
@@ -186,7 +186,7 @@ class DebugHandler(BaseHandler):
         results = []
 
         # Test the most promising endpoints
-        test_scenarios = [
+        test_scenarios: List[Tuple[str, str, str, Dict[str, Any]]] = [
             ("GET all hosts", "domain-types/host_config/collections/all", "GET", {}),
             ("GET all monitoring hosts", "domain-types/host/collections/all", "GET", {}),
             ("GET specific host config", f"objects/host_config/{host_name}", "GET", {}),

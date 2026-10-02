@@ -33,7 +33,7 @@ lint:
 # Run type checking
 typecheck:
 	@echo "🏷️ Running type checks..."
-	@mypy . --ignore-missing-imports --disable-error-code=no-untyped-def --disable-error-code=no-untyped-call
+	@mypy .
 
 # Run test suite
 test:

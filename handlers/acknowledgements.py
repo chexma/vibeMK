@@ -4,9 +4,10 @@ Handles problem acknowledgements for hosts and services
 """
 
 import urllib.parse
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from api import CheckMKClient
+from handlers.base import BaseHandler
 from utils import get_logger
 
 logger = get_logger(__name__)
@@ -17,12 +18,12 @@ ACKNOWLEDGEMENT_COMMENTS = "domain-types/comment/collections/all"
 ACKNOWLEDGEMENT_ENTRY_TYPE = "4"
 
 
-class AcknowledgementHandler:
+class AcknowledgementHandler(BaseHandler):
     """Handler for CheckMK acknowledgement operations"""
 
-    def __init__(self, client: CheckMKClient):
-        self.client = client
-        self._checkMK_version = None
+    def __init__(self, client: CheckMKClient) -> None:
+        super().__init__(client)
+        self._checkMK_version: Optional[str] = None
         self._endpoints_tested = False
 
     async def _detect_checkMK_version(self) -> str:

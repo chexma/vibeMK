@@ -3,7 +3,7 @@ Folder path validation and conversion utilities for CheckMK handlers
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class FolderValidator:
@@ -185,7 +185,7 @@ class FolderValidator:
         return "❌ **Folder Path Validation Errors:**\n" + "\n".join(f"• {error}" for error in errors)
 
 
-def validate_folder_path(folder_path: str, operation: str = "general") -> Dict[str, any]:
+def validate_folder_path(folder_path: str, operation: str = "general") -> Dict[str, Any]:
     """
     Convenience function for quick folder path validation
 

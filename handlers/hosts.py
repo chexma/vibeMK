@@ -123,7 +123,7 @@ class HostHandler(BaseHandler):
             {"total": len(hosts), "hosts": entries},
         )
 
-    async def _get_host_status(self, host_name: str) -> List[Dict[str, Any]]:
+    async def _get_host_status(self, host_name: Optional[str]) -> List[Dict[str, Any]]:
         """Get host status information using the correct CheckMK API"""
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
@@ -379,7 +379,7 @@ class HostHandler(BaseHandler):
             }
         ]
 
-    async def _get_host_details(self, host_name: str) -> List[Dict[str, Any]]:
+    async def _get_host_details(self, host_name: Optional[str]) -> List[Dict[str, Any]]:
         """Get detailed host information"""
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
@@ -407,7 +407,7 @@ class HostHandler(BaseHandler):
             }
         ]
 
-    async def _get_host_config(self, host_name: str) -> List[Dict[str, Any]]:
+    async def _get_host_config(self, host_name: Optional[str]) -> List[Dict[str, Any]]:
         """Get host configuration"""
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
@@ -564,7 +564,7 @@ class HostHandler(BaseHandler):
             processed_entries.append(processed_entry)
 
         # Prepare the API request data
-        data = {"entries": processed_entries}
+        data: Dict[str, Any] = {"entries": processed_entries}
 
         # Add bake_agent parameter if specified (goes in request body, not params)
         if bake_agent:
@@ -785,7 +785,7 @@ class HostHandler(BaseHandler):
                 "Update operation failed", f"Unexpected error updating host '{host_name}': {str(e)}"
             )
 
-    async def _delete_host(self, host_name: str) -> List[Dict[str, Any]]:
+    async def _delete_host(self, host_name: Optional[str]) -> List[Dict[str, Any]]:
         """Delete a host"""
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
@@ -1061,7 +1061,7 @@ class HostHandler(BaseHandler):
         return [{"type": "text", "text": response_text}]
 
     def _validate_host_creation_params(
-        self, host_name: str, folder: str, attributes: Dict[str, Any]
+        self, host_name: Optional[str], folder: str, attributes: Dict[str, Any]
     ) -> Optional[List[Dict[str, Any]]]:
         """Validate parameters for host creation"""
         if not host_name:
@@ -1078,7 +1078,7 @@ class HostHandler(BaseHandler):
 
         return None
 
-    async def _clone_host(self, arguments: dict) -> list:
+    async def _clone_host(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Clone a host: copy folder + attributes from source to target."""
         source = arguments.get("source_hostname", "")
         target = arguments.get("target_hostname", "")
@@ -1142,13 +1142,13 @@ class HostHandler(BaseHandler):
         try:
             folder_path = folder if folder != "/" else "~"
             result = self.client.get(f"objects/folder_config/{folder_path}")
-            return result.get("success", False)
+            return bool(result.get("success", False))
         except:
             return False
 
     def _compare_attributes(self, current: Dict[str, Any], desired: Dict[str, Any]) -> Dict[str, Any]:
         """Compare current and desired attributes"""
-        changes = {"has_changes": False, "added": {}, "modified": {}, "removed": {}}
+        changes: Dict[str, Any] = {"has_changes": False, "added": {}, "modified": {}, "removed": {}}
 
         # Find added and modified attributes
         for key, value in desired.items():

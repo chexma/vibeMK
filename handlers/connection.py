@@ -5,7 +5,7 @@ Connection and diagnostics handlers
 import json
 import urllib.error
 import urllib.request
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler
@@ -82,7 +82,7 @@ class ConnectionHandler(BaseHandler):
             }
         ]
 
-    async def _test_direct_url(self, test_url: str) -> List[Dict[str, Any]]:
+    async def _test_direct_url(self, test_url: Optional[str]) -> List[Dict[str, Any]]:
         """Test a specific URL directly"""
         if not test_url:
             return self.error_response("Missing URL", "test_url parameter is required")

@@ -3,7 +3,7 @@ Downtime management handlers for CheckMK maintenance scheduling
 """
 
 import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler
@@ -446,7 +446,9 @@ class DowntimeHandler(BaseHandler):
                 f"Could not get active downtimes: {error_data.get('title', str(error_data))}",
             )
 
-    def _parse_downtime_times(self, start_time: str, end_time: str, duration_minutes: int) -> Dict[str, str]:
+    def _parse_downtime_times(
+        self, start_time: Optional[str], end_time: Optional[str], duration_minutes: int
+    ) -> Dict[str, str]:
         """Parse and convert downtime start/end times to ISO format with enhanced natural language support"""
         import re
         from datetime import datetime, timedelta
@@ -464,8 +466,10 @@ class DowntimeHandler(BaseHandler):
             start_dt = datetime.utcnow() + timedelta(minutes=delta_minutes)
         else:
             # Enhanced natural language parsing for user-friendly formats
-            start_dt = self._parse_natural_time(start_time)
-            if start_dt is None:
+            parsed_start = self._parse_natural_time(start_time)
+            if parsed_start is not None:
+                start_dt = parsed_start
+            else:
                 # Try to parse as ISO format (fallback)
                 try:
                     if start_time.endswith("Z"):
@@ -487,8 +491,10 @@ class DowntimeHandler(BaseHandler):
             end_dt = start_dt + timedelta(minutes=delta_minutes)
         else:
             # Enhanced natural language parsing for end time
-            end_dt = self._parse_natural_time(end_time)
-            if end_dt is None:
+            parsed_end = self._parse_natural_time(end_time)
+            if parsed_end is not None:
+                end_dt = parsed_end
+            else:
                 # Try to parse as ISO format (fallback)
                 try:
                     if end_time.endswith("Z"):
@@ -511,7 +517,7 @@ class DowntimeHandler(BaseHandler):
             "end_time": end_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
 
-    def _parse_natural_time(self, time_str: str) -> "datetime.datetime":
+    def _parse_natural_time(self, time_str: str) -> Optional["datetime.datetime"]:
         """
         Parse natural language time expressions into datetime objects.
 
@@ -664,7 +670,7 @@ class DowntimeHandler(BaseHandler):
             except ValueError:
                 return 60  # Default 1 hour
 
-    def _format_timestamp(self, timestamp) -> str:
+    def _format_timestamp(self, timestamp: Any) -> str:
         """Format timestamp to readable string, handling both Unix timestamps and ISO format"""
         if not timestamp:
             return "Unknown"
@@ -683,7 +689,7 @@ class DowntimeHandler(BaseHandler):
         except (ValueError, TypeError):
             return "Unknown"
 
-    def _timestamp_to_unix(self, timestamp) -> float:
+    def _timestamp_to_unix(self, timestamp: Any) -> float:
         """Convert timestamp to Unix timestamp for comparison"""
         if not timestamp:
             return 0.0
@@ -701,7 +707,7 @@ class DowntimeHandler(BaseHandler):
         except (ValueError, TypeError):
             return 0.0
 
-    def _get_time_only(self, timestamp) -> str:
+    def _get_time_only(self, timestamp: Any) -> str:
         """Extract time-only format (HH:MM) from various timestamp formats"""
         try:
             if isinstance(timestamp, str):
@@ -717,7 +723,7 @@ class DowntimeHandler(BaseHandler):
         except (ValueError, TypeError, AttributeError):
             return str(timestamp)[:5]  # Return first 5 chars as fallback
 
-    def _format_downtimes_list(self, downtimes: List[Dict], host_filter: str = None) -> str:
+    def _format_downtimes_list(self, downtimes: List[Dict[str, Any]], host_filter: Optional[str] = None) -> str:
         """Format downtimes list for display, clearly distinguishing host downtimes vs service downtimes"""
         if not downtimes:
             filter_text = f" for host '{host_filter}'" if host_filter else ""
@@ -752,7 +758,7 @@ class DowntimeHandler(BaseHandler):
             response += "=" * 60 + "\n\n"
 
             # Group host downtimes by host
-            host_grouped = {}
+            host_grouped: Dict[str, List[Dict[str, Any]]] = {}
             for downtime in host_downtimes:
                 extensions = downtime.get("extensions", {})
                 host_name = extensions.get("host_name", "Unknown")
@@ -785,7 +791,7 @@ class DowntimeHandler(BaseHandler):
             response += "=" * 60 + "\n\n"
 
             # Group service downtimes by host, then by service
-            service_grouped = {}
+            service_grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
             for downtime in service_downtimes:
                 extensions = downtime.get("extensions", {})
                 host_name = extensions.get("host_name", "Unknown")
@@ -836,7 +842,9 @@ class DowntimeHandler(BaseHandler):
         response += "💡 **Tip:** Use `vibemk_delete_downtime` with downtime ID to cancel a downtime"
         return response
 
-    def _format_active_downtimes(self, active_downtimes: List[Dict], host_filter: str = None) -> str:
+    def _format_active_downtimes(
+        self, active_downtimes: List[Dict[str, Any]], host_filter: Optional[str] = None
+    ) -> str:
         """Format currently active downtimes"""
         if not active_downtimes:
             filter_text = f" on host '{host_filter}'" if host_filter else ""
@@ -1020,7 +1028,7 @@ class DowntimeHandler(BaseHandler):
                         return False
 
             # Check if current time is within the downtime window
-            return start_time <= current_timestamp <= end_time
+            return bool(start_time <= current_timestamp <= end_time)
 
         except Exception as e:
             self.logger.warning(f"Error checking downtime active status: {e}")
@@ -1146,7 +1154,7 @@ class DowntimeHandler(BaseHandler):
             return False
 
     async def _get_current_downtimes(
-        self, host_name: str, service_descriptions: List[str], comment: str = None
+        self, host_name: str, service_descriptions: List[str], comment: Optional[str] = None
     ) -> List[str]:
         """Get current downtimes for a host/services, based on working CheckMK example"""
         filters = []
@@ -1207,7 +1215,7 @@ class DowntimeHandler(BaseHandler):
             return []
 
     async def _verify_downtime_creation(
-        self, host_name: str, comment: str, max_retries: int = 5, services: List[str] = None
+        self, host_name: str, comment: str, max_retries: int = 5, services: Optional[List[str]] = None
     ) -> bool:
         """
         Verify downtime creation with retry logic (based on working CheckMK example).
