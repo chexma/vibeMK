@@ -183,3 +183,46 @@ def test_every_registered_tool_is_dispatched_by_its_handler(registry):
             missing[name] = module.name
 
     assert missing == {}, f"routed to a handler that never mentions them: {missing}"
+
+
+class TestEveryToolIsClassified:
+    """Annotations are a safety signal, so they may not be guessed.
+
+    A host decides from `readOnlyHint` and `destructiveHint` whether a call
+    needs a confirmation prompt. A tool that nobody classified falls back to
+    "destructive", which is the safe reading but also a lie about a harmless
+    one -- so the catalogue and the classification have to stay in step.
+    """
+
+    def test_each_tool_is_in_exactly_one_bucket(self):
+        from vibemk_mcp.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
+
+        declared = {tool["name"] for tool in get_all_tools()}
+        buckets = (READ_ONLY, SAFE_WRITES, DESTRUCTIVE)
+
+        unclassified = sorted(name for name in declared if not any(name in b for b in buckets))
+        assert unclassified == [], f"no behaviour declared for: {unclassified}"
+
+        twice = sorted(name for name in declared if sum(name in b for b in buckets) > 1)
+        assert twice == [], f"classified more than once: {twice}"
+
+    def test_no_classification_names_a_tool_that_is_gone(self):
+        from vibemk_mcp.annotations import DESTRUCTIVE, READ_ONLY, SAFE_WRITES
+
+        declared = {tool["name"] for tool in get_all_tools()}
+        stale = sorted((READ_ONLY | SAFE_WRITES | DESTRUCTIVE) - declared)
+
+        assert stale == [], f"classified but no longer declared: {stale}"
+
+    def test_a_read_only_tool_never_claims_to_be_destructive(self):
+        from vibemk_mcp.annotations import annotations_for
+
+        for tool in get_all_tools():
+            hints = annotations_for(tool["name"])
+            if hints.get("readOnlyHint"):
+                assert not hints.get("destructiveHint"), tool["name"]
+
+    def test_every_tool_carries_a_title_and_annotations(self):
+        for tool in get_all_tools():
+            assert tool.get("title"), f"{tool['name']} has no title"
+            assert tool.get("annotations"), f"{tool['name']} has no annotations"

@@ -4,6 +4,8 @@ vibeMK Tool definitions for CheckMK operations
 
 from typing import Any, Dict, List
 
+from vibemk_mcp.annotations import annotations_for, title_for
+
 
 def get_connection_tools() -> List[Dict[str, Any]]:
     """Connection and diagnostic tools"""
@@ -3109,4 +3111,26 @@ def get_all_tools() -> List[Dict[str, Any]]:
     deduped = {}
     for tool in tools:
         deduped[tool["name"]] = tool
-    return list(deduped.values())
+
+    return [_enriched(tool) for tool in deduped.values()]
+
+
+def _enriched(tool: Dict[str, Any]) -> Dict[str, Any]:
+    """Add the metadata MCP clients use to present and judge a tool.
+
+    `title` is what a client shows instead of the wire name, and `annotations`
+    tell a host whether a call needs a confirmation prompt. Both are derived
+    here rather than repeated in 154 literals, so a new tool gets them by
+    being declared.
+    """
+    tool.setdefault("title", title_for(tool["description"]))
+    tool.setdefault("annotations", annotations_for(tool["name"]))
+
+    # A tool with no parameters: the specification recommends saying so
+    # explicitly rather than accepting any object.
+    schema = tool.get("inputSchema")
+    if schema and schema.get("type") == "object" and not schema.get("properties"):
+        schema.pop("properties", None)
+        schema.setdefault("additionalProperties", False)
+
+    return tool
