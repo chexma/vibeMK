@@ -1,7 +1,7 @@
 # vibeMK Development Makefile
 # Provides convenient commands for code quality checks
 
-.PHONY: format check test lint clean help
+.PHONY: format check test lint clean help package typecheck push-ready install-dev status
 
 # Default target
 help:
@@ -10,7 +10,8 @@ help:
 	@echo ""
 	@echo "make format     - Format code with black and isort"
 	@echo "make check      - Run all quality checks (format + type + test)"
-	@echo "make lint       - Run only linting/formatting checks"
+	@echo "make lint       - Run only linting/formatting checks (black, isort, ruff)"
+	@echo "make package    - Build the wheel and check it installs and runs"
 	@echo "make test       - Run test suite"
 	@echo "make clean      - Clean up temporary files"
 	@echo "make push-ready - Prepare code for push (format + check)"
@@ -28,6 +29,7 @@ lint:
 	@echo "🔍 Running linting checks..."
 	@black --check .
 	@isort --check-only .
+	@ruff check .
 	@echo "✅ Linting checks passed"
 
 # Run type checking
@@ -73,3 +75,15 @@ install-dev:
 status: format
 	@echo "📊 Git status after formatting:"
 	@git status --short
+# Mirror the CI package job: build, then prove the result installs and runs.
+# Every entry-point defect this project has had was invisible from the
+# checkout and only showed up here.
+package: clean
+	@echo "📦 Building the distribution..."
+	@python -m build
+	@python -m twine check dist/*
+	@rm -rf /tmp/vibemk-install-check
+	@python -m venv /tmp/vibemk-install-check
+	@/tmp/vibemk-install-check/bin/pip install --quiet dist/*.whl
+	@/tmp/vibemk-install-check/bin/vibemk --help > /dev/null
+	@echo "✅ The wheel installs and the vibemk command starts"

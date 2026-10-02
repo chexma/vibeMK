@@ -59,14 +59,20 @@ isort --check-only .
 print_status $? "Import sorting verification"
 echo ""
 
-# 5. Type checking with mypy
-echo "🏷️  Step 5: Running type checks..."
+# 5. Lint with ruff
+echo "🔍 Step 5: Linting with ruff..."
+ruff check .
+print_status $? "Ruff lint"
+echo ""
+
+# 6. Type checking with mypy
+echo "🏷️  Step 6: Running type checks..."
 mypy .
 print_status $? "Type checking"
 echo ""
 
-# 6. Run tests
-echo "🧪 Step 6: Running test suite..."
+# 7. Run tests
+echo "🧪 Step 7: Running test suite..."
 if command -v pytest &> /dev/null; then
     pytest -v --tb=short
     print_status $? "Test suite"

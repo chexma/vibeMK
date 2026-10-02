@@ -2,56 +2,122 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+# A second push supersedes the first: there is no value in finishing a run
+# for a commit nobody will look at again. main is exempt, because its runs
+# are the record of what was released.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  # The version the non-matrix jobs run under. Lint and type results do not
+  # vary across interpreters, so running them once is enough.
+  DEFAULT_PYTHON: "3.13"
 
 jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - run: pip install -e ".[dev]"
+
+      - name: Formatting (black)
+        run: black --check --diff .
+
+      - name: Import order (isort)
+        run: isort --check-only --diff .
+
+      - name: Lint (ruff)
+        run: ruff check --output-format=github .
+
+      - name: Types (mypy, strict)
+        run: mypy .
+
   test:
+    # The job id and the matrix dimension are what name the required status
+    # checks on main -- "test (3.10)" and so on. Renaming either silently
+    # leaves branch protection waiting for a check that never arrives.
+    name: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        # Install project in editable mode with dev dependencies
-        pip install -e ".[dev]"
-        
-    - name: Lint with black
-      run: |
-        black --check .
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-        
-    - name: Sort imports with isort
-      run: |
-        isort --check-only --diff .
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-        
-    - name: Type check with mypy
-      run: |
-        mypy .
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-        
-    - name: Test with pytest
-      run: |
-        pytest -v
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-        CHECKMK_SERVER_URL: http://localhost:8080
-        CHECKMK_SITE: test
-        CHECKMK_USERNAME: automation
-        CHECKMK_PASSWORD: test-password
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - run: pip install -e ".[dev]"
+
+      - name: Tests
+        run: pytest -v
+        env:
+          # tests/test_packaging.py turns a missing python-build into an
+          # error rather than a skip when this is set, so the distribution
+          # guards cannot quietly stop running.
+          CI: "true"
+          CHECKMK_SERVER_URL: http://localhost:8080
+          CHECKMK_SITE: test
+          CHECKMK_USERNAME: automation
+          CHECKMK_PASSWORD: test-password
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - run: pip install build twine
+
+      - name: Build the distribution
+        run: python -m build
+
+      - name: Check the metadata renders on PyPI
+        run: twine check dist/*
+
+      - name: Install the wheel into a clean environment
+        run: |
+          python -m venv /tmp/install-check
+          /tmp/install-check/bin/pip install --quiet dist/*.whl
+
+      - name: The console script starts
+        # This is the check that was missing: every defect in the entry point
+        # was invisible to a test suite that only ever ran from the checkout.
+        run: /tmp/install-check/bin/vibemk --help
+
+      - name: The package imports without the checkout on sys.path
+        run: /tmp/install-check/bin/python -c "import vibemk_mcp, handlers, api; print(vibemk_mcp.__name__)"
+
+      - name: Keep the build artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution
+          path: dist/
+          retention-days: 14
