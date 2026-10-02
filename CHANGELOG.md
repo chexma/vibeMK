@@ -44,6 +44,9 @@ All notable changes to this project will be documented in this file.
 - `recur` on downtimes takes effect (commercial editions); it was accepted but
   never sent, and offered a `month` value CheckMK does not have
 - `create_smtp_check` applies the `port` it reports; it was never sent
+- `activate_changes: true` takes effect on every write tool that offers it; on
+  34 of them (rules, folders, groups, passwords, tags, time periods, roles,
+  contact groups) it was ignored and the changes stayed pending
 
 ## [0.5.1] - 2026-10-02
 

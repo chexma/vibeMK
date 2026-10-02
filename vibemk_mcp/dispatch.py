@@ -77,6 +77,13 @@ class Dispatcher:
         # The SDK's low-level server leaves argument validation to us. Built
         # once: compiling a validator per call would cost more than the check.
         self._validators = {name: Draft202012Validator(schema) for name, schema in (input_schemas or {}).items()}
+        # The tools whose schema offers activate_changes. Deciding here, from
+        # the schema, keeps what is offered and what is done in one place:
+        # when four handlers each carried their own copy, the other 34 tools
+        # advertised the flag and ignored it.
+        self._activating = frozenset(
+            name for name, schema in (input_schemas or {}).items() if "activate_changes" in schema.get("properties", {})
+        )
 
     async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]]) -> types.CallToolResult:
         """Run a tool and return its result, failures included.
@@ -135,11 +142,30 @@ class Dispatcher:
             logger.exception("Error in tool call %s", name)
             return self._failure(f"❌ **{name} failed**\n\n{error}")
 
+        failed = is_error(content)
+        if not failed and name in self._activating and (arguments or {}).get("activate_changes") is True:
+            content = self._with_activation(handler, content)
+
         structured = structured_of(content)
-        result = types.CallToolResult(content=to_content_blocks(content), is_error=is_error(content))
+        result = types.CallToolResult(content=to_content_blocks(content), is_error=failed)
         if structured is not None:
             result.structured_content = structured
         return result
+
+    @staticmethod
+    def _with_activation(handler: Any, content: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Activate the pending changes and append the one-line outcome to the report.
+
+        _run_activation honours NEVER_ACTIVATE_CHANGES and never raises, so a
+        failed activation cannot hide the write that did succeed.
+        """
+        line = handler._run_activation()
+        texts = [i for i, block in enumerate(content) if block.get("type") == "text"]
+        if not texts:
+            return [*content, {"type": "text", "text": line}]
+        last = texts[-1]
+        updated = dict(content[last], text=f"{content[last].get('text', '')}\n{line}")
+        return [*content[:last], updated, *content[last + 1 :]]
 
     def _argument_problems(self, name: str, arguments: Dict[str, Any]) -> List[str]:
         """What is wrong with the arguments, one line per problem; empty if nothing is."""
