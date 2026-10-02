@@ -54,8 +54,8 @@ This project is in the alpha stage and under development. I accept no liability 
 4. CheckMK automation user setup (Administrator permissions or a customized role if changes are to be made, read-only if only analyses are to be performed.)
 5. voila - configure checkmk using natural language
 ```
-**Complete Installation Guide**: See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions.
-**More Examples**: See `examples/llm_configs/` and [INSTALL.md](INSTALL.md)  
+**Complete Installation Guide**: See [INSTALL.md](https://github.com/chexma/vibeMK/blob/main/INSTALL.md) for detailed step-by-step instructions.
+**More Examples**: See `examples/llm_configs/` and [INSTALL.md](https://github.com/chexma/vibeMK/blob/main/INSTALL.md)  
 **Visual Examples**: See `examples/Screenshots/` for example prompts and usage patterns  
 
 ## 🔌 Running it
@@ -74,7 +74,7 @@ python main.py --transport http --port 8765
 Clients connect to `http://<host>:8765/mcp` and send `Authorization: Bearer <token>`.
 The token is mandatory, and vibeMK binds to localhost unless told otherwise:
 the CheckMK account lives on the server, so whoever reaches the port inherits
-it. See [INSTALL.md](INSTALL.md) for what that means before you expose it.
+it. See [INSTALL.md](https://github.com/chexma/vibeMK/blob/main/INSTALL.md) for what that means before you expose it.
 
 ## 💡 Practical Prompt Examples
 
