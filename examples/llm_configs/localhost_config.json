@@ -1,8 +1,7 @@
 {
   "mcpServers": {
     "vibemk-local": {
-      "command": "python",
-      "args": ["/Users/yourname/projects/vibeMK/main.py"],
+      "command": "/absolute/path/to/vibemk",
       "env": {
         "CHECKMK_SERVER_URL": "http://localhost:8080",
         "CHECKMK_SITE": "cmk",

@@ -24,19 +24,19 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 - Git (only when installing from source)
 - Access to CheckMK instance (local or remote)
 
-## 🚀 vibeMK Features (Version 0.1)
+## 🚀 vibeMK Features
 
 ### ✨ Current Features
 - **🏷️ Unified Tool Naming**: Every tool carries the `vibemk_` prefix for better identification
 - **🔧 Modular Architecture**: Clean handler structure for different CheckMK areas
 - **⚡ Optimized Performance**: Efficient API clients and connection management
 - **🛡️ Robust Security**: Comprehensive input validation and error handling
-- **🧪 One Dependency**: The official MCP SDK; everything else is Python standard library
+- **🧪 Two Dependencies**: The official MCP SDK and jsonschema; everything else is Python standard library
 
-### 📊 Tool Overview (82 Tools)
+### 📊 Tool Overview (154 Tools, 64 of them read-only)
 - **CheckMK Core**: `vibemk_get_checkmk_version`, `vibemk_debug_checkmk_connection`
 - **Host Management**: `vibemk_get_checkmk_hosts`, `vibemk_create_host`, `vibemk_delete_host`
-- **Service Management**: `vibemk_get_checkmk_services`, `vibemk_discover_services`
+- **Service Management**: `vibemk_get_checkmk_services`, `vibemk_start_service_discovery`
 - **Monitoring & Alerting**: `vibemk_get_current_problems`, `vibemk_acknowledge_problem`
 - **Folder Management**: `vibemk_get_folders`, `vibemk_create_folder`
 - **Rule Management**: `vibemk_get_rulesets`, `vibemk_create_rule`
