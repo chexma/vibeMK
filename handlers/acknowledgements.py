@@ -3,7 +3,6 @@ CheckMK Acknowledgement Handler
 Handles problem acknowledgements for hosts and services
 """
 
-import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from api import CheckMKClient
@@ -265,7 +264,7 @@ class AcknowledgementHandler(BaseHandler):
                 if is_service:
                     # For service acknowledgements, we might need to infer service name from comment
                     # or use additional API calls if needed
-                    service_info = f"\nType: Service acknowledgement"
+                    service_info = "\nType: Service acknowledgement"
 
                 ack_list.append(
                     f"\n**{i}. Acknowledgement #{ack_id}**\n"

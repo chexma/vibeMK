@@ -2,8 +2,6 @@
 Tests for Host Handler
 """
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
 from api.exceptions import CheckMKAPIError

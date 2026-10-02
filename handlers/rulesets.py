@@ -187,7 +187,7 @@ class RulesetsHandler(BaseHandler):
 
     def _format_rulesets_search_response(self, rulesets: List[Dict[str, Any]], search_params: Dict[str, Any]) -> str:
         """Format search results for display"""
-        response = f"🔍 **Ruleset Search Results**\n\n"
+        response = "🔍 **Ruleset Search Results**\n\n"
 
         # Show search criteria
         if search_params:
@@ -219,7 +219,7 @@ class RulesetsHandler(BaseHandler):
             if help_text:
                 response += f"   💡 {help_text}\n"
             if deprecated:
-                response += f"   ⚠️ Deprecated ruleset\n"
+                response += "   ⚠️ Deprecated ruleset\n"
 
             response += "\n"
 
@@ -256,9 +256,9 @@ class RulesetsHandler(BaseHandler):
 
         # Show available operations
         response += "**Available Operations:**\n"
-        response += f"• Use `vibemk_get_ruleset` to see actual rules in this ruleset\n"
-        response += f"• Use `vibemk_create_rule` to add new rules to this ruleset\n"
-        response += f"• Use `vibemk_search_rulesets` to find related rulesets\n"
+        response += "• Use `vibemk_get_ruleset` to see actual rules in this ruleset\n"
+        response += "• Use `vibemk_create_rule` to add new rules to this ruleset\n"
+        response += "• Use `vibemk_search_rulesets` to find related rulesets\n"
 
         if deprecated:
             response += "\n⚠️ **Note:** This is a deprecated ruleset. Consider using newer alternatives."
@@ -269,7 +269,7 @@ class RulesetsHandler(BaseHandler):
         self, rulesets: List[Dict[str, Any]], limit: int, truncated: bool, show_deprecated: bool
     ) -> str:
         """Format rulesets list for display"""
-        response = f"📋 **Available Rulesets**\n\n"
+        response = "📋 **Available Rulesets**\n\n"
 
         if show_deprecated:
             response += "**Including deprecated rulesets**\n\n"

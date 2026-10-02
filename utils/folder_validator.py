@@ -3,7 +3,7 @@ Folder path validation and conversion utilities for CheckMK handlers
 """
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class FolderValidator:

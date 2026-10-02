@@ -2,7 +2,6 @@
 Tests for CheckMK API Client
 """
 
-import json
 import urllib.error
 from unittest.mock import MagicMock, patch
 

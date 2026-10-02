@@ -348,7 +348,7 @@ class ServiceParamsHandler(BaseHandler):
                 + (f"RAM: warn>={ram_warn}%, crit>={ram_crit}%\n" if "levels_virtual" in value else "")
                 + (f"Swap: warn>={swap_warn}%, crit>={swap_crit}%\n" if "levels_swap" in value else "")
                 + f"Rule-ID: {rule_id}\n"
-                + f"ℹ️  Regel steht ganz oben — höher priorisiert als ältere Regeln."
+                + "ℹ️  Regel steht ganz oben — höher priorisiert als ältere Regeln."
             )
             return [{"type": "text", "text": msg}]
         detail = result.get("data", {})

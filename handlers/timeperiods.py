@@ -107,7 +107,7 @@ class TimePeriodsHandler(BaseHandler):
                         f"Name: **{name}**\n"
                         f"Alias: {alias or name}\n"
                         f"Active time ranges:\n" + "\n".join(f"  • {td}" for td in time_display) + "\n\n"
-                        f"⚠️ **Remember to activate changes!**"
+                        "⚠️ **Remember to activate changes!**"
                     ),
                 }
             ]

@@ -342,7 +342,7 @@ class UserRolesHandler(BaseHandler):
         else:
             response += "🎨 **Custom Role**\n\n"
 
-        response += f"**Role Information:**\n"
+        response += "**Role Information:**\n"
         response += f"• **ID**: `{role_id}`\n"
         response += f"• **Alias**: {alias}\n"
         response += f"• **Type**: {'Built-in' if builtin else 'Custom'}\n"
@@ -370,11 +370,11 @@ class UserRolesHandler(BaseHandler):
                 if len(permissions) > 10:
                     response += f"... and {len(permissions) - 10} more permissions\n"
 
-        response += f"\n**Available Operations:**\n"
+        response += "\n**Available Operations:**\n"
         if not builtin:
-            response += f"• `vibemk_update_user_role` - Modify this role\n"
-            response += f"• `vibemk_delete_user_role` - Delete this role\n"
-        response += f"• `vibemk_create_user_role` - Clone this role to create a new one\n"
+            response += "• `vibemk_update_user_role` - Modify this role\n"
+            response += "• `vibemk_delete_user_role` - Delete this role\n"
+        response += "• `vibemk_create_user_role` - Clone this role to create a new one\n"
 
         return response
 

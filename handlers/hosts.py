@@ -3,8 +3,7 @@ Host management handlers with enhanced features for CheckMK integration
 """
 
 import json
-import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
 from handlers.base import BaseHandler
@@ -435,7 +434,7 @@ class HostHandler(BaseHandler):
             # Add routing information to the response
             if result and result[0].get("type") == "text":
                 original_text = result[0]["text"]
-                routing_info = f"\n\n🤖 **Smart Routing Applied:** Multiple hosts detected → Bulk Creation API\n📡 **API Endpoint:** POST domain-types/host_config/actions/bulk-create/invoke"
+                routing_info = "\n\n🤖 **Smart Routing Applied:** Multiple hosts detected → Bulk Creation API\n📡 **API Endpoint:** POST domain-types/host_config/actions/bulk-create/invoke"
                 result[0]["text"] = original_text + routing_info
 
             return result
@@ -452,7 +451,7 @@ class HostHandler(BaseHandler):
             # Add routing information to the response
             if result and result[0].get("type") == "text":
                 original_text = result[0]["text"]
-                routing_info = f"\n\n🤖 **Smart Routing Applied:** Single host detected → Individual Creation API\n📡 **API Endpoint:** POST domain-types/host_config/collections/all"
+                routing_info = "\n\n🤖 **Smart Routing Applied:** Single host detected → Individual Creation API\n📡 **API Endpoint:** POST domain-types/host_config/collections/all"
                 result[0]["text"] = original_text + routing_info
 
             return result
@@ -514,10 +513,10 @@ class HostHandler(BaseHandler):
                         )
                         + (f"• Alias: {attributes.get('alias', 'Not set')}\n" if attributes.get("alias") else "")
                         + (f"• Site: {attributes.get('site', 'Default')}\n" if attributes.get("site") else "")
-                        + f"\n⚠️ **Remember to activate changes!**\n\n"
-                        f"💡 **Next Steps:**\n"
-                        f"1️⃣ Use 'get_pending_changes' to review\n"
-                        f"2️⃣ Use 'activate_changes' to apply configuration"
+                        + "\n⚠️ **Remember to activate changes!**\n\n"
+                        "💡 **Next Steps:**\n"
+                        "1️⃣ Use 'get_pending_changes' to review\n"
+                        "2️⃣ Use 'activate_changes' to apply configuration"
                     ),
                 }
             ]
@@ -595,13 +594,13 @@ class HostHandler(BaseHandler):
                     success_count = len(entries)  # Fallback if no detailed response
 
                 # Build success response
-                response_text = f"✅ **Bulk Host Creation Successful**\n\n"
+                response_text = "✅ **Bulk Host Creation Successful**\n\n"
                 response_text += f"**Hosts Created:** {success_count}/{len(entries)}\n"
 
                 if bake_agent:
-                    response_text += f"**Agent Baking:** Enabled (process started in background)\n"
+                    response_text += "**Agent Baking:** Enabled (process started in background)\n"
 
-                response_text += f"\n📋 **Created Hosts:**\n"
+                response_text += "\n📋 **Created Hosts:**\n"
 
                 if created_hosts:
                     response_text += "\n".join(created_hosts)
@@ -616,13 +615,13 @@ class HostHandler(BaseHandler):
                     if len(entries) > 10:
                         response_text += f"... and {len(entries) - 10} more hosts\n"
 
-                response_text += f"\n⚠️ **Remember to activate changes!**\n\n"
-                response_text += f"💡 **Next Steps:**\n"
-                response_text += f"1️⃣ Use 'get_pending_changes' to review all changes\n"
-                response_text += f"2️⃣ Use 'activate_changes' to apply configuration\n"
+                response_text += "\n⚠️ **Remember to activate changes!**\n\n"
+                response_text += "💡 **Next Steps:**\n"
+                response_text += "1️⃣ Use 'get_pending_changes' to review all changes\n"
+                response_text += "2️⃣ Use 'activate_changes' to apply configuration\n"
 
                 if bake_agent:
-                    response_text += f"3️⃣ Monitor agent baking progress in CheckMK GUI"
+                    response_text += "3️⃣ Monitor agent baking progress in CheckMK GUI"
 
                 return [{"type": "text", "text": response_text}]
 
@@ -755,8 +754,8 @@ class HostHandler(BaseHandler):
                                 if changes["has_changes"]
                                 else "No changes detected"
                             )
-                            + f"\n\n⚠️ **Remember to activate changes!**\n"
-                            f"💡 Use 'vibemk_activate_changes' to apply the configuration"
+                            + "\n\n⚠️ **Remember to activate changes!**\n"
+                            "💡 Use 'vibemk_activate_changes' to apply the configuration"
                         ),
                     }
                 ]
@@ -851,7 +850,7 @@ class HostHandler(BaseHandler):
                         f"Old name: {host_name}\n"
                         f"New name: {new_name}\n"
                         + (f"Job ID: {job_id}\n" if job_id else "")
-                        + f"\n⚠️ Remember to activate changes after the job completes."
+                        + "\n⚠️ Remember to activate changes after the job completes."
                     ),
                 }
             ]
@@ -960,7 +959,7 @@ class HostHandler(BaseHandler):
         # Compile validation results
         status = "valid" if not validation_errors else "invalid"
 
-        response_text = f"🔍 **Host Configuration Validation**\n\n"
+        response_text = "🔍 **Host Configuration Validation**\n\n"
         response_text += f"**Host:** {host_name}\n"
         response_text += f"**Operation:** {operation}\n"
         response_text += f"**Status:** {'✅ Valid' if status == 'valid' else '❌ Invalid'}\n\n"
@@ -1000,7 +999,7 @@ class HostHandler(BaseHandler):
         # Compare states
         comparison = self._compare_attributes(current_attributes, desired_attributes)
 
-        response_text = f"🔄 **Host State Comparison**\n\n"
+        response_text = "🔄 **Host State Comparison**\n\n"
         response_text += f"**Host:** {host_name}\n"
         response_text += f"**Changes Required:** {'Yes' if comparison['has_changes'] else 'No'}\n\n"
 
@@ -1046,7 +1045,7 @@ class HostHandler(BaseHandler):
         effective_attributes.update(inherited_attributes)
         effective_attributes.update(attributes)
 
-        response_text = f"📋 **Effective Host Attributes**\n\n"
+        response_text = "📋 **Effective Host Attributes**\n\n"
         response_text += f"**Host:** {host_name}\n"
         response_text += f"**Folder:** {folder_path}\n\n"
 

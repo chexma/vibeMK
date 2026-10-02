@@ -156,7 +156,7 @@ class ConnectionHandler(BaseHandler):
             except Exception as e:
                 results.append(f"❌ {endpoint} - {desc} (Error: {str(e)})")
 
-        return [{"type": "text", "text": f"🧪 **API Endpoint Test Results**\n\n" + "\n".join(results)}]
+        return [{"type": "text", "text": "🧪 **API Endpoint Test Results**\n\n" + "\n".join(results)}]
 
     async def _get_version(self) -> List[Dict[str, Any]]:
         """Get CheckMK version information"""
