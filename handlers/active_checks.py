@@ -234,9 +234,9 @@ class ActiveChecksHandler(BaseHandler):
                 if method:
                     details.append(f"Method: {method}")
             else:
-                details.append(f"Modus: Zertifikat-Check (warn {cert_days_warn}d, crit {cert_days_crit}d)")
+                details.append(f"Mode: certificate check (warn {cert_days_warn}d, crit {cert_days_crit}d)")
             if description:
-                details.append(f"Beschreibung: {description}")
+                details.append(f"Description: {description}")
             details.append(f"Rule-ID: {rule_id}")
             return [
                 {"type": "text", "text": f"✅ HTTP check '{name}' created for '{hostname}'.\n" + "\n".join(details)}
@@ -287,7 +287,7 @@ class ActiveChecksHandler(BaseHandler):
                 f"✅ TCP check on port {port} created for '{hostname}'.\n"
                 f"Service: {name or f'TCP Port {port}'}, SSL: {use_ssl}\n"
                 + (f"Expect: {expect}\n" if expect else "")
-                + (f"Beschreibung: {description}\n" if description else "")
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -330,10 +330,10 @@ class ActiveChecksHandler(BaseHandler):
             msg = (
                 f"✅ ICMP/PING check '{name}' created for '{hostname}'.\n"
                 f"Packets: {packets}, timeout: {timeout}s\n"
-                + (f"Ziel-IP: {explicit_address}\n" if explicit_address else "")
+                + (f"Target IP: {explicit_address}\n" if explicit_address else "")
                 + (f"RTA: warn {rta_warn}ms / crit {rta_crit}ms\n" if rta_warn else "")
                 + (f"Loss: warn {loss_warn}% / crit {loss_crit}%\n" if loss_warn else "")
-                + (f"Beschreibung: {description}\n" if description else "")
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -399,9 +399,9 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ DNS check created for '{hostname}'.\n"
-                f"Lookup: {lookup_hostname}, DNS-Server: {dns_server or 'Standard'}\n"
-                + (f"Erwartete IPs: {expected_addresses} (alle: {expect_all})\n" if expected_addresses else "")
-                + (f"Beschreibung: {description}\n" if description else "")
+                f"Lookup: {lookup_hostname}, DNS server: {dns_server or 'system default'}\n"
+                + (f"Expected IPs: {expected_addresses} (all required: {expect_all})\n" if expected_addresses else "")
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -431,8 +431,8 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ SMTP check '{name}' created for '{hostname}'.\n"
-                f"Port: {port or 'Standard'}, STARTTLS: {starttls}\n"
-                + (f"Beschreibung: {description}\n" if description else "")
+                f"Port: {port or 'default'}, STARTTLS: {starttls}\n"
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -461,7 +461,7 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ FTP check on port {port} created for '{hostname}'.\n"
-                + (f"Beschreibung: {description}\n" if description else "")
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -501,8 +501,8 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ LDAP check '{name}' created for '{hostname}'.\n"
-                f"Base-DN: {base_dn}\n"
-                + (f"Beschreibung: {description}\n" if description else "")
+                f"Base DN: {base_dn}\n"
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -538,8 +538,8 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ SMB check on share '{share}' created for '{hostname}'.\n"
-                f"Warn: {warn_pct}%, Krit: {crit_pct}%\n"
-                + (f"Beschreibung: {description}\n" if description else "")
+                f"Warn: {warn_pct}%, Crit: {crit_pct}%\n"
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -568,7 +568,7 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ Event Console check created for '{hostname}'.\n"
-                + (f"Beschreibung: {description}\n" if description else "")
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -600,7 +600,7 @@ class ActiveChecksHandler(BaseHandler):
             rule_id = result["data"].get("id", "")
             msg = (
                 f"✅ HW/SW inventory check created for '{hostname}'.\n"
-                + (f"Beschreibung: {description}\n" if description else "")
+                + (f"Description: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
@@ -692,7 +692,7 @@ class ActiveChecksHandler(BaseHandler):
         if not rule_id:
             return self.error_response(
                 "Missing parameter",
-                "rule_id oder hostname angeben",
+                "Provide rule_id or hostname",
             )
 
         self.client.delete(f"objects/rule/{rule_id}")

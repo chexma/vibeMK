@@ -10,6 +10,8 @@ reachable.
 import ast
 import inspect
 import pathlib
+import re
+import tokenize
 from typing import Dict
 from unittest.mock import MagicMock
 
@@ -335,14 +337,24 @@ class TestTheCatalogueIsInEnglish:
     "🖥️ List hosts".
 
     An umlaut or an eszett is the cheap, near-certain signal: no English
-    string in this project has one, and no German sentence of any length
-    avoids them for long.
+    string in this project has one. It is not enough on its own, though:
+    "Neues Thema" and "Warn-Schwelle in Millisekunden (z.B. 500)" have
+    neither, and short field descriptions like these outlived the first
+    sweep. So a handful of common German words that are not English words
+    count as well.
     """
 
     GERMAN_LETTERS = "äöüÄÖÜß"
+    GERMAN_WORDS = re.compile(
+        r"\b(oder|und|wenn|nicht|keine?|alle|heute|verwenden|aktivieren|aktualisieren|ignorieren"
+        r"|quittier\w*|Quittier\w*|Neue[rsn]?|Pflicht|gesetzt|Beschreibung|weitere|gefunden"
+        r"|Erwartete[rn]?|Krit|Ziel)\b|Schwelle|z\.B\."
+    )
 
     def _offenders(self, text: str) -> str:
-        return "".join(sorted({c for c in text if c in self.GERMAN_LETTERS}))
+        found = {c for c in text if c in self.GERMAN_LETTERS}
+        found |= {m.group(0) for m in self.GERMAN_WORDS.finditer(text)}
+        return ", ".join(sorted(found))
 
     def test_no_tool_description_is_german(self):
         guilty = {
@@ -368,6 +380,32 @@ class TestTheCatalogueIsInEnglish:
                     guilty.append(f"{tool['name']}.{field}")
 
         assert guilty == [], f"German in input schema descriptions: {guilty}"
+
+    def test_no_handler_response_is_german(self):
+        """What a tool answers is user-facing too, and is not in the catalogue.
+
+        Docstrings and comments are left out: they are read by developers,
+        and the language policy for them is enforced in review.
+        """
+        guilty = []
+        for path in sorted(pathlib.Path("handlers").glob("*.py")):
+            with path.open("rb") as source:
+                tokens = [t for t in tokenize.tokenize(source.readline) if t.type not in self._INSIGNIFICANT]
+            for previous, token in zip(tokens, tokens[1:]):
+                if token.type not in self._STRING_TOKENS:
+                    continue
+                # A string that opens a statement is a docstring
+                if token.type == tokenize.STRING and previous.type in self._STATEMENT_START:
+                    continue
+                offenders = self._offenders(token.string)
+                if offenders:
+                    guilty.append(f"{path}:{token.start[0]}: {offenders}")
+
+        assert guilty == [], "German in handler responses:\n" + "\n".join(guilty)
+
+    _STRING_TOKENS = {tokenize.STRING, getattr(tokenize, "FSTRING_MIDDLE", tokenize.STRING)}
+    _INSIGNIFICANT = {tokenize.COMMENT, tokenize.NL}
+    _STATEMENT_START = {tokenize.ENCODING, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT}
 
     def test_no_description_names_a_real_host(self):
         """Four descriptions used production host names as their examples.

@@ -205,7 +205,7 @@ class ServiceParamsHandler(BaseHandler):
 
             disabled = props.get("disabled", False)
             status = "🔴" if disabled else "🟢"
-            hosts_str = ", ".join(hosts) if hosts else "alle Hosts"
+            hosts_str = ", ".join(hosts) if hosts else "all hosts"
 
             try:
                 v = eval(vr)
@@ -216,7 +216,7 @@ class ServiceParamsHandler(BaseHandler):
                 if levels:
                     details = f"min warn/crit: {levels[0]}/{levels[1]}, max warn/crit: {levels[2]}/{levels[3]}"
                 else:
-                    details = "(keine Schwellwerte)"
+                    details = "(no thresholds)"
                 cpu = dp.get("cpulevels", None)
                 if cpu:
                     details += f", CPU warn/crit: {cpu[0]}%/{cpu[1]}%"
@@ -232,7 +232,7 @@ class ServiceParamsHandler(BaseHandler):
             )
 
         if len(lines) == 1:
-            lines.append("Keine Prozess-Monitoring-Regeln gefunden.")
+            lines.append("No process monitoring rules found.")
         return [{"type": "text", "text": "\n".join(lines)}]
 
     # Speed lookup: Mbit/s → bits/s

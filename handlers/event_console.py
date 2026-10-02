@@ -74,7 +74,7 @@ class EventConsoleHandler(BaseHandler):
             )
 
         if len(events) > 50:
-            lines.append(f"\n…und {len(events) - 50} weitere Events.")
+            lines.append(f"\n…and {len(events) - 50} more events.")
         return [{"type": "text", "text": "\n".join(lines)}]
 
     async def _acknowledge_event(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
