@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vibemk"
-version = "0.3.10"
+dynamic = ["version"]
 description = "vibeMK - CheckMK monitoring via LLM - MCP Server"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
@@ -35,6 +35,9 @@ Issues = "https://github.com/chexma/vibeMK/issues"
 
 [project.scripts]
 vibemk = "main:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "config.version.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["."]

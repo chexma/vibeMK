@@ -17,14 +17,8 @@ class DebugHandler(BaseHandler):
         try:
             if tool_name == "vibemk_debug_api_endpoints":
                 return await self._debug_api_endpoints(arguments)
-            elif tool_name == "vibemk_debug_host_data_structure":
-                return await self._debug_host_data_structure(arguments)
-            elif tool_name == "vibemk_debug_service_data_structure":
-                return await self._debug_service_data_structure(arguments)
             elif tool_name == "vibemk_debug_permissions":
                 return await self._debug_permissions(arguments)
-            elif tool_name == "vibemk_test_all_host_endpoints":
-                return await self._test_all_host_endpoints(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 

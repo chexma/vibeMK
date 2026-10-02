@@ -315,29 +315,6 @@ def get_service_tools() -> List[Dict[str, Any]]:
                 "required": ["host_name", "service_description"],
             },
         },
-        {
-            "name": "vibemk_discover_services",
-            "description": "🔍 Discover services - Start enhanced service discovery for hosts",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "host_name": {"type": "string", "description": "Name of the host"},
-                    "hosts": {"type": "array", "description": "List of host names for bulk discovery"},
-                    "mode": {
-                        "type": "string",
-                        "description": "Discovery mode: new, remove, fix_all, only_host_labels, only_service_labels",
-                        "default": "new",
-                    },
-                    "do_full_scan": {"type": "boolean", "description": "Perform full service scan", "default": False},
-                    "bulk_size": {"type": "number", "description": "Bulk processing size", "default": 10},
-                    "wait_for_completion": {
-                        "type": "boolean",
-                        "description": "Wait for discovery completion",
-                        "default": False,
-                    },
-                },
-            },
-        },
     ]
 
 
@@ -806,19 +783,6 @@ def get_advanced_monitoring_tools() -> List[Dict[str, Any]]:
                 "properties": {"host_name": {"type": "string", "description": "Filter by host name"}},
             },
         },
-        {
-            "name": "vibemk_reschedule_check",
-            "description": "🔄 Reschedule check - Force immediate check execution",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "check_type": {"type": "string", "description": "Type: host or service"},
-                    "host_name": {"type": "string", "description": "Host name"},
-                    "service_description": {"type": "string", "description": "Service (for service checks)"},
-                },
-                "required": ["check_type", "host_name"],
-            },
-        },
     ]
 
 
@@ -1196,23 +1160,79 @@ def get_password_tools() -> List[Dict[str, Any]]:
 
 
 def get_notification_tools() -> List[Dict[str, Any]]:
-    """Notification and alerting tools"""
+    """Notification rule tools
+
+    rule_config mirrors CheckMK's NotificationRuleRequest, which is deeply
+    nested and marks nearly every field required. Fetching an existing rule
+    and adapting it is far more reliable than composing one from scratch.
+    """
     return [
         {
             "name": "vibemk_get_notification_rules",
-            "description": "📢 List notification rules - Show notification configuration",
+            "description": "📢 List notification rules - Show all configured notification rules with their IDs",
             "inputSchema": {"type": "object", "properties": {}},
         },
         {
-            "name": "vibemk_test_notification",
-            "description": "🧪 Test notification - Send test notification",
+            "name": "vibemk_get_notification_rule",
+            "description": (
+                "🔍 Show notification rule - Return one rule including its full rule_config. "
+                "Use this first to obtain a template before creating or updating a rule."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "contact": {"type": "string", "description": "Contact to notify"},
-                    "message": {"type": "string", "description": "Test message"},
+                    "rule_id": {"type": "string", "description": "Rule ID from get_notification_rules"},
                 },
-                "required": ["contact"],
+                "required": ["rule_id"],
+            },
+        },
+        {
+            "name": "vibemk_create_notification_rule",
+            "description": (
+                "➕ Create notification rule - CheckMK requires the complete rule_config structure "
+                "(properties, contact selection, conditions and notification_method), and nearly every "
+                "field is mandatory. Read an existing rule with vibemk_get_notification_rule and adapt "
+                "its rule_config rather than composing one from scratch. Activate changes afterwards."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "rule_config": {
+                        "type": "object",
+                        "description": "Complete rule configuration as returned by vibemk_get_notification_rule",
+                    },
+                },
+                "required": ["rule_config"],
+            },
+        },
+        {
+            "name": "vibemk_update_notification_rule",
+            "description": (
+                "✏️ Update notification rule - Replaces the rule's configuration. Send the complete "
+                "rule_config, not just the fields you want changed; read the current one first. "
+                "Activate changes afterwards."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "rule_id": {"type": "string", "description": "Rule ID from get_notification_rules"},
+                    "rule_config": {
+                        "type": "object",
+                        "description": "Complete replacement configuration",
+                    },
+                },
+                "required": ["rule_id", "rule_config"],
+            },
+        },
+        {
+            "name": "vibemk_delete_notification_rule",
+            "description": "🗑️ Delete notification rule - Remove a notification rule by ID. Activate changes afterwards.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "rule_id": {"type": "string", "description": "Rule ID from get_notification_rules"},
+                },
+                "required": ["rule_id"],
             },
         },
     ]
@@ -2947,6 +2967,109 @@ def get_agent_tools() -> List[Dict[str, Any]]:
     ]
 
 
+def get_acknowledgement_tools() -> List[Dict[str, Any]]:
+    """Problem acknowledgement tools"""
+    return [
+        {
+            "name": "vibemk_acknowledge_host_problem",
+            "description": "✅ Acknowledge host problem - Suppress notifications for a DOWN/UNREACHABLE host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name"},
+                    "comment": {"type": "string", "description": "Why the problem is being acknowledged"},
+                    "sticky": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Hold the acknowledgement until the host returns to UP",
+                    },
+                    "persistent": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Keep the comment after the acknowledgement is removed",
+                    },
+                    "notify": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Send notifications to the configured contacts",
+                    },
+                    "expire_on": {
+                        "type": "string",
+                        "description": "Optional expiry as ISO-8601, e.g. 2026-12-24T22:00:00Z",
+                    },
+                },
+                "required": ["host_name"],
+            },
+        },
+        {
+            "name": "vibemk_acknowledge_service_problem",
+            "description": "✅ Acknowledge service problem - Suppress notifications for a WARN/CRIT/UNKNOWN service",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host_name": {"type": "string", "description": "Host name"},
+                    "service_description": {
+                        "type": "string",
+                        "description": "Service name exactly as CheckMK shows it, e.g. 'CPU utilization'",
+                    },
+                    "comment": {"type": "string", "description": "Why the problem is being acknowledged"},
+                    "sticky": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Hold the acknowledgement until the service returns to OK",
+                    },
+                    "persistent": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Keep the comment after the acknowledgement is removed",
+                    },
+                    "notify": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Send notifications to the configured contacts",
+                    },
+                    "expire_on": {
+                        "type": "string",
+                        "description": "Optional expiry as ISO-8601, e.g. 2026-12-24T22:00:00Z",
+                    },
+                },
+                "required": ["host_name", "service_description"],
+            },
+        },
+        {
+            "name": "vibemk_list_acknowledgements",
+            "description": "📋 List acknowledgements - Show all currently acknowledged host and service problems",
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vibemk_remove_acknowledgement",
+            "description": "🗑️ Remove acknowledgement - Delete by ID, by host/service, or by comment pattern",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "acknowledgement_id": {
+                        "type": "string",
+                        "description": "Acknowledgement ID from list_acknowledgements",
+                    },
+                    "host_name": {"type": "string", "description": "Remove the acknowledgement on this host"},
+                    "service_description": {
+                        "type": "string",
+                        "description": "Restrict removal to this service on the host",
+                    },
+                    "comment_pattern": {
+                        "type": "string",
+                        "description": "Remove acknowledgements whose comment contains this text",
+                    },
+                    "delete_all_matching": {
+                        "type": "boolean",
+                        "description": "Remove every match instead of only the first (default: false)",
+                    },
+                },
+            },
+        },
+    ]
+
+
 def get_all_tools() -> List[Dict[str, Any]]:
     """Get all available tools"""
     tools = []
@@ -2972,6 +3095,7 @@ def get_all_tools() -> List[Dict[str, Any]]:
     tools.extend(get_discovery_tools())
     tools.extend(get_service_group_tools())
     tools.extend(get_ruleset_discovery_tools())
+    tools.extend(get_acknowledgement_tools())
     tools.extend(get_clone_tools())
     tools.extend(get_active_check_tools())
     tools.extend(get_event_console_tools())

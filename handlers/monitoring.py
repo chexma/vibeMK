@@ -35,14 +35,8 @@ class MonitoringHandler(BaseHandler):
                 return await self._get_current_problems(arguments)
             elif tool_name == "vibemk_acknowledge_problem":
                 return await self._acknowledge_problem(arguments)
-            elif tool_name == "vibemk_schedule_downtime":
-                return await self._schedule_downtime(arguments)
             elif tool_name == "vibemk_get_downtimes":
                 return await self._get_downtimes(arguments)
-            elif tool_name == "vibemk_delete_downtime":
-                return await self._delete_downtime(arguments)
-            elif tool_name == "vibemk_reschedule_check":
-                return await self._reschedule_check(arguments)
             elif tool_name == "vibemk_get_comments":
                 return await self._get_comments(arguments)
             elif tool_name == "vibemk_add_comment":

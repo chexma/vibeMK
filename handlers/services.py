@@ -19,8 +19,6 @@ class ServiceHandler(BaseHandler):
                 return await self._get_services(arguments)
             elif tool_name == "vibemk_get_service_status":
                 return await self._get_service_status(arguments)
-            elif tool_name == "vibemk_discover_services":
-                return await self._discover_services(arguments.get("host_name"))
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 

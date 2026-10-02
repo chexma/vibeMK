@@ -64,7 +64,6 @@ class DiscoveryHandler:
             "vibemk_start_bulk_discovery": self.start_bulk_discovery,
             "vibemk_get_discovery_status": self.get_discovery_status,
             "vibemk_get_bulk_discovery_status": self.get_bulk_discovery_status,
-            "vibemk_get_discovery_result": self.get_discovery_result,
             "vibemk_wait_for_discovery": self.wait_for_discovery,
             "vibemk_get_discovery_background_job": self.get_discovery_background_job,
         }

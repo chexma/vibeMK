@@ -1,227 +1,210 @@
 """
-Tests for MCP Server Implementation
+Tests for the JSON-RPC dispatch layer.
+
+The dispatcher is exercised through a stub registry, so no CheckMK client and
+no mock detection is involved. Production code must never behave differently
+because it is under test.
 """
 
-import json
-from unittest.mock import AsyncMock, patch
+import asyncio
+import logging
+from typing import Any, Dict, List, Optional
 
 import pytest
 
-from mcp.server import CheckMKMCPServer
+from config import MCPConfig
+from mcp.dispatch import Dispatcher
+from mcp.registry import ToolRegistry
+from mcp.tools import get_all_tools
 
 
-class TestMCPServer:
-    """Test MCP Server functionality"""
+class RecordingHandler:
+    """A handler that records the call it received."""
 
-    @pytest.fixture
-    def mcp_server(self):
-        """Create MCP server instance with proper test mode detection"""
-        # Create server with environment variables available
-        with patch.dict(
-            "os.environ",
-            {
-                "CHECKMK_SERVER_URL": "http://test.local:8080",
-                "CHECKMK_SITE": "test",
-                "CHECKMK_USERNAME": "test_user",
-                "CHECKMK_PASSWORD": "test_pass",
-            },
-        ):
-            server = CheckMKMCPServer()
+    def __init__(self, result: Optional[List[Dict[str, Any]]] = None, raises: Optional[Exception] = None):
+        self.result = result if result is not None else [{"type": "text", "text": "ok"}]
+        self.raises = raises
+        self.calls: List[Any] = []
 
-            # Replace the test handlers with proper Mock objects that _detect_test_mode will recognize
-            from unittest.mock import AsyncMock
+    async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.calls.append((tool_name, arguments))
+        if self.raises is not None:
+            raise self.raises
+        return self.result
 
-            server.connection_handler = AsyncMock()
-            server.host_handler = AsyncMock()
-            server.service_handler = AsyncMock()
-            server.monitoring_handler = AsyncMock()
-            server.configuration_handler = AsyncMock()
 
-            # Mark as test mode to prevent initialization attempts
-            server._test_mode = True
+class StubRegistry(ToolRegistry):
+    """A registry built directly from a handler mapping, skipping from_client's
+    CheckMK-client wiring. handler_for/tool_names are inherited unchanged."""
 
-            return server
+    def __init__(self, handlers: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(handlers or {})
+
+
+def make_dispatcher(handlers=None):
+    registry = StubRegistry(handlers)
+    return Dispatcher(lambda: registry, MCPConfig())
+
+
+def request(method, params=None, request_id=1):
+    body = {"jsonrpc": "2.0", "id": request_id, "method": method}
+    if params is not None:
+        body["params"] = params
+    return body
+
+
+class TestProtocol:
+    @pytest.mark.asyncio
+    async def test_tools_list_returns_the_catalogue(self):
+        # Compared against the catalogue rather than a pinned count: the point
+        # is that the protocol layer hands back everything that is declared,
+        # and a hard-coded number turns every catalogue change into a failure
+        # that says nothing about the protocol.
+        response = await make_dispatcher().handle(request("tools/list"))
+
+        assert len(response["result"]["tools"]) == len(get_all_tools())
 
     @pytest.mark.asyncio
-    async def test_tools_list_request(self, mcp_server):
-        """Test tools/list MCP request"""
-        request = {"jsonrpc": "2.0", "id": "test-1", "method": "tools/list"}
+    async def test_initialize_answers_a_supported_version(self):
+        response = await make_dispatcher().handle(request("initialize", {"protocolVersion": "1999-01-01-BOGUS"}))
 
-        response = await mcp_server.handle_request(request)
-
-        # Verify response structure
-        assert response["jsonrpc"] == "2.0"
-        assert response["id"] == "test-1"
-        assert "result" in response
-        assert "tools" in response["result"]
-
-        # Verify tools have vibemk_ prefix
-        tools = response["result"]["tools"]
-        assert len(tools) > 0
-        for tool in tools:
-            assert tool["name"].startswith("vibemk_")
-            assert "description" in tool
-            assert "inputSchema" in tool
+        assert response["result"]["protocolVersion"] in MCPConfig().supported_protocol_versions
 
     @pytest.mark.asyncio
-    async def test_tool_call_success(self, mcp_server):
-        """Test successful tool call"""
-        # Mock the connection handler
-        with patch.object(mcp_server.connection_handler, "handle") as mock_handle:
-            mock_handle.return_value = [{"type": "text", "text": "✅ Connection successful"}]
-
-            request = {
-                "jsonrpc": "2.0",
-                "id": "test-2",
-                "method": "tools/call",
-                "params": {"name": "vibemk_debug_checkmk_connection", "arguments": {}},
-            }
-
-            response = await mcp_server.handle_request(request)
-
-            # Verify response
-            assert response["jsonrpc"] == "2.0"
-            assert response["id"] == "test-2"
-            assert "result" in response
-            assert "content" in response["result"]
-            assert len(response["result"]["content"]) == 1
-            assert "✅" in response["result"]["content"][0]["text"]
+    async def test_initialized_notification_produces_no_response(self):
+        assert await make_dispatcher().handle({"jsonrpc": "2.0", "method": "notifications/initialized"}) is None
 
     @pytest.mark.asyncio
-    async def test_tool_call_invalid_tool(self, mcp_server):
-        """Test tool call with invalid tool name"""
-        request = {
-            "jsonrpc": "2.0",
-            "id": "test-3",
-            "method": "tools/call",
-            "params": {"name": "invalid_tool_name", "arguments": {}},
-        }
+    async def test_unknown_method_is_method_not_found(self):
+        response = await make_dispatcher().handle(request("no/such/method"))
 
-        response = await mcp_server.handle_request(request)
-
-        # Verify error response
-        assert response["jsonrpc"] == "2.0"
-        assert response["id"] == "test-3"
-        assert "error" in response
-        assert response["error"]["code"] == -32601  # Method not found
-
-    @pytest.mark.asyncio
-    async def test_invalid_jsonrpc_method(self, mcp_server):
-        """Test invalid JSON-RPC method"""
-        request = {"jsonrpc": "2.0", "id": "test-4", "method": "invalid/method"}
-
-        response = await mcp_server.handle_request(request)
-
-        # Verify error response
-        assert "error" in response
         assert response["error"]["code"] == -32601
 
     @pytest.mark.asyncio
-    async def test_malformed_request(self, mcp_server):
-        """Test malformed JSON-RPC request"""
-        request = {
-            "jsonrpc": "2.0",
-            "id": "test-5",
-            # Missing method
-        }
+    async def test_request_without_jsonrpc_field_is_invalid(self):
+        response = await make_dispatcher().handle({"id": 1, "method": "tools/list"})
 
-        response = await mcp_server.handle_request(request)
-
-        # Verify error response
-        assert "error" in response
-        assert response["error"]["code"] == -32600  # Invalid request
+        assert response["error"]["code"] == -32600
 
     @pytest.mark.asyncio
-    async def test_tool_call_with_arguments(self, mcp_server):
-        """Test tool call with arguments"""
-        # Mock the host handler
-        with patch.object(mcp_server.host_handler, "handle") as mock_handle:
-            mock_handle.return_value = [{"type": "text", "text": "✅ Host status retrieved"}]
+    async def test_request_that_is_not_an_object_is_invalid(self):
+        response = await make_dispatcher().handle("not a dict")
 
-            request = {
-                "jsonrpc": "2.0",
-                "id": "test-6",
-                "method": "tools/call",
-                "params": {"name": "vibemk_get_host_status", "arguments": {"host_name": "test-server-01"}},
-            }
-
-            response = await mcp_server.handle_request(request)
-
-            # Verify response
-            assert "result" in response
-            mock_handle.assert_called_once_with("vibemk_get_host_status", {"host_name": "test-server-01"})
+        assert response["error"]["code"] == -32600
 
     @pytest.mark.asyncio
-    async def test_handler_exception(self, mcp_server):
-        """Test handler exception handling"""
-        # Mock handler to raise exception
-        with patch.object(mcp_server.connection_handler, "handle") as mock_handle:
-            mock_handle.side_effect = Exception("Handler error")
+    async def test_request_without_method_field_is_invalid(self):
+        """`method = request["method"]` sits right after this guard, outside the
+        try/except. Without the guard a missing method raises KeyError, which
+        escapes handle() entirely instead of producing a -32600 response."""
+        response = await make_dispatcher().handle({"jsonrpc": "2.0", "id": "test-5"})
 
-            request = {
-                "jsonrpc": "2.0",
-                "id": "test-7",
-                "method": "tools/call",
-                "params": {"name": "vibemk_debug_checkmk_connection", "arguments": {}},
-            }
+        assert response["error"]["code"] == -32600
 
-            response = await mcp_server.handle_request(request)
 
-            # Verify error response
-            assert "error" in response
-            assert "Handler error" in response["error"]["message"]
+class TestToolCalls:
+    @pytest.mark.asyncio
+    async def test_a_registered_tool_is_invoked(self):
+        handler = RecordingHandler()
+        dispatcher = make_dispatcher({"vibemk_demo": handler})
 
-    def test_server_initialization(self):
-        """Test server initialization with environment variables"""
-        with patch.dict(
-            "os.environ",
-            {
-                "CHECKMK_SERVER_URL": "http://test.local:8080",
-                "CHECKMK_SITE": "test_site",
-                "CHECKMK_USERNAME": "test_user",
-                "CHECKMK_PASSWORD": "test_password",
-            },
-        ):
-            server = CheckMKMCPServer()
+        response = await dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}))
 
-            # Verify configuration
-            assert server.config.server_url == "http://test.local:8080"
-            assert server.config.site == "test_site"
-            assert server.config.username == "test_user"
-            assert server.config.password == "test_password"
-
-            # Verify handlers are initialized
-            assert server.connection_handler is not None
-            assert server.host_handler is not None
-            assert server.service_handler is not None
-            assert server.monitoring_handler is not None
-            assert server.configuration_handler is not None
+        assert response["result"]["content"] == [{"type": "text", "text": "ok"}]
 
     @pytest.mark.asyncio
-    async def test_concurrent_requests(self, mcp_server):
-        """Test handling concurrent requests"""
-        import asyncio
+    async def test_arguments_reach_the_handler(self):
+        handler = RecordingHandler()
+        dispatcher = make_dispatcher({"vibemk_demo": handler})
 
-        # Mock handlers
-        with patch.object(mcp_server.connection_handler, "handle") as mock_handle:
-            mock_handle.return_value = [{"type": "text", "text": "✅ Success"}]
+        await dispatcher.handle(
+            request("tools/call", {"name": "vibemk_demo", "arguments": {"host_name": "example.com"}})
+        )
 
-            # Create multiple concurrent requests
-            requests = []
-            for i in range(5):
-                request = {
-                    "jsonrpc": "2.0",
-                    "id": f"test-{i}",
-                    "method": "tools/call",
-                    "params": {"name": "vibemk_debug_checkmk_connection", "arguments": {}},
-                }
-                requests.append(mcp_server.handle_request(request))
+        assert handler.calls == [("vibemk_demo", {"host_name": "example.com"})]
 
-            # Execute concurrently
-            responses = await asyncio.gather(*requests)
+    @pytest.mark.asyncio
+    async def test_an_unregistered_tool_is_method_not_found(self):
+        response = await make_dispatcher().handle(request("tools/call", {"name": "vibemk_nope", "arguments": {}}))
 
-            # Verify all responses
-            assert len(responses) == 5
-            for i, response in enumerate(responses):
-                assert response["id"] == f"test-{i}"
-                assert "result" in response
+        assert response["error"]["code"] == -32601
+
+    @pytest.mark.asyncio
+    async def test_a_raising_handler_becomes_an_internal_error(self):
+        dispatcher = make_dispatcher({"vibemk_demo": RecordingHandler(raises=RuntimeError("boom"))})
+
+        response = await dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}))
+
+        assert response["error"]["code"] == -32603
+
+    @pytest.mark.asyncio
+    async def test_requests_are_served_concurrently(self):
+        dispatcher = make_dispatcher({"vibemk_demo": RecordingHandler()})
+
+        responses = await asyncio.gather(
+            *(dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}, i)) for i in range(5))
+        )
+
+        assert [r["id"] for r in responses] == [0, 1, 2, 3, 4]
+
+
+class TestConfigurationErrors:
+    @pytest.mark.asyncio
+    async def test_a_failing_registry_becomes_readable_tool_output(self):
+        def explode():
+            raise ValueError("CHECKMK_SERVER_URL is required")
+
+        dispatcher = Dispatcher(explode, MCPConfig())
+
+        response = await dispatcher.handle(request("tools/call", {"name": "vibemk_demo", "arguments": {}}))
+
+        assert response is not None
+        assert "CHECKMK_SERVER_URL is required" in response["result"]["content"][0]["text"]
+
+    @pytest.mark.asyncio
+    async def test_tools_list_works_without_a_usable_registry(self):
+        def explode():
+            raise ValueError("CHECKMK_SERVER_URL is required")
+
+        response = await Dispatcher(explode, MCPConfig()).handle(request("tools/list"))
+
+        assert response is not None
+        assert len(response["result"]["tools"]) == len(get_all_tools())
+
+
+class TestToolCallsLeaveATrace:
+    """A record of what the model actually did.
+
+    This server creates and deletes hosts, rules, users and downtimes. The
+    only account of which of those an LLM invoked is the server's own log,
+    and after the dispatcher was split out only *failing* calls were logged —
+    a successful deletion left nothing behind at all. The old dispatcher
+    logged every request before running it; this restores that.
+
+    Arguments are deliberately not logged: they carry host names, comments
+    and, for the password tools, secrets.
+    """
+
+    @pytest.mark.asyncio
+    async def test_a_successful_call_is_logged_with_its_tool_name(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.INFO, logger="mcp.dispatch"):
+            await make_dispatcher().handle(
+                request("tools/call", {"name": "vibemk_get_checkmk_version", "arguments": {}})
+            )
+
+        assert any(
+            "vibemk_get_checkmk_version" in record.message and record.levelno == logging.INFO
+            for record in caplog.records
+        ), f"no INFO record names the tool: {[r.message for r in caplog.records]}"
+
+    @pytest.mark.asyncio
+    async def test_the_arguments_are_not_logged(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.INFO, logger="mcp.dispatch"):
+            await make_dispatcher().handle(
+                request(
+                    "tools/call",
+                    {"name": "vibemk_get_checkmk_version", "arguments": {"password": "hunter2"}},
+                )
+            )
+
+        assert not any("hunter2" in record.message for record in caplog.records)

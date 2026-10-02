@@ -27,12 +27,6 @@ class GroupsHandler(BaseHandler):
             # Service groups
             elif tool_name == "vibemk_get_service_groups":
                 return await self._get_service_groups(arguments)
-            elif tool_name == "vibemk_create_service_group":
-                return await self._create_service_group(arguments)
-            elif tool_name == "vibemk_update_service_group":
-                return await self._update_service_group(arguments)
-            elif tool_name == "vibemk_delete_service_group":
-                return await self._delete_service_group(arguments)
             else:
                 return self.error_response("Unknown tool", f"Tool '{tool_name}' is not supported")
 

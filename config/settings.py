@@ -19,7 +19,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
+
+from config.version import __version__
 
 
 @dataclass(repr=False)
@@ -153,8 +155,9 @@ class MCPConfig:
     """MCP server configuration"""
 
     name: str = "vibemk"
-    version: str = "0.3.9"
+    version: str = __version__
     protocol_version: str = "2024-11-05"  # Keep stable version for now
+    supported_protocol_versions: Tuple[str, ...] = ("2024-11-05",)
 
     def __post_init__(self):
         """Post-initialization validation"""
@@ -162,6 +165,17 @@ class MCPConfig:
             raise ValueError("name cannot be empty")
         if not self.version or self.version.strip() == "":
             raise ValueError("version cannot be empty")
+
+    def negotiate_protocol_version(self, requested: Optional[str]) -> str:
+        """Return a protocol version this server actually speaks.
+
+        The MCP specification requires the server to answer initialize with a
+        version it supports. Echoing the client's string instead claims support
+        for anything a client cares to name.
+        """
+        if requested in self.supported_protocol_versions:
+            return requested
+        return self.protocol_version
 
     @property
     def server_name(self) -> str:
