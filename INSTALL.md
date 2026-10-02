@@ -415,9 +415,9 @@ python -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.
 ### 8.4 Check Tool Availability
 
 ```bash
-# Show all available tools
-python -c "
-from vibemk_mcp.tools import get_all_tools
+# Show all available tools (run from the checkout)
+PYTHONPATH=src python -c "
+from vibemk.server.tools import get_all_tools
 tools = get_all_tools()
 print(f'Total tools: {len(tools)}')
 for tool in tools[:5]:

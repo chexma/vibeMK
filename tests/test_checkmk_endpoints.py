@@ -14,10 +14,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from api.exceptions import CheckMKAPIError
-from handlers.discovery import DiscoveryHandler
-from handlers.services import ServiceHandler
-from vibemk_mcp.tools import get_all_tools
+from vibemk.api.exceptions import CheckMKAPIError
+from vibemk.handlers.discovery import DiscoveryHandler
+from vibemk.handlers.services import ServiceHandler
+from vibemk.server.tools import get_all_tools
 
 # Paths registered by cmk/gui/openapi/endpoints/service_discovery/__init__.py
 SINGLE_HOST_DISCOVERY = "domain-types/service_discovery_run/actions/start/invoke"
@@ -159,13 +159,13 @@ class TestDeadFallbacksAreGone:
     def test_no_handler_calls_the_service_object_endpoint(self):
         # objects/service/{host}/{description} answers 404 on 2.4.
         root = pathlib.Path(__file__).resolve().parent.parent
-        for path in (root / "handlers" / "services.py",):
+        for path in (root / "src" / "vibemk" / "handlers" / "services.py",):
             assert "objects/service/" not in path.read_text(encoding="utf-8"), path
 
     def test_no_handler_posts_to_show_service(self):
         # POST on the show_service action answers 405 METHOD NOT ALLOWED on 2.4;
         # it is a GET action with a service_description parameter.
         root = pathlib.Path(__file__).resolve().parent.parent
-        source = (root / "handlers" / "services.py").read_text(encoding="utf-8")
+        source = (root / "src" / "vibemk" / "handlers" / "services.py").read_text(encoding="utf-8")
         posts = re.findall(r"client\.post\([^)]*show_service[^)]*\)", source)
         assert posts == [], posts

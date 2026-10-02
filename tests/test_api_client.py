@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.client import CheckMKClient
-from api.exceptions import CheckMKAPIError, CheckMKAuthenticationError, CheckMKConnectionError
+from vibemk.api.client import CheckMKClient
+from vibemk.api.exceptions import CheckMKAPIError, CheckMKAuthenticationError, CheckMKConnectionError
 
 
 class TestCheckMKClient:

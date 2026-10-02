@@ -15,7 +15,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from vibemk_mcp.http_auth import BearerTokenMiddleware, read_token
+from vibemk.server.http_auth import BearerTokenMiddleware, read_token
 
 TOKEN = "s3cr3t-token-value"
 

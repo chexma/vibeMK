@@ -15,10 +15,10 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from mcp import Client
 
-from api import CheckMKClient
-from api.exceptions import CheckMKAuthenticationError, CheckMKNotFoundError
-from config import CheckMKConfig
-from vibemk_mcp.server import CheckMKMCPServer
+from vibemk.api import CheckMKClient
+from vibemk.api.exceptions import CheckMKAuthenticationError, CheckMKNotFoundError
+from vibemk.config import CheckMKConfig
+from vibemk.server.server import CheckMKMCPServer
 
 # Skip integration tests by default
 pytestmark = pytest.mark.skipif(

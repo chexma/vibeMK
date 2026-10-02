@@ -12,11 +12,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.exceptions import CheckMKAPIError
-from handlers.configuration import ConfigurationHandler
-from handlers.discovery import DiscoveryHandler
-from handlers.hosts import HostHandler
-from vibemk_mcp.dispatch import is_error, structured_of
+from vibemk.api.exceptions import CheckMKAPIError
+from vibemk.handlers.configuration import ConfigurationHandler
+from vibemk.handlers.discovery import DiscoveryHandler
+from vibemk.handlers.hosts import HostHandler
+from vibemk.server.dispatch import is_error, structured_of
 
 
 def _redirect(code: int) -> urllib.error.HTTPError:
@@ -29,7 +29,7 @@ class TestClientCanHandBackARedirect:
     """CheckMK reports discovery progress through redirects, not through a body."""
 
     def test_redirect_is_returned_instead_of_followed(self, mock_config):
-        from api.client import CheckMKClient
+        from vibemk.api.client import CheckMKClient
 
         client = CheckMKClient(mock_config, skip_url_detection=True)
         with patch("urllib.request.build_opener") as build_opener:
@@ -56,7 +56,7 @@ class TestWaitForDiscovery:
                 {"success": True, "status": 204, "data": {}},
             ]
         )
-        with patch("handlers.discovery.asyncio.sleep") as sleep:
+        with patch("vibemk.handlers.discovery.asyncio.sleep") as sleep:
             sleep.return_value = None
             result = await handler.handle("vibemk_wait_for_discovery", {"host_name": "web01"})
 
@@ -70,8 +70,8 @@ class TestWaitForDiscovery:
         handler.client.request = MagicMock(return_value={"success": True, "status": 302, "data": {}})
         clock = iter(range(0, 10_000, 30))
         with (
-            patch("handlers.discovery.asyncio.sleep") as sleep,
-            patch("handlers.discovery.time.monotonic", side_effect=lambda: next(clock)),
+            patch("vibemk.handlers.discovery.asyncio.sleep") as sleep,
+            patch("vibemk.handlers.discovery.time.monotonic", side_effect=lambda: next(clock)),
         ):
             sleep.return_value = None
             result = await handler.handle("vibemk_wait_for_discovery", {"host_name": "web01", "timeout": 60})
@@ -173,7 +173,7 @@ class TestEveryAdvertisedDiscoveryModeWorks:
 
     @staticmethod
     def _advertised_modes():
-        from vibemk_mcp.tools import get_all_tools
+        from vibemk.server.tools import get_all_tools
 
         tool = next(t for t in get_all_tools() if t["name"] == "vibemk_start_service_discovery")
         return tool["inputSchema"]["properties"]["mode"]["enum"]
@@ -198,7 +198,7 @@ class TestEveryAdvertisedDiscoveryModeWorks:
         assert "background" not in result[0]["text"]
 
     def test_a_tool_that_can_remove_every_service_is_annotated_destructive(self):
-        from vibemk_mcp.annotations import DESTRUCTIVE
+        from vibemk.server.annotations import DESTRUCTIVE
 
         assert "tabula_rasa" in self._advertised_modes()
         assert "vibemk_start_service_discovery" in DESTRUCTIVE

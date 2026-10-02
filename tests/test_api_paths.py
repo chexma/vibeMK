@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from api.paths import UnsafePathError, check_endpoint, path_segment
+from vibemk.api.paths import UnsafePathError, check_endpoint, path_segment
 
-HANDLERS = Path(__file__).resolve().parent.parent / "handlers"
+HANDLERS = Path(__file__).resolve().parent.parent / "src" / "vibemk" / "handlers"
 
 
 class TestPathSegment:
@@ -67,7 +67,7 @@ class TestCheckEndpoint:
             check_endpoint(endpoint)
 
     def test_client_refuses_before_sending(self, mock_config):
-        from api.client import CheckMKClient
+        from vibemk.api.client import CheckMKClient
 
         client = CheckMKClient(mock_config, skip_url_detection=True)
         with pytest.raises(UnsafePathError):

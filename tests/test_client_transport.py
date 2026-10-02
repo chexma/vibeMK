@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.client import CheckMKClient
-from config import CheckMKConfig, MCPConfig
+from vibemk.api.client import CheckMKClient
+from vibemk.config import CheckMKConfig, MCPConfig
 
 
 def make_config(**overrides: Any) -> CheckMKConfig:

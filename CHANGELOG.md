@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- vibeMK installs as a single `vibemk` package and no longer adds `api`,
+  `config`, `handlers` and `utils` to the Python environment, where they could
+  clash with other packages. `python main.py` from a checkout keeps working
+
 ### Added
 - Read-only mode: `--read-only` or `VIBEMK_READ_ONLY=1` offers only the tools
   that read and refuses every write

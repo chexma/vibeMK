@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from handlers.connection import ConnectionHandler
+from vibemk.handlers.connection import ConnectionHandler
 
 
 @pytest.fixture

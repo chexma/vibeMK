@@ -13,8 +13,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from handlers.active_checks import ActiveChecksHandler
-from handlers.base import BaseHandler
+from vibemk.handlers.active_checks import ActiveChecksHandler
+from vibemk.handlers.base import BaseHandler
 
 
 class Handler(BaseHandler):

@@ -39,10 +39,10 @@ Repository = "https://github.com/chexma/vibeMK"
 Issues = "https://github.com/chexma/vibeMK/issues"
 
 [project.scripts]
-vibemk = "vibemk_mcp.cli:cli"
+vibemk = "vibemk.server.cli:cli"
 
 [tool.setuptools.dynamic]
-version = {attr = "config.version.__version__"}
+version = {attr = "vibemk.config.version.__version__"}
 
 [tool.setuptools]
 # Defaults to true under pyproject.toml, which sweeps every file sitting in a
@@ -51,25 +51,18 @@ version = {attr = "config.version.__version__"}
 include-package-data = false
 
 [tool.setuptools.packages.find]
-where = ["."]
-# Named explicitly rather than globbed. In pyproject.toml this table defaults
-# to namespaces = true, which collects any directory -- including ones with no
-# __init__.py -- so include = ["*"] was shipping examples/, tmp/, scripts/ and
-# the local build/ artefact as importable top-level packages.
-include = [
-    "api*",
-    "checkmk_types*",
-    "config*",
-    "handlers*",
-    "utils*",
-    "vibemk_mcp*",
-]
-exclude = ["tests*", "examples*", "scripts*", "tmp*", "build*"]
+# The src layout: one top-level package, vibemk, and nothing beside it. The
+# subpackages used to be installed as api, config, handlers and utils directly
+# in site-packages, where they collided with any other distribution using
+# those names. Tests now import the installed package rather than whatever
+# happens to sit in the working directory.
+where = ["src"]
+include = ["vibemk*"]
 namespaces = false
 
 [tool.setuptools.package-data]
 # Only the PEP 561 marker. A blanket "*.md" shipped the gitignored, private
-# claude.md notes from api/, config/, handlers/ and vibemk_mcp/ into the
+# claude.md notes from the package directories into the
 # distribution.
 "*" = ["py.typed"]
 
@@ -103,6 +96,9 @@ target-version = ['py310']
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+# First-party code lives under src/ (and the tests beside it), which ruff's
+# import sorting needs to know to agree with isort.
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 # These settings used to live at the top level, where ruff has not read them
@@ -178,7 +174,7 @@ ignore = [
 "main.py" = ["E402"]
 # A token missing at startup has to reach the operator's terminal, and the
 # logger is not configured yet at that point. stderr is the right channel.
-"vibemk_mcp/cli.py" = ["T201"]
+"src/vibemk/server/cli.py" = ["T201"]
 
 [tool.ruff.format]
 # black owns formatting; ruff is here to lint, not to fight over it.
@@ -190,6 +186,9 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 explicit_package_bases = true
+# The src layout: module names are resolved relative to src/, so the package
+# is vibemk.api rather than src.vibemk.api.
+mypy_path = "src"
 # Enhanced strict mode settings
 disallow_any_unimported = true
 disallow_any_expr = false  # Allow Any in expressions for gradual typing
@@ -215,7 +214,7 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
-known_first_party = ["api", "checkmk_types", "config", "handlers", "utils", "vibemk_mcp"]
+known_first_party = ["vibemk"]
 
 [tool.pytest.ini_options]
 # The single source of pytest configuration. There used to be a pytest.ini

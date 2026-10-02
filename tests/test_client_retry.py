@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.client import CheckMKClient
-from api.exceptions import CheckMKAPIError
+from vibemk.api.client import CheckMKClient
+from vibemk.api.exceptions import CheckMKAPIError
 
 
 def _ok() -> MagicMock:

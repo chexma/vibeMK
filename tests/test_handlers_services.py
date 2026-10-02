@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional
 
 import pytest
 
-from handlers.services import ServiceHandler
+from vibemk.handlers.services import ServiceHandler
 
 
 @pytest.fixture

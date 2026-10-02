@@ -2,10 +2,12 @@
 """
 vibeMK - CheckMK Monitoring via LLM
 
-A shim over `vibemk_mcp.cli`, kept because `python main.py` is the form every
-LLM client configuration in examples/ and INSTALL.md uses. The implementation
-moved into the package so that the `vibemk` console script resolves after a
-`pip install`: setuptools ships packages, not loose top-level modules.
+A shim over `vibemk.server.cli`, kept because `python /path/to/main.py` is
+the form existing LLM client configurations use. The code lives in the
+`vibemk` package under src/; an installed vibeMK is started with `vibemk`.
+
+Run from a checkout without installing, src/ is not on the import path, so
+the shim puts it there first.
 
 Copyright (C) 2024 Andre <chexma@gmx.de>
 
@@ -23,7 +25,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from vibemk_mcp.cli import cli, main, parse_arguments
+import sys
+from pathlib import Path
+
+_SRC = Path(__file__).resolve().parent / "src"
+if _SRC.is_dir() and str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from vibemk.server.cli import cli, main, parse_arguments
 
 __all__ = ["cli", "main", "parse_arguments"]
 
