@@ -117,18 +117,16 @@ class ConfigurationHandler(BaseHandler):
 
         changes = result["data"].get("value", [])
         if not changes:
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        "ℹ️ **No Pending Changes**\n\n"
-                        "All configuration changes have been activated.\n"
-                        "The CheckMK configuration is up to date."
-                    ),
-                }
-            ]
-
+            return self.structured_response(
+                (
+                    "ℹ️ **No Pending Changes**\n\n"
+                    "All configuration changes have been activated.\n"
+                    "The CheckMK configuration is up to date."
+                ),
+                {"count": 0, "changes": []},
+            )
         change_list = []
+        entries = []
         change_summary = {"create": 0, "edit": 0, "delete": 0, "move": 0, "other": 0}
 
         for change in changes:
@@ -156,6 +154,9 @@ class ConfigurationHandler(BaseHandler):
                 icon = "⚙️"
 
             change_list.append(f"{icon} {action}: {obj_type} '{obj_name}' (by {user})")
+            entries.append(
+                {"change_id": str(change.get("id", "")), "user": user, "text": f"{action}: {obj_type} '{obj_name}'"}
+            )
 
         # Create summary
         summary_parts = []
@@ -165,19 +166,17 @@ class ConfigurationHandler(BaseHandler):
 
         summary_text = ", ".join(summary_parts)
 
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"📋 **Pending Changes** ({len(changes)} total)\n\n"
-                    f"**Summary:** {summary_text}\n\n"
-                    f"**Details:**\n"
-                    + "\n".join(change_list[:15])
-                    + (f"\n\n... and {len(changes) - 15} more changes" if len(changes) > 15 else "")
-                    + "\n\n⚠️ **Use 'activate_changes' to apply these changes.**"
-                ),
-            }
-        ]
+        return self.structured_response(
+            (
+                f"📋 **Pending Changes** ({len(changes)} total)\n\n"
+                f"**Summary:** {summary_text}\n\n"
+                f"**Details:**\n"
+                + "\n".join(change_list[:15])
+                + (f"\n\n... and {len(changes) - 15} more changes" if len(changes) > 15 else "")
+                + "\n\n💡 Use 'activate_changes' to apply these changes"
+            ),
+            {"count": len(changes), "changes": entries},
+        )
 
     def _rules_guide(self) -> List[Dict[str, Any]]:
         """Return comprehensive CheckMK rule management guide for LLM context."""

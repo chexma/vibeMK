@@ -8,6 +8,7 @@ import pytest
 
 from api.exceptions import CheckMKAPIError
 from handlers.hosts import HostHandler
+from vibemk_mcp.dispatch import structured_of
 
 
 class TestHostHandler:
@@ -28,10 +29,11 @@ class TestHostHandler:
         result = await host_handler.handle("vibemk_get_checkmk_hosts", {})
 
         # Verify
-        assert len(result) == 1
         assert result[0]["type"] == "text"
         assert "test-server-01" in result[0]["text"]
         assert "🖥️" in result[0]["text"]  # Actual emoji used in implementation
+        # The fixture carries no state column, which is exactly what UNKNOWN means.
+        assert structured_of(result) == {"total": 1, "hosts": [{"host_name": "test-server-01", "state": "UNKNOWN"}]}
 
     @pytest.mark.asyncio
     async def test_get_checkmk_hosts_with_filter(self, host_handler, mock_checkmk_responses):
@@ -43,7 +45,6 @@ class TestHostHandler:
         result = await host_handler.handle("vibemk_get_checkmk_hosts", {"host_name_filter": "test-server"})
 
         # Verify
-        assert len(result) == 1
         assert "test-server-01" in result[0]["text"]
         # get_hosts uses the Monitoring collection: host_config is a Setup/WATO
         # endpoint and returns empty for non-admin accounts, and 2.4 only returns
@@ -62,10 +63,15 @@ class TestHostHandler:
         result = await host_handler.handle("vibemk_get_host_status", {"host_name": "test-server-01"})
 
         # Verify
-        assert len(result) == 1
         assert "🟢 **UP**" in result[0]["text"]
         assert "test-server-01" in result[0]["text"]
         assert "Hard State: 0" in result[0]["text"]
+
+        data = structured_of(result)
+        assert data["host_name"] == "test-server-01"
+        assert data["state"] == "UP"
+        assert data["state_code"] == 0
+        assert data["is_hard_state"] is True
 
     @pytest.mark.asyncio
     async def test_get_host_status_down(self, host_handler):

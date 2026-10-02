@@ -226,3 +226,36 @@ class TestEveryToolIsClassified:
         for tool in get_all_tools():
             assert tool.get("title"), f"{tool['name']} has no title"
             assert tool.get("annotations"), f"{tool['name']} has no annotations"
+
+
+class TestStructuredOutput:
+    """A declared output schema has to have something behind it.
+
+    The specification lets a client validate structuredContent against the
+    schema a tool declares, so a schema with no handler filling it is worse
+    than none at all.
+    """
+
+    def test_every_output_schema_belongs_to_a_declared_tool(self):
+        from vibemk_mcp.schemas import OUTPUT_SCHEMAS
+
+        declared = {tool["name"] for tool in get_all_tools()}
+        orphans = sorted(set(OUTPUT_SCHEMAS) - declared)
+
+        assert orphans == [], f"output schema for a tool that does not exist: {orphans}"
+
+    def test_a_tool_with_an_output_schema_only_reads(self):
+        """Structured output is for results a model works with, not for writes."""
+        from vibemk_mcp.annotations import READ_ONLY
+        from vibemk_mcp.schemas import OUTPUT_SCHEMAS
+
+        writes = sorted(name for name in OUTPUT_SCHEMAS if name not in READ_ONLY)
+        assert writes == [], f"output schema on a tool that writes: {writes}"
+
+    def test_each_output_schema_is_a_valid_json_schema(self):
+        import jsonschema
+
+        from vibemk_mcp.schemas import OUTPUT_SCHEMAS
+
+        for name, schema in OUTPUT_SCHEMAS.items():
+            jsonschema.Draft202012Validator.check_schema(schema)

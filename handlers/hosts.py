@@ -100,21 +100,19 @@ class HostHandler(BaseHandler):
 
         state_map = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
         host_list = []
+        entries = []
         for host in hosts[:50]:  # Limit display
             ext = host.get("extensions", {})
             host_id = host.get("id") or ext.get("name", "Unknown")
-            status = state_map.get(ext.get("state"), f"UNKNOWN({ext.get('state')})")
+            state = ext.get("state")
+            status = state_map.get(state, "UNKNOWN")
             host_list.append(f"🖥️ {host_id} ({status})")
+            entries.append({"host_name": host_id, "state": status})
 
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"🖥️ **CheckMK Hosts** ({len(hosts)} total, showing first {len(host_list)}):\n\n"
-                    + "\n".join(host_list)
-                ),
-            }
-        ]
+        return self.structured_response(
+            (f"🖥️ **CheckMK Hosts** ({len(hosts)} total, showing first {len(host_list)}):\n\n" + "\n".join(host_list)),
+            {"total": len(hosts), "hosts": entries},
+        )
 
     async def _get_host_status(self, host_name: str) -> List[Dict[str, Any]]:
         """Get host status information using the correct CheckMK API"""
@@ -222,21 +220,30 @@ class HostHandler(BaseHandler):
                             status_emoji = "⚪"
                             status_display = f"{status_emoji} **{status}**"
 
-                        return [
+                        return self.structured_response(
+                            (
+                                f"✅ **Host Status: {host_name}**\n\n"
+                                f"**Status:** {status_display}\n"
+                                f"**State Code:** {effective_state} ({state_info})\n"
+                                f"**Has Been Checked:** {'Yes' if has_been_checked else 'No'}\n"
+                                f"**Last Check:** {last_check_display}\n"
+                                f"**Last State Change:** {change_display}\n\n"
+                                f"**Plugin Output:** {plugin_output}\n\n"
+                                f"✅ **Live monitoring data from CheckMK REST API**"
+                            ),
                             {
-                                "type": "text",
-                                "text": (
-                                    f"✅ **Host Status: {host_name}**\n\n"
-                                    f"**Status:** {status_display}\n"
-                                    f"**State Code:** {effective_state} ({state_info})\n"
-                                    f"**Has Been Checked:** {'Yes' if has_been_checked else 'No'}\n"
-                                    f"**Last Check:** {last_check_display}\n"
-                                    f"**Last State Change:** {change_display}\n\n"
-                                    f"**Plugin Output:** {plugin_output}\n\n"
-                                    f"✅ **Live monitoring data from CheckMK REST API**"
+                                "host_name": host_name,
+                                "state": status,
+                                "state_code": effective_state,
+                                "is_hard_state": state_type == 1,
+                                "has_been_checked": bool(has_been_checked),
+                                "plugin_output": plugin_output,
+                                "last_check": last_check if isinstance(last_check, (int, float)) else None,
+                                "last_state_change": (
+                                    last_state_change if isinstance(last_state_change, (int, float)) else None
                                 ),
-                            }
-                        ]
+                            },
+                        )
                     else:
                         return self.error_response(
                             "No state data", f"Host '{host_name}' found but no state information available"

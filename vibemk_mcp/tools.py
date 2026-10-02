@@ -5,6 +5,7 @@ vibeMK Tool definitions for CheckMK operations
 from typing import Any, Dict, List
 
 from vibemk_mcp.annotations import annotations_for, title_for
+from vibemk_mcp.schemas import output_schema_for
 
 
 def get_connection_tools() -> List[Dict[str, Any]]:
@@ -3125,6 +3126,10 @@ def _enriched(tool: Dict[str, Any]) -> Dict[str, Any]:
     """
     tool.setdefault("title", title_for(tool["description"]))
     tool.setdefault("annotations", annotations_for(tool["name"]))
+
+    schema = output_schema_for(tool["name"])
+    if schema is not None:
+        tool.setdefault("outputSchema", schema)
 
     # A tool with no parameters: the specification recommends saying so
     # explicitly rather than accepting any object.

@@ -28,6 +28,21 @@ class BaseHandler(ABC):
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Handle tool call and return MCP response content"""
 
+    # A block carrying machine-readable data alongside the prose. The
+    # dispatcher lifts it out and sends it as the call's structuredContent;
+    # it never reaches the client as a content block.
+    STRUCTURED_BLOCK = "_structured"
+
+    def structured_response(self, text: str, data: Any) -> List[Dict[str, Any]]:
+        """Answer with prose for the reader and data for the model.
+
+        A tool whose result gets acted on -- a host state, a list of problems,
+        a metric series -- should not force the caller to parse emoji-marked
+        markdown back into values. The text block stays, so a human reading
+        the transcript still sees something sensible.
+        """
+        return [{"type": "text", "text": text}, {"type": self.STRUCTURED_BLOCK, "data": data}]
+
     def _if_match_header(self, endpoint: str) -> Dict[str, str]:
         """Build an If-Match header from the current ETag of an object.
 

@@ -24,6 +24,10 @@ CONFIGURATION_HELP = (
 # including the ones that build their content inline.
 ERROR_MARKER = "❌"
 
+# Handlers attach machine-readable data in a block of this type. It is lifted
+# out here into the result's structuredContent and never sent as content.
+STRUCTURED_BLOCK = "_structured"
+
 
 def is_error(content: Sequence[Dict[str, Any]]) -> bool:
     """Whether a handler's content reports a failure.
@@ -41,7 +45,19 @@ def is_error(content: Sequence[Dict[str, Any]]) -> bool:
 
 def to_content_blocks(content: Sequence[Dict[str, Any]]) -> List[types.ContentBlock]:
     """Validate a handler's raw dictionaries into typed content blocks."""
-    return [types.TextContent(type="text", text=str(block.get("text", ""))) for block in content]
+    return [
+        types.TextContent(type="text", text=str(block.get("text", "")))
+        for block in content
+        if block.get("type") != STRUCTURED_BLOCK
+    ]
+
+
+def structured_of(content: Sequence[Dict[str, Any]]) -> Any:
+    """The machine-readable payload a handler attached, if any."""
+    for block in content:
+        if block.get("type") == STRUCTURED_BLOCK:
+            return block.get("data")
+    return None
 
 
 class Dispatcher:
@@ -81,7 +97,11 @@ class Dispatcher:
             logger.exception("Error in tool call %s", name)
             return self._failure(f"❌ **{name} failed**\n\n{error}")
 
-        return types.CallToolResult(content=to_content_blocks(content), is_error=is_error(content))
+        structured = structured_of(content)
+        result = types.CallToolResult(content=to_content_blocks(content), is_error=is_error(content))
+        if structured is not None:
+            result.structured_content = structured
+        return result
 
     @staticmethod
     def _failure(text: str) -> types.CallToolResult:
