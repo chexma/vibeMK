@@ -42,6 +42,13 @@ from config import CheckMKConfig
 
 logger = logging.getLogger(__name__)
 
+_RETRYABLE_STATUS_CODES = (429, 500, 502, 503, 504)
+# HTTP calls these idempotent: repeating one has the same effect as making it
+# once. POST is not, and re-issuing "actions/delete/invoke" after a gateway
+# timeout can delete a second time -- the first attempt may have succeeded
+# before the proxy gave up.
+_IDEMPOTENT_METHODS = ("GET", "PUT", "DELETE", "HEAD", "OPTIONS")
+
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Refuse to follow redirects during URL detection.
@@ -190,7 +197,9 @@ class CheckMKClient:
             req = urllib.request.Request(url, headers=request_headers)
             req.get_method = lambda: method
 
-            if method in ["POST", "PUT", "PATCH"] and data:
+            # `is not None` rather than truthiness: a handler that deliberately
+            # sends {} means an empty JSON object, not "send no body at all".
+            if method in ["POST", "PUT", "PATCH"] and data is not None:
                 req.data = json.dumps(data).encode()
 
             logger.debug(f"{method} {url}")
@@ -244,9 +253,13 @@ class CheckMKClient:
         except:
             error_data = {"error": error.reason}
 
-        # Retry logic for transient errors (500, 502, 503, 504)
-        if error.code in [500, 502, 503, 504] and retry_count < self.config.max_retries:
-            time.sleep(2**retry_count)  # Exponential backoff
+        retryable = (
+            error.code in _RETRYABLE_STATUS_CODES
+            and method.upper() in _IDEMPOTENT_METHODS
+            and retry_count < self.config.max_retries
+        )
+        if retryable:
+            time.sleep(self._retry_delay(error, retry_count))
             return self.request(endpoint, method, data, params, custom_headers, retry_count + 1, use_api_prefix)
 
         # Map HTTP status codes to custom exceptions
@@ -258,6 +271,26 @@ class CheckMKClient:
             raise CheckMKNotFoundError(f"Resource not found: {error.reason}", error.code, error_data)
         else:
             raise CheckMKAPIError(f"HTTP {error.code}: {error.reason}", error.code, error_data)
+
+    @staticmethod
+    def _retry_delay(error: urllib.error.HTTPError, retry_count: int) -> float:
+        """How long to wait before the next attempt.
+
+        A 429 usually carries Retry-After, and guessing when the server has
+        said what it wants is how a rate limit turns into a longer one. Only
+        the delta-seconds form is honoured; an HTTP-date falls back to the
+        exponential schedule.
+        """
+        backoff = float(2**retry_count)
+
+        headers = getattr(error, "headers", None)
+        raw = headers.get("Retry-After") if headers else None
+        if not raw:
+            return backoff
+        try:
+            return max(0.0, float(str(raw).strip()))
+        except ValueError:
+            return backoff
 
     def _handle_general_error(
         self,
