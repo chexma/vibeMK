@@ -49,6 +49,19 @@ class TestTheConsoleScript:
         assert main.cli is not None
         assert main.parse_arguments(["--transport", "http"]).transport == "http"
 
+    def test_the_checkout_shim_parses_on_old_interpreters(self):
+        """main.py tells a too-old Python what to do -- but only if it can parse the file.
+
+        Clients configured before 0.5 start it with whatever `python` was then,
+        down to 3.8. One newer construct and that interpreter stops with a
+        SyntaxError before the version check runs.
+        """
+        import ast
+
+        source = (PROJECT_ROOT / "main.py").read_text(encoding="utf-8")
+
+        ast.parse(source, feature_version=(3, 8))
+
 
 class TestTheLicence:
     """The GPL is only a licence grant if its terms are actually present."""
