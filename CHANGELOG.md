@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.6.3] - 2026-10-03
+
+### Added
+- Upgrade guide for source installations older than 0.5 (INSTALL.md → Upgrading)
 
 ### Changed
 - Started with a Python older than 3.10 or without its dependencies, `main.py`
