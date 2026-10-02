@@ -115,6 +115,60 @@ standard library.
 pip install -e ".[dev]"  # Installs pytest, black, mypy, etc.
 ```
 
+## ⬆️ Upgrading
+
+**Installed from PyPI:** `pipx upgrade vibemk` or `uv tool upgrade vibemk`,
+then restart the LLM client.
+
+**Installed from source since 0.5:** `git pull`, then
+`pip install -r requirements.txt` with the same Python the client starts.
+
+### From a source checkout older than 0.5 (0.1 – 0.3.x)
+
+A plain `git pull` does not work for these, and the client configuration needs
+a look as well:
+
+- **The repository history was rewritten** after 0.3.x, so an old clone and
+  the current one share no commits. `git pull` stops with
+  `fatal: refusing to merge unrelated histories`
+- **Python 3.10 or newer is required.** 0.3.x ran on 3.8, and a client
+  configured with `"command": "python3"` often starts the system Python —
+  `/usr/bin/python3` on macOS is 3.9
+- **vibeMK now has dependencies** (the MCP SDK and jsonschema); 0.3.x had none
+
+**Recommended: switch to the PyPI package.** Your environment variables keep
+their names, so only the command changes.
+
+1. Install vibeMK as in [Step 1, Option A](#option-a-from-pypi-recommended)
+2. In the client configuration, replace `"command"` and `"args"`:
+   ```json
+   "command": "/absolute/path/to/vibemk",
+   ```
+   (`which vibemk` prints the path; drop the `"args"` line)
+3. Restart the LLM client
+4. Delete the old checkout once the new setup works
+
+**Or stay on a source checkout:**
+
+```bash
+cd /path/to/vibeMK
+git fetch origin
+git reset --hard origin/main   # discards local changes to tracked files
+python3.12 -m pip install -r requirements.txt   # any Python 3.10+
+```
+
+Then point `"command"` in the client configuration at that same Python, e.g.
+`"command": "/opt/homebrew/bin/python3.12"`. The path to `main.py` stays the
+same.
+
+If the client still cannot connect, start the configured command by hand —
+`main.py` names the problem (Python too old, or a dependency missing) instead
+of failing silently.
+
+Three tools were removed in 0.5.0 because their CheckMK endpoints do not
+exist; `vibemk_discover_services` became `vibemk_start_service_discovery`.
+The LLM picks up the new names on its own.
+
 ## ⚙️ Step 3: Configure CheckMK
 
 ### 3.1 Create CheckMK API User

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Started with a Python older than 3.10 or without its dependencies, `main.py`
+  says what to do instead of failing with a traceback
+
 ## [0.6.2] - 2026-10-03
 
 ### Added

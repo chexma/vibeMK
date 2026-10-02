@@ -56,6 +56,7 @@ This project is in the alpha stage and under development. I accept no liability 
 5. voila - configure checkmk using natural language
 ```
 **Complete Installation Guide**: See [INSTALL.md](https://github.com/chexma/vibeMK/blob/main/INSTALL.md) for detailed step-by-step instructions.
+**Upgrading from 0.3.x or older**: `git pull` is not enough, see [Upgrading](https://github.com/chexma/vibeMK/blob/main/INSTALL.md#%EF%B8%8F-upgrading).
 **More Examples**: See `examples/llm_configs/` and [INSTALL.md](https://github.com/chexma/vibeMK/blob/main/INSTALL.md)  
 **Visual Examples**: See `examples/Screenshots/` for example prompts and usage patterns  
 
