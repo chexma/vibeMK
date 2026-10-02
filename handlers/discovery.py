@@ -3,14 +3,23 @@ CheckMK Host Discovery Handler
 Handles service discovery operations for hosts
 """
 
+import asyncio
+import time
 from typing import Any, Dict, List
 
 from api import CheckMKClient
+from api.exceptions import CheckMKAPIError
 from api.paths import path_segment
 from handlers.base import BaseHandler
 from utils import get_logger
 
 logger = get_logger(__name__)
+
+# How long wait_for_discovery polls by default, and how often. CheckMK answers
+# the wait endpoint with a 302 to itself while the job runs and with 204 once
+# it has finished, so waiting means asking again.
+_WAIT_TIMEOUT_SECONDS = 120
+_WAIT_POLL_SECONDS = 2
 
 # Every mode the discovery schema offers, mapped explicitly. A mode missing
 # from this table is an error, not a request with every option switched off.
@@ -100,16 +109,28 @@ class DiscoveryHandler(BaseHandler):
                 return [{"type": "text", "text": "❌ Error: host_name is required"}]
 
             # Validate mode
-            valid_modes = ["new", "remove", "fix_all", "refresh", "only_host_labels"]
-            if mode not in valid_modes:
-                return [{"type": "text", "text": f"❌ Error: mode must be one of {valid_modes}"}]
+            # The same table that maps modes for the bulk fallback, which a
+            # test keeps equal to the enum the schema advertises.
+            if mode not in _BULK_OPTIONS_BY_MODE:
+                return [{"type": "text", "text": f"❌ Error: mode must be one of {sorted(_BULK_OPTIONS_BY_MODE)}"}]
 
             data = {"host_name": host_name, "mode": mode}
 
             try:
-                result = self.client.post("domain-types/service_discovery_run/actions/start/invoke", data=data)
+                # A started job answers 303 to the wait endpoint. Followed, that
+                # lands in the wait endpoint's 302 loop and fails -- which is
+                # what used to push every start onto the bulk fallback.
+                result = self.client.request(
+                    "domain-types/service_discovery_run/actions/start/invoke",
+                    "POST",
+                    data=data,
+                    follow_redirects=False,
+                )
 
-                if result.get("success"):
+                # refresh and tabula_rasa scan the host in a background job and
+                # answer with a redirect to the wait endpoint; every other mode
+                # works on the last scan and answers with the result at once.
+                if result.get("success") and result.get("status") in (301, 302, 303, 307):
                     return [
                         {
                             "type": "text",
@@ -120,13 +141,39 @@ class DiscoveryHandler(BaseHandler):
                             f"Use 'wait_for_discovery' or 'get_discovery_status' to check progress.",
                         }
                     ]
+                if result.get("success"):
+                    return [
+                        {
+                            "type": "text",
+                            "text": f"✅ **Service Discovery Completed**\n\n"
+                            f"Host: **{host_name}**\n"
+                            f"Mode: {mode}\n\n"
+                            f"Applied to the services found by the last scan; run mode 'refresh' first "
+                            f"to rescan the host. Use 'activate_changes' to put the result into monitoring.",
+                        }
+                    ]
                 else:
                     # If single host discovery fails, fall back to bulk discovery
                     logger.warning(f"Single host discovery failed for {host_name}, falling back to bulk discovery")
                     return await self._fallback_to_bulk_discovery(host_name, mode)
 
+            except CheckMKAPIError as api_error:
+                if api_error.status_code != 409:
+                    logger.warning(
+                        f"Single host discovery API error for {host_name}: {api_error}. Falling back to bulk discovery"
+                    )
+                    return await self._fallback_to_bulk_discovery(host_name, mode)
+                # A second job would only queue behind the first one.
+                return [
+                    {
+                        "type": "text",
+                        "text": f"ℹ️ **Service Discovery already running**\n\n"
+                        f"Host: **{host_name}**\n\n"
+                        f"Use 'wait_for_discovery' to wait for it, then 'get_discovery_status' for the result.",
+                    }
+                ]
             except Exception as api_error:
-                # If single host discovery API has issues (like redirect loops), fall back to bulk discovery
+                # Anything else from the single host API: fall back to bulk discovery
                 logger.warning(
                     f"Single host discovery API error for {host_name}: {api_error}. Falling back to bulk discovery"
                 )
@@ -401,9 +448,25 @@ class DiscoveryHandler(BaseHandler):
             if not host_name:
                 return [{"type": "text", "text": "❌ Error: host_name is required"}]
 
-            result = self.client.get(
-                f"objects/service_discovery_run/{path_segment(host_name)}/actions/wait-for-completion/invoke"
-            )
+            timeout = float(args.get("timeout", _WAIT_TIMEOUT_SECONDS))
+            endpoint = f"objects/service_discovery_run/{path_segment(host_name)}/actions/wait-for-completion/invoke"
+            deadline = time.monotonic() + timeout
+
+            result = self.client.request(endpoint, "GET", follow_redirects=False)
+            while result.get("status") in (301, 302, 303, 307) and time.monotonic() < deadline:
+                await asyncio.sleep(_WAIT_POLL_SECONDS)
+                result = self.client.request(endpoint, "GET", follow_redirects=False)
+
+            if result.get("status") in (301, 302, 303, 307):
+                return [
+                    {
+                        "type": "text",
+                        "text": f"⏳ **Discovery still running**\n\n"
+                        f"Host: **{host_name}**\n\n"
+                        f"The job had not finished after {int(timeout)}s. "
+                        f"Call 'wait_for_discovery' again, or check 'get_discovery_background_job'.",
+                    }
+                ]
 
             if result.get("success"):
                 return [

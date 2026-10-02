@@ -2,13 +2,12 @@
 Service management handlers
 """
 
-import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
 from api.paths import path_segment
-from handlers.base import BaseHandler
+from handlers.base import BaseHandler, time_ago
 
 # Keyed by Optional[int]: Method 3's column-array shape can leave state
 # genuinely absent (short row -> None), and that None is looked up as-is rather
@@ -18,10 +17,6 @@ _STATUS_ICONS: Dict[int, str] = {0: "✅", 1: "⚠️", 2: "🔴"}
 
 _MAX_SERVICES_DISPLAYED = 50
 _PLUGIN_OUTPUT_PREVIEW_LENGTH = 50
-
-_SECONDS_PER_MINUTE = 60
-_SECONDS_PER_HOUR = 3600
-_SECONDS_PER_DAY = 86400
 
 # Column positions in Method 3's array-shaped rows: ["host_name", "description",
 # "state", "plugin_output", "last_check", "last_state_change"]
@@ -287,21 +282,7 @@ class ServiceHandler(BaseHandler):
     @staticmethod
     def _format_last_check(last_check: Any) -> str:
         """Format a Unix timestamp as a human-relative 'time ago' string"""
-        if not last_check:
-            return "Unknown"
-
-        try:
-            time_diff = int(time.time() - last_check)
-        except (ValueError, TypeError):
-            return str(last_check)
-
-        if time_diff < _SECONDS_PER_MINUTE:
-            return f"{time_diff}s ago"
-        if time_diff < _SECONDS_PER_HOUR:
-            return f"{time_diff // _SECONDS_PER_MINUTE}m ago"
-        if time_diff < _SECONDS_PER_DAY:
-            return f"{time_diff // _SECONDS_PER_HOUR}h ago"
-        return f"{time_diff // _SECONDS_PER_DAY}d ago"
+        return time_ago(last_check) or "Unknown"
 
     def _service_status_via_query_api(self, host_name: str, service_description: str) -> Optional[List[Dict[str, Any]]]:
         """Method 3: the CheckMK query API with explicit columns and a query filter"""

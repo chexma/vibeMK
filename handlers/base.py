@@ -3,6 +3,7 @@ Base handler for vibeMK operations
 """
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Union
@@ -19,6 +20,33 @@ logger: logging.Logger = get_logger(__name__)
 
 T = TypeVar("T")
 R = TypeVar("R")
+
+_SECONDS_PER_MINUTE = 60
+_SECONDS_PER_HOUR = 3600
+_SECONDS_PER_DAY = 86400
+
+
+def time_ago(timestamp: Any) -> Optional[str]:
+    """Render a Unix timestamp as "42s ago", "5m ago", "3h ago" or "2d ago".
+
+    None for a missing or zero timestamp: CheckMK sends 0 for an event that
+    has not happened yet -- a host never checked, a state that never changed
+    -- and counting from 1970 would report that as 56 years ago.
+    """
+    if not timestamp:
+        return None
+    try:
+        diff = int(time.time() - float(timestamp))
+    except (ValueError, TypeError):
+        return str(timestamp)
+
+    if diff < _SECONDS_PER_MINUTE:
+        return f"{diff}s ago"
+    if diff < _SECONDS_PER_HOUR:
+        return f"{diff // _SECONDS_PER_MINUTE}m ago"
+    if diff < _SECONDS_PER_DAY:
+        return f"{diff // _SECONDS_PER_HOUR}h ago"
+    return f"{diff // _SECONDS_PER_DAY}d ago"
 
 
 class BaseHandler(ABC):

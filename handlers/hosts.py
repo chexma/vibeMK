@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
 from api.paths import path_segment
-from handlers.base import BaseHandler
+from handlers.base import BaseHandler, time_ago
 from utils.folder_validator import validate_folder_path
 
 
@@ -183,37 +183,8 @@ class HostHandler(BaseHandler):
                         state_map = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
                         status = state_map.get(effective_state, f"UNKNOWN({effective_state})")
 
-                        # Format timestamps if available
-                        import time
-
-                        if isinstance(last_check, (int, float)):
-                            try:
-                                last_check_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_check))
-                                time_diff = int(time.time() - last_check)
-                                if time_diff < 60:
-                                    last_check_display = f"{time_diff}s ago"
-                                elif time_diff < 3600:
-                                    last_check_display = f"{time_diff // 60}m ago"
-                                else:
-                                    last_check_display = f"{time_diff // 3600}h ago"
-                            except:
-                                last_check_display = str(last_check)
-                        else:
-                            last_check_display = str(last_check) if last_check else "Never"
-
-                        if isinstance(last_state_change, (int, float)):
-                            try:
-                                change_diff = int(time.time() - last_state_change)
-                                if change_diff < 60:
-                                    change_display = f"{change_diff}s ago"
-                                elif change_diff < 3600:
-                                    change_display = f"{change_diff // 60}m ago"
-                                else:
-                                    change_display = f"{change_diff // 3600}h ago"
-                            except:
-                                change_display = str(last_state_change)
-                        else:
-                            change_display = str(last_state_change) if last_state_change else "Unknown"
+                        last_check_display = time_ago(last_check) or "Never"
+                        change_display = time_ago(last_state_change) or "Never"
 
                         # Choose appropriate emoji based on status
                         if status == "UP":
@@ -247,9 +218,14 @@ class HostHandler(BaseHandler):
                                 "is_hard_state": state_type == 1,
                                 "has_been_checked": bool(has_been_checked),
                                 "plugin_output": plugin_output,
-                                "last_check": last_check if isinstance(last_check, (int, float)) else None,
+                                # 0 is CheckMK's "not yet", not a moment in 1970
+                                "last_check": (
+                                    last_check if isinstance(last_check, (int, float)) and last_check else None
+                                ),
                                 "last_state_change": (
-                                    last_state_change if isinstance(last_state_change, (int, float)) else None
+                                    last_state_change
+                                    if isinstance(last_state_change, (int, float)) and last_state_change
+                                    else None
                                 ),
                             },
                         )

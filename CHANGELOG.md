@@ -22,6 +22,15 @@ All notable changes to this project will be documented in this file.
 - The active check, Event Console, auxiliary tag and service parameter tools
   describe themselves and answer in English throughout
 - Listing process rules no longer executes the rule values CheckMK returns
+- `wait_for_discovery` waits for the job to finish instead of failing with a
+  redirect error, and `start_service_discovery` no longer falls back to bulk
+  discovery or starts a second job while one is running
+- `start_service_discovery` accepts the `tabula_rasa` and
+  `only_service_labels` modes it offered, and asks for confirmation since it
+  can remove services
+- `get_pending_changes` shows what changed and by whom instead of "Unknown"
+- Host status shows "Never" for a state that has not changed yet, instead of
+  a time 56 years ago
 
 ## [0.5.1] - 2026-10-02
 

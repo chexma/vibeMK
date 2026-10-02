@@ -1674,7 +1674,13 @@ def get_discovery_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "host_name": {"type": "string", "description": "Host name to wait for discovery completion"}
+                    "host_name": {"type": "string", "description": "Host name to wait for discovery completion"},
+                    "timeout": {
+                        "type": "number",
+                        "description": "Seconds to wait before reporting the job as still running",
+                        "default": 120,
+                        "minimum": 1,
+                    },
                 },
                 "required": ["host_name"],
             },
