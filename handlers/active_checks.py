@@ -606,6 +606,9 @@ class ActiveChecksHandler(BaseHandler):
             return [{"type": "text", "text": msg}]
         return self.error_response("Creating the Inventory check failed", str(result.get("data", {})))
 
+    def _rules_of(self, ruleset: str) -> Dict[str, Any]:
+        return self.client.get("domain-types/rule/collections/all", params={"ruleset_name": ruleset})
+
     async def _list_active_checks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname")
         check_type = arguments.get("check_type")
@@ -617,8 +620,7 @@ class ActiveChecksHandler(BaseHandler):
         )
 
         lines = ["🔍 **Active Checks**\n"]
-        for ruleset in rulesets:
-            result = self.client.get("domain-types/rule/collections/all", params={"ruleset_name": ruleset})
+        for ruleset, result in zip(rulesets, self._map_concurrently(self._rules_of, rulesets)):
             if not result.get("success"):
                 continue
             rules = result["data"].get("value", [])
@@ -658,8 +660,7 @@ class ActiveChecksHandler(BaseHandler):
                 else ["custom_checks"] if check_type == "custom" else self._ALL_RULESETS
             )
             matches = []
-            for rs in rulesets:
-                res = self.client.get("domain-types/rule/collections/all", params={"ruleset_name": rs})
+            for rs, res in zip(rulesets, self._map_concurrently(self._rules_of, rulesets)):
                 if not res.get("success"):
                     continue
                 for rule in res["data"].get("value", []):

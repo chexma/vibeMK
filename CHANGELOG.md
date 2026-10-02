@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 - An installed vibeMK no longer places `examples`, `tmp` and stale build
   output into the Python environment
 - The full GNU GPL v3 text is included; the file was previously abridged
+- Over HTTP, a slow tool call no longer holds up other sessions
+- Listing or deleting active checks across all types is faster
 
 ## [0.5.1] - 2026-10-02
 
