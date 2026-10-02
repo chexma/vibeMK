@@ -5,6 +5,7 @@ Turns a tool name and its arguments into an MCP `CallToolResult`. Knows
 nothing about JSON-RPC or about transport -- the SDK owns both.
 """
 
+import asyncio
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import mcp.types as types
@@ -79,6 +80,14 @@ class Dispatcher:
         # password tools, secrets.
         logger.info("Tool call: %s", name)
 
+        # The handlers are coroutines, but the CheckMK client underneath them
+        # blocks in urllib and never yields. Run on this loop, one call waiting
+        # on a slow CheckMK -- a timeout plus retries -- would stall every other
+        # session sharing the Streamable HTTP server. A worker thread with a
+        # loop of its own keeps this one free.
+        return await asyncio.to_thread(asyncio.run, self._call(name, arguments))
+
+    async def _call(self, name: str, arguments: Optional[Dict[str, Any]]) -> types.CallToolResult:
         try:
             registry = self._registry_provider()
         except Exception as error:  # a misconfigured server still answers

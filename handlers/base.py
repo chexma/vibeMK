@@ -4,7 +4,8 @@ Base handler for vibeMK operations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Union
 
 from api import CheckMKClient
 from api.exceptions import CheckMKError
@@ -15,6 +16,9 @@ ToolArguments = Dict[str, Any]
 ToolResult = List[Dict[str, Any]]
 
 logger: logging.Logger = get_logger(__name__)
+
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 class BaseHandler(ABC):
@@ -42,6 +46,24 @@ class BaseHandler(ABC):
         the transcript still sees something sensible.
         """
         return [{"type": "text", "text": text}, {"type": self.STRUCTURED_BLOCK, "data": data}]
+
+    # Low on purpose: the Ultimate test instance has two CPUs, and a
+    # production site has better things to do than answer one tool call.
+    MAX_CONCURRENT_REQUESTS = 4
+
+    def _map_concurrently(
+        self, request: Callable[[T], R], items: Iterable[T], max_concurrent: int = MAX_CONCURRENT_REQUESTS
+    ) -> List[R]:
+        """Apply a blocking request to each item, a few at a time.
+
+        For tools that have to ask CheckMK the same question once per ruleset
+        or per object. The client blocks in urllib, so the requests overlap on
+        threads, not in the event loop. Results keep the order of the items,
+        and the first request that raises does so here, as it would have in a
+        plain loop.
+        """
+        with ThreadPoolExecutor(max_workers=max_concurrent) as pool:
+            return list(pool.map(request, items))
 
     def _if_match_header(self, endpoint: str) -> Dict[str, str]:
         """Build an If-Match header from the current ETag of an object.

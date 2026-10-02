@@ -9,7 +9,11 @@ can act on, and what reaches the log.
 
 import asyncio
 import logging
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List
+from unittest.mock import patch
 
 import pytest
 
@@ -19,6 +23,7 @@ from vibemk_mcp.server import CheckMKMCPServer
 from vibemk_mcp.tools import get_all_tools
 
 TOOL = "vibemk_get_checkmk_version"
+OTHER_TOOL = "vibemk_get_host_status"
 
 
 class RecordingHandler:
@@ -108,6 +113,78 @@ class TestTheHandlerIsReached:
         await asyncio.gather(*(dispatcher.call_tool(TOOL, {"n": n}) for n in range(5)))
 
         assert len(handler.calls) == 5
+
+
+class BlockingHandler:
+    """Waits the way the CheckMK client does: synchronously, without an await."""
+
+    def __init__(self, release: threading.Event) -> None:
+        self.release = release
+        self.released = False
+
+    async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.released = self.release.wait(timeout=2)
+        return [{"type": "text", "text": "✅ **Done**"}]
+
+
+class ReleasingHandler:
+    def __init__(self, release: threading.Event) -> None:
+        self.release = release
+
+    async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.release.set()
+        return [{"type": "text", "text": "✅ **Done**"}]
+
+
+class TestABlockingCallDoesNotStallTheServer:
+    """The client blocks in urllib. Over Streamable HTTP several sessions share
+    one event loop, so a call waiting on CheckMK must not hold up the others."""
+
+    @pytest.mark.asyncio
+    async def test_a_second_call_runs_while_the_first_one_blocks(self):
+        release = threading.Event()
+        slow = BlockingHandler(release)
+        dispatcher = make_dispatcher({TOOL: slow, OTHER_TOOL: ReleasingHandler(release)})
+
+        # On a shared loop the slow call holds it until its wait times out,
+        # and the call that would release it only runs afterwards.
+        await asyncio.gather(dispatcher.call_tool(TOOL, {}), dispatcher.call_tool(OTHER_TOOL, {}))
+
+        assert slow.released is True
+
+    @pytest.mark.asyncio
+    async def test_a_handler_failure_still_comes_back_as_a_result(self):
+        handlers = {TOOL: RecordingHandler(raises=RuntimeError("boom"))}
+
+        result = await make_dispatcher(handlers).call_tool(TOOL, {})
+
+        assert result.is_error is True
+        assert "boom" in result.content[0].text
+
+
+class TestTheConnectionIsBuiltOnce:
+    def test_concurrent_first_calls_share_one_registry(self):
+        """Calls now arrive on worker threads; the first ones must not each
+        run URL detection and build a registry of their own."""
+        server = CheckMKMCPServer()
+        built: List[object] = []
+
+        def slow_registry(_client: object) -> ToolRegistry:
+            time.sleep(0.05)
+            registry = ToolRegistry({})
+            built.append(registry)
+            return registry
+
+        with (
+            patch("vibemk_mcp.server.CheckMKConfig.from_env"),
+            patch("vibemk_mcp.server.CheckMKClient"),
+            patch("vibemk_mcp.server.ToolRegistry.from_client", side_effect=slow_registry),
+            ThreadPoolExecutor(max_workers=4) as pool,
+        ):
+            registries = list(pool.map(lambda _: server._registry_provider(), range(4)))
+
+        assert len(built) == 1
+        assert all(registry is built[0] for registry in registries)
 
 
 class TestConfigurationErrors:
