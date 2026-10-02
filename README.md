@@ -3,7 +3,7 @@
 **CheckMK Monitoring via LLM - Professional MCP Server**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![CheckMK 2.1+](https://img.shields.io/badge/CheckMK-2.1+-green.svg)](https://checkmk.com/)
+[![CheckMK 2.3+](https://img.shields.io/badge/CheckMK-2.3+-green.svg)](https://checkmk.com/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://spec.modelcontextprotocol.io/)
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-official-purple.svg)](https://github.com/modelcontextprotocol/python-sdk)
@@ -100,12 +100,10 @@ it. See [INSTALL.md](INSTALL.md) for what that means before you expose it.
 
 | CheckMK Version | Compatibility | Features |
 |-----------------|---------------|----------|
+| **2.5.x** | ✅ Full     | All features available, tested against 2.5.0p14 (Raw and Ultimate) |
 | **2.4.x** | ✅ Full     | All features available |
 | **2.3.x** | ✅ Full     | All features available |
-| **2.2.x** | ⚠️ Untested | |
-| **2.1.x** | ⚠️ Untested | |
-| **2.0.x** | ⚠️ Untested | |
-| **1.6.x** | 🔴 Unsupported| | 
+| **2.2.x and older** | 🔴 Unsupported | |
 
 ## Checkmk Edition Support
 

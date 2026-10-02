@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Checkmk 2.5 is listed as supported; 2.2 and older are not
+
 ### Fixed
 - `activate_changes` works again on host, service parameter, active check and
   auxiliary tag writes; it raised an internal error instead of activating

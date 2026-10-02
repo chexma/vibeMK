@@ -61,12 +61,6 @@ class TagsHandler(BaseHandler):
             {"type": "text", "text": f"🏷️ **Host Tag Groups** ({len(tag_groups)} total):\n\n" + "\n\n".join(tag_list)}
         ]
 
-    @staticmethod
-    def _looks_like_the_other_id_field(error: CheckMKError) -> bool:
-        """True when CheckMK rejected the request over the id/ident naming."""
-        fields = (error.response_data or {}).get("fields") or {}
-        return error.status_code == 400 and bool({"id", "ident"} & set(fields))
-
     async def _create_host_tag(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Create a new host tag group"""
         tag_id = arguments.get("tag_id")
@@ -86,9 +80,8 @@ class TagsHandler(BaseHandler):
             if not isinstance(tag, dict) or "id" not in tag or "title" not in tag:
                 return self.error_response("Invalid tag structure", "Each tag must have 'id' and 'title' fields")
 
-        # CheckMK renamed this field: 2.4 and earlier call it "ident", 2.5 calls
-        # it "id" and rejects "ident" as unknown. Send "id" first and fall back,
-        # so one build serves both.
+        # Werk 16364 removed the older "ident" spelling in 2.4.0b1; 2.2 and 2.3
+        # accept either. "id" therefore covers every version this server supports.
         data = {"id": tag_id, "title": title, "tags": tags}
 
         if topic:
@@ -96,13 +89,7 @@ class TagsHandler(BaseHandler):
         if help_text:
             data["help"] = help_text
 
-        try:
-            result = self.client.post("domain-types/host_tag_group/collections/all", data=data)
-        except CheckMKError as error:
-            if not self._looks_like_the_other_id_field(error):
-                raise
-            legacy = {("ident" if key == "id" else key): value for key, value in data.items()}
-            result = self.client.post("domain-types/host_tag_group/collections/all", data=legacy)
+        result = self.client.post("domain-types/host_tag_group/collections/all", data=data)
 
         if result.get("success"):
             return [
