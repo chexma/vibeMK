@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - A server URL without `http://` or `https://` now assumes HTTPS
+- Error messages now include CheckMK's own explanation, not just the HTTP status
+- Concurrent edits are detected again: writes send the object's real ETag
+- Discovery offers all seven modes CheckMK documents, `tabula_rasa` included
+- Acknowledgements accept `sticky`, `notify` and `persistent`
 
 ### Added
 - Service param tools, agent bakery, active checks, audit log, aux tags,

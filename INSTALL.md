@@ -27,7 +27,7 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 ## 🚀 vibeMK Features (Version 0.1)
 
 ### ✨ Current Features
-- **🏷️ Unified Tool Naming**: All 82 tools with `vibemk_` prefix for better identification
+- **🏷️ Unified Tool Naming**: Every tool carries the `vibemk_` prefix for better identification
 - **🔧 Modular Architecture**: Clean handler structure for different CheckMK areas
 - **⚡ Optimized Performance**: Efficient API clients and connection management
 - **🛡️ Robust Security**: Comprehensive input validation and error handling
