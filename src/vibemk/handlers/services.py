@@ -27,6 +27,38 @@ _COL_LAST_STATE_CHANGE = 5
 _MIN_COLUMNS_FOR_STATE = _COL_STATE + 1
 
 
+def _timestamp(value: Any) -> Optional[int]:
+    """A Unix timestamp, or None for CheckMK's 0 and for placeholders like "Never"."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return None
+    return int(value)
+
+
+def _status_data(
+    host_name: Any,
+    service_description: Any,
+    state: Any,
+    plugin_output: Any = None,
+    last_check: Any = None,
+    last_state_change: Any = None,
+    state_type: Any = None,
+) -> Dict[str, Any]:
+    """The SERVICE_STATUS object, whichever of the lookups produced the values."""
+    code = state if isinstance(state, int) and not isinstance(state, bool) and state in _STATUS_MAP else None
+    data: Dict[str, Any] = {
+        "host_name": str(host_name),
+        "service_description": str(service_description),
+        "state": _STATUS_MAP[code] if code is not None else "UNAVAILABLE",
+        "state_code": code,
+        "plugin_output": plugin_output.strip() if isinstance(plugin_output, str) else "",
+        "last_check": _timestamp(last_check),
+        "last_state_change": _timestamp(last_state_change),
+    }
+    if state_type in (0, 1):
+        data["is_hard_state"] = state_type == 1
+    return data
+
+
 class ServiceHandler(BaseHandler):
     """Handle service management operations"""
 
@@ -159,7 +191,15 @@ class ServiceHandler(BaseHandler):
             result = self.client.get(
                 "domain-types/service/collections/all",
                 params={
-                    "columns": ["host_name", "description", "state", "plugin_output", "last_state_change"],
+                    "columns": [
+                        "host_name",
+                        "description",
+                        "state",
+                        "state_type",
+                        "plugin_output",
+                        "last_check",
+                        "last_state_change",
+                    ],
                     "host_name": host_name,
                 },
             )
@@ -170,7 +210,18 @@ class ServiceHandler(BaseHandler):
                 extensions = entry.get("extensions", {})
                 if extensions.get("description") != service_description:
                     continue
-                return [{"type": "text", "text": self._format_service_status(extensions)}]
+                return self.structured_response(
+                    self._format_service_status(extensions),
+                    _status_data(
+                        extensions.get("host_name", host_name),
+                        service_description,
+                        extensions.get("state"),
+                        extensions.get("plugin_output"),
+                        extensions.get("last_check"),
+                        extensions.get("last_state_change"),
+                        extensions.get("state_type"),
+                    ),
+                )
         except Exception as e:
             self.logger.debug("Service collection lookup failed: %s", e)
             return None
@@ -181,7 +232,9 @@ class ServiceHandler(BaseHandler):
         state = extensions.get("state")
         if isinstance(state, int):
             status_text = _STATUS_MAP.get(state, f"UNKNOWN({state})")
-            icon = {0: "✅", 1: "⚠️", 2: "❌", 3: "❓"}.get(state, "❓")
+            # Not ❌ for CRITICAL: a leading ❌ is the error marker the dispatcher
+            # reads, and a lookup that found a critical service has not failed.
+            icon = {0: "✅", 1: "⚠️", 2: "🔴", 3: "❓"}.get(state, "❓")
         else:
             status_text, icon = f"UNKNOWN({state})", "❓"
 
@@ -243,16 +296,14 @@ class ServiceHandler(BaseHandler):
             description = extensions.get("description", service_description)
 
             if state is None:
-                return [
-                    {
-                        "type": "text",
-                        "text": (
-                            f"📊 **Service Found: {host_name}/{description}**\n\n"
-                            f"❌ **No state information available**\n"
-                            f"Available fields: {list(extensions.keys())}"
-                        ),
-                    }
-                ]
+                return self.structured_response(
+                    (
+                        f"📊 **Service Found: {host_name}/{description}**\n\n"
+                        f"❌ **No state information available**\n"
+                        f"Available fields: {list(extensions.keys())}"
+                    ),
+                    _status_data(host_name, description, None),
+                )
 
             host_name_from_api = extensions.get("host_name", host_name)
             last_check = extensions.get("last_check")
@@ -265,19 +316,17 @@ class ServiceHandler(BaseHandler):
             self.logger.debug("CheckMK show_service API failed: %s", e)
             return None
         else:
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"{status_icon} **Service Status: {host_name_from_api}/{description}**\n\n"
-                        f"**Status:** {status_text}\n"
-                        f"**State Code:** {state}\n"
-                        f"**Last Check:** {last_check_text}\n"
-                        f"**State Type:** {'Hard' if state_type == 1 else 'Soft'}\n\n"
-                        f"✅ **Live monitoring data from CheckMK REST API**"
-                    ),
-                }
-            ]
+            return self.structured_response(
+                (
+                    f"{status_icon} **Service Status: {host_name_from_api}/{description}**\n\n"
+                    f"**Status:** {status_text}\n"
+                    f"**State Code:** {state}\n"
+                    f"**Last Check:** {last_check_text}\n"
+                    f"**State Type:** {'Hard' if state_type == 1 else 'Soft'}\n\n"
+                    f"✅ **Live monitoring data from CheckMK REST API**"
+                ),
+                _status_data(host_name_from_api, description, state, None, last_check, None, state_type),
+            )
 
     @staticmethod
     def _format_last_check(last_check: Any) -> str:
@@ -340,22 +389,20 @@ class ServiceHandler(BaseHandler):
 
         status = _STATUS_MAP.get(state, f"UNKNOWN({state})")
 
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"📊 **Service Status: {host_name}/{service_description}** (Correct API Query)\n\n"
-                    f"Status: {status}\n"
-                    f"Output: {plugin_output}\n"
-                    f"Last Check: {last_check}\n"
-                    f"Last State Change: {last_state_change}\n\n"
-                    f"🔍 **Debug Info:**\n"
-                    f"Raw State: {state}\n"
-                    f"Query Result: {service_data}\n"
-                    f"✅ **Data Source:** Correct CheckMK Query API"
-                ),
-            }
-        ]
+        return self.structured_response(
+            (
+                f"📊 **Service Status: {host_name}/{service_description}** (Correct API Query)\n\n"
+                f"Status: {status}\n"
+                f"Output: {plugin_output}\n"
+                f"Last Check: {last_check}\n"
+                f"Last State Change: {last_state_change}\n\n"
+                f"🔍 **Debug Info:**\n"
+                f"Raw State: {state}\n"
+                f"Query Result: {service_data}\n"
+                f"✅ **Data Source:** Correct CheckMK Query API"
+            ),
+            _status_data(host_name, service_description, state, plugin_output, last_check, last_state_change),
+        )
 
     def _service_status_from_dict(
         self, host_name: str, service_description: str, service_data: Dict[str, Any]
@@ -370,20 +417,25 @@ class ServiceHandler(BaseHandler):
         plugin_output = extensions.get("plugin_output", "No output available")
         last_check = extensions.get("last_check", "Never")
 
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"📊 **Service Status: {host_name}/{service_description}** (Dict Format)\n\n"
-                    f"Status: {status}\n"
-                    f"Output: {plugin_output}\n"
-                    f"Last Check: {last_check}\n\n"
-                    f"🔍 **Debug Info:**\n"
-                    f"Raw State: {state}\n"
-                    f"Extensions: {list(extensions.keys())}"
-                ),
-            }
-        ]
+        return self.structured_response(
+            (
+                f"📊 **Service Status: {host_name}/{service_description}** (Dict Format)\n\n"
+                f"Status: {status}\n"
+                f"Output: {plugin_output}\n"
+                f"Last Check: {last_check}\n\n"
+                f"🔍 **Debug Info:**\n"
+                f"Raw State: {state}\n"
+                f"Extensions: {list(extensions.keys())}"
+            ),
+            _status_data(
+                host_name,
+                service_description,
+                state,
+                extensions.get("plugin_output"),
+                extensions.get("last_check"),
+                extensions.get("last_state_change"),
+            ),
+        )
 
     def _service_status_via_legacy_query(
         self, host_name: str, service_description: str
@@ -424,20 +476,25 @@ class ServiceHandler(BaseHandler):
             plugin_output = extensions.get("plugin_output", "No output available")
             last_check = extensions.get("last_check", "Never")
 
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"📊 **Service Status: {host_name}/{service_description}** (Fallback Query)\n\n"
-                        f"Status: {status}\n"
-                        f"Output: {plugin_output}\n"
-                        f"Last Check: {last_check}\n\n"
-                        f"🔍 **Debug Info:**\n"
-                        f"Raw State: {state}\n"
-                        f"Extensions: {list(extensions.keys())}"
-                    ),
-                }
-            ]
+            return self.structured_response(
+                (
+                    f"📊 **Service Status: {host_name}/{service_description}** (Fallback Query)\n\n"
+                    f"Status: {status}\n"
+                    f"Output: {plugin_output}\n"
+                    f"Last Check: {last_check}\n\n"
+                    f"🔍 **Debug Info:**\n"
+                    f"Raw State: {state}\n"
+                    f"Extensions: {list(extensions.keys())}"
+                ),
+                _status_data(
+                    host_name,
+                    service_description,
+                    state,
+                    extensions.get("plugin_output"),
+                    extensions.get("last_check"),
+                    extensions.get("last_state_change"),
+                ),
+            )
         except Exception as e:
             self.logger.debug("Service collection query failed: %s", e)
             return None
