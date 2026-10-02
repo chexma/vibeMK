@@ -5,7 +5,6 @@ Covers the scheme chosen for a bare host name and the ability to send
 per-request headers, which CheckMK's optimistic locking (If-Match) needs.
 """
 
-from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
@@ -99,21 +98,3 @@ class TestUserAgent:
         client = CheckMKClient(make_config(), skip_url_detection=True)
 
         assert client.headers["User-Agent"] == f"vibeMK/{MCPConfig().version}"
-
-
-class TestVersionConsistency:
-    def test_advertised_version_matches_the_distribution(self):
-        """The handshake version and the packaged version are one value.
-
-        They used to be two literals — one in pyproject.toml, one in
-        MCPConfig — and this test compared them. pyproject now derives its
-        version from config.version, so the drift it guarded against cannot
-        happen; what is worth checking is that the wiring holds, i.e. that the
-        installed distribution really reports what the server advertises.
-        """
-        try:
-            installed = version("vibemk-mcp")
-        except PackageNotFoundError:
-            pytest.skip("package is not installed; nothing to compare the handshake against")
-
-        assert MCPConfig().version == installed

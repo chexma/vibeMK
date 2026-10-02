@@ -1,0 +1,38 @@
+version: 2
+
+updates:
+  # The runtime dependency is the MCP SDK, which moves fast enough that a
+  # pinned-and-forgotten version is how protocol support quietly rots.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "chore"
+    groups:
+      # One PR per week rather than one per package: the dev tools move
+      # together and reviewing them separately buys nothing.
+      dev-tooling:
+        patterns:
+          - black
+          - isort
+          - mypy
+          - ruff
+          - pytest*
+          - coverage
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"

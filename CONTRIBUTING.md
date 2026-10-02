@@ -6,15 +6,16 @@ Thank you for your interest in contributing to vibeMK! This document provides gu
 
 1. **Fork the Repository**
    ```bash
-   git clone https://github.com/yourusername/vibemk.git
-   cd vibemk
+   # Fork on GitHub first, then clone your fork
+   git clone https://github.com/<your-user>/vibeMK.git
+   cd vibeMK
    ```
 
 2. **Set Up Development Environment**
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -e .
+   pip install -e ".[dev]"
    ```
 
 3. **Configure Environment**
@@ -34,10 +35,10 @@ Thank you for your interest in contributing to vibeMK! This document provides gu
 ### Project Structure
 ```
 vibemk/
-├── api/           # CheckMK API client
+├── api/           # Checkmk API client
 ├── config/        # Configuration management
 ├── handlers/      # Tool handlers (modular design)
-├── mcp/          # MCP server implementation
+├── vibemk_mcp/    # MCP server implementation
 └── utils/        # Utility functions
 ```
 
@@ -61,14 +62,22 @@ class MyHandler(BaseHandler):
 
 ## 🧪 Testing
 
-1. **Test Your Changes**
+1. **Run the suite**
    ```bash
-   python main.py
+   pytest -v
    ```
 
-2. **Test with LLM Client**
-   - Update your claude_desktop_config.json
-   - Test the new functionality
+2. **Run the checks CI runs**
+   ```bash
+   make check        # black, isort, mypy, pytest
+   ```
+   The structural guards in `tests/test_tool_registry.py` fail until a new
+   tool is declared, wired and classified; `tests/test_packaging.py` builds
+   the wheel and checks what ends up in it.
+
+3. **Test with an LLM client**
+   - Point your client at the checkout (`python main.py`)
+   - Exercise the new functionality end to end
 
 ## 📝 Submitting Changes
 
