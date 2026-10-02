@@ -82,6 +82,10 @@ dev = [
     # report green without ever running -- which is how the defects they cover
     # survived in the first place.
     "build>=1.0.0",
+    # `make package` mirrors the CI package job, twine check included. Without
+    # this the local mirror breaks while CI keeps passing, which defeats the
+    # point of having a mirror.
+    "twine>=5.0.0",
 ]
 
 [tool.black]
