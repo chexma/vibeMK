@@ -7,8 +7,8 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 ### System Requirements
 
 - **Operating System**: macOS, Linux, or Windows
-- **Python**: Version 3.8 or higher
-- **CheckMK**: Version 2.1.0 or higher (CE/CEE/CCE/CRE)
+- **Python**: Version 3.10 or higher
+- **CheckMK**: Version 2.3 to 2.5 (Raw/Community and the commercial editions)
 - **LLM Client**: E.g., Claude Desktop, OpenAI API Client, etc.
 
 ### CheckMK Requirements
@@ -20,8 +20,8 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 
 ### Software Dependencies
 
-- Python Virtual Environment Support
-- Git (for repository cloning)
+- [pipx](https://pipx.pypa.io/) (recommended) or a Python virtual environment
+- Git (only when installing from source)
 - Access to CheckMK instance (local or remote)
 
 ## 🚀 vibeMK Features (Version 0.1)
@@ -48,35 +48,57 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 - **Time Period Management**: `vibemk_get_timeperiods`, `vibemk_create_timeperiod`
 - **Debug & Diagnostics**: `vibemk_debug_api_endpoints`, `vibemk_test_all_endpoints`
 
-## 🔧 Step 1: Repository Setup
+## 🔧 Step 1: Install vibeMK
 
-### Clone Repository
+### Option A: From PyPI (recommended)
+
+vibeMK is published on [PyPI](https://pypi.org/project/vibemk/). pip installs
+it together with its only dependency, the MCP SDK, and puts a `vibemk` command
+on your path.
 
 ```bash
-# Clone repository
-git clone https://github.com/chexma/vibeMK.git
-cd vibeMK
+# Recommended: pipx gives vibeMK its own isolated environment
+pipx install vibemk
 
-# Or: Download ZIP and extract
-# wget https://github.com/.../archive/main.zip
-# unzip main.zip && cd vibeMK-main
+# Alternative: into a virtual environment
+python3 -m venv ~/.venvs/vibemk
+~/.venvs/vibemk/bin/pip install vibemk
+
+# Verify
+vibemk --help        # with pipx
+~/.venvs/vibemk/bin/vibemk --help   # with a virtual environment
 ```
 
+A plain `pip install vibemk` into the system Python is refused on many
+systems (Homebrew Python, Debian/Ubuntu: "externally-managed-environment"),
+which is why pipx or a virtual environment is recommended.
 
-## 📦 Step 2: Verify Dependencies
-
-### ⚡ One Dependency
-
-vibeMK speaks MCP through the official SDK, which owns protocol version
-negotiation, JSON-RPC framing and the transports. Everything else is Python
-standard library.
+**Updating:**
 
 ```bash
+pipx upgrade vibemk
+# or
+~/.venvs/vibemk/bin/pip install --upgrade vibemk
+```
+
+Restart your LLM client afterwards so it starts the new version.
+
+### Option B: From source
+
+For contributors, or to run an unreleased state of `main`:
+
+```bash
+git clone https://github.com/chexma/vibeMK.git
+cd vibeMK
 pip install -r requirements.txt
 
 # Verify
 python -c "import mcp; print('✅ MCP SDK available')"
 ```
+
+vibeMK speaks MCP through the official SDK, which owns protocol version
+negotiation, JSON-RPC framing and the transports. Everything else is Python
+standard library.
 
 **Optional: Development Dependencies (only for contributors)**
 
@@ -137,6 +159,16 @@ This file does not exist by default. You can create it by going in Claude Deskto
 
 ### 5.2 Determine Absolute Paths
 
+LLM clients usually start servers without your shell's `PATH`, so use
+absolute paths.
+
+**Installed from PyPI (Option A):**
+```bash
+which vibemk        # pipx, e.g. /Users/you/.local/bin/vibemk
+# or: ~/.venvs/vibemk/bin/vibemk
+```
+
+**Installed from source (Option B):**
 ```bash
 # Current directory  
 CURRENT_DIR=$(pwd)
@@ -147,6 +179,28 @@ echo "Python Path: $(which python3)"
 ```
 
 ### 5.3 Register MCP Server
+
+**Installed from PyPI (Option A):**
+```json
+{
+  "mcpServers": {
+    "vibemk": {
+      "command": "/absolute/path/to/vibemk",
+      "env": {
+        "CHECKMK_SERVER_URL": "https://your-checkmk-server",
+        "CHECKMK_SITE": "cmk",
+        "CHECKMK_USERNAME": "vibemk",
+        "CHECKMK_PASSWORD": "Your_real_API_key_here",
+        "CHECKMK_VERIFY_SSL": "true",
+        "NEVER_ACTIVATE_CHANGES": "false",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}
+```
+
+The configurations below start vibeMK from a source checkout (Option B).
 
 **Basic Configuration:**
 ```json
@@ -193,9 +247,9 @@ echo "Python Path: $(which python3)"
 ```
 
 ⚠️ **Important**: 
-- Use absolute paths for main.py!
+- Use absolute paths for `vibemk` or main.py!
 - Insert real API key!
-- Use `python3` command (no virtual environment needed)
+- From source: use the `python3` the requirements were installed into
 
 ### 5.4 Environment Variables Reference
 
@@ -221,13 +275,14 @@ echo "Python Path: $(which python3)"
 ## 🌐 Hosting vibeMK centrally (Streamable HTTP)
 
 By default vibeMK speaks stdio: the LLM client starts the process itself, which
-means Python and this repository have to be on every machine that uses it.
+means vibeMK has to be installed on every machine that uses it.
 
 It can instead listen on HTTP, so one instance serves many clients:
 
 ```bash
 export VIBEMK_HTTP_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-python main.py --transport http --host 127.0.0.1 --port 8765
+vibemk --transport http --host 127.0.0.1 --port 8765
+# from a source checkout: python main.py --transport http --host 127.0.0.1 --port 8765
 ```
 
 Clients then connect to `http://<host>:8765/mcp` and send the token on every
@@ -271,6 +326,9 @@ stdio needs none of this, because the client already owns the process.
 
 ## 🧪 Step 6: Test Installation
 
+The commands below use `vibemk` (Option A). From a source checkout, run
+`python main.py` instead.
+
 ### 6.2 Test vibeMK Server
 
 ```bash
@@ -279,7 +337,7 @@ CHECKMK_SERVER_URL="https://your-checkmk-server", \
 CHECKMK_SITE="your-site" \
 CHECKMK_USERNAME="vibemk" \
 CHECKMK_PASSWORD="your_api_key" \
-python main.py
+vibemk
 ```
 
 **Send test request:**
@@ -290,7 +348,7 @@ CHECKMK_SERVER_URL="http://localhost:8080" \
 CHECKMK_SITE="your-site" \
 CHECKMK_USERNAME="automation" \
 CHECKMK_PASSWORD="your_api_key" \
-python main.py
+vibemk
 ```
 
 **Expected output:**
@@ -385,7 +443,7 @@ export CHECKMK_SITE="cmk"
 export CHECKMK_USERNAME="automation"
 export CHECKMK_PASSWORD="your_api_key"
 
-python main.py 2>&1 | tee vibemk-debug.log
+vibemk 2>&1 | tee vibemk-debug.log   # from source: python main.py
 ```
 
 ### 8.3 Connection Diagnostics
@@ -406,7 +464,7 @@ curl -v -H "Authorization: Bearer automation YOUR_KEY" \
         http://localhost:8080/cmk/check_mk/api/1.0/version
 
 # 4. Can vibeMK server start?
-timeout 10s python main.py
+timeout 10s vibemk   # from source: python main.py
 
 # 5. Is LLM client config valid?
 python -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.json
