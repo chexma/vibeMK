@@ -5,6 +5,7 @@ Time period management handlers for CheckMK scheduling
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -129,7 +130,7 @@ class TimePeriodsHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # Check if time period exists
-        check_result = self.client.get(f"objects/time_period/{name}")
+        check_result = self.client.get(f"objects/time_period/{path_segment(name)}")
         if not check_result.get("success"):
             return self.error_response("Time period not found", f"Time period '{name}' does not exist")
 
@@ -154,8 +155,8 @@ class TimePeriodsHandler(BaseHandler):
             return self.error_response("No data to update", "At least one field must be provided")
 
         # Use ETag for optimistic locking
-        headers = self._if_match_header(f"objects/time_period/{name}")
-        result = self.client.put(f"objects/time_period/{name}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/time_period/{path_segment(name)}")
+        result = self.client.put(f"objects/time_period/{path_segment(name)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -180,12 +181,12 @@ class TimePeriodsHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # Check if time period exists
-        check_result = self.client.get(f"objects/time_period/{name}")
+        check_result = self.client.get(f"objects/time_period/{path_segment(name)}")
         if not check_result.get("success"):
             return self.error_response("Time period not found", f"Time period '{name}' does not exist")
 
-        headers = self._if_match_header(f"objects/time_period/{name}")
-        result = self.client.delete(f"objects/time_period/{name}", headers=headers)
+        headers = self._if_match_header(f"objects/time_period/{path_segment(name)}")
+        result = self.client.delete(f"objects/time_period/{path_segment(name)}", headers=headers)
 
         if result.get("success"):
             return [

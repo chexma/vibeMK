@@ -5,6 +5,7 @@ User management handlers
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -152,7 +153,7 @@ class UserHandler(BaseHandler):
             return self.error_response("Missing parameter", "username is required")
 
         # First get the current user to get ETag
-        current_user_result = self.client.get(f"objects/user_config/{username}")
+        current_user_result = self.client.get(f"objects/user_config/{path_segment(username)}")
         if not current_user_result.get("success"):
             return self.error_response("User not found", f"User '{username}' does not exist")
 
@@ -168,8 +169,8 @@ class UserHandler(BaseHandler):
             data["contactgroups"] = contactgroups
 
         # Use ETag for optimistic locking (use wildcard for simplicity)
-        headers = self._if_match_header(f"objects/user_config/{username}")
-        result = self.client.put(f"objects/user_config/{username}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/user_config/{path_segment(username)}")
+        result = self.client.put(f"objects/user_config/{path_segment(username)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -194,11 +195,11 @@ class UserHandler(BaseHandler):
             return self.error_response("Missing parameter", "username is required")
 
         # Check if user exists
-        check_result = self.client.get(f"objects/user_config/{username}")
+        check_result = self.client.get(f"objects/user_config/{path_segment(username)}")
         if not check_result.get("success"):
             return self.error_response("User not found", f"User '{username}' does not exist")
 
-        result = self.client.delete(f"objects/user_config/{username}")
+        result = self.client.delete(f"objects/user_config/{path_segment(username)}")
 
         if result.get("success"):
             return [
@@ -302,7 +303,7 @@ class UserHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # First get the current contact group to check if it exists
-        current_group_result = self.client.get(f"objects/contact_group_config/{name}")
+        current_group_result = self.client.get(f"objects/contact_group_config/{path_segment(name)}")
         if not current_group_result.get("success"):
             return self.error_response("Contact group not found", f"Contact group '{name}' does not exist")
 
@@ -319,8 +320,8 @@ class UserHandler(BaseHandler):
             return self.error_response("No data to update", "At least alias must be provided")
 
         # Use ETag for optimistic locking
-        headers = self._if_match_header(f"objects/contact_group_config/{name}")
-        result = self.client.put(f"objects/contact_group_config/{name}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/contact_group_config/{path_segment(name)}")
+        result = self.client.put(f"objects/contact_group_config/{path_segment(name)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -345,11 +346,11 @@ class UserHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # Check if contact group exists
-        check_result = self.client.get(f"objects/contact_group_config/{name}")
+        check_result = self.client.get(f"objects/contact_group_config/{path_segment(name)}")
         if not check_result.get("success"):
             return self.error_response("Contact group not found", f"Contact group '{name}' does not exist")
 
-        result = self.client.delete(f"objects/contact_group_config/{name}")
+        result = self.client.delete(f"objects/contact_group_config/{path_segment(name)}")
 
         if result.get("success"):
             return [
@@ -377,7 +378,7 @@ class UserHandler(BaseHandler):
             return self.error_response("Missing parameters", "username and group_name are required")
 
         # First get current user to retrieve existing contact groups
-        user_result = self.client.get(f"objects/user_config/{username}")
+        user_result = self.client.get(f"objects/user_config/{path_segment(username)}")
         if not user_result.get("success"):
             return self.error_response("User not found", f"User '{username}' does not exist")
 
@@ -391,8 +392,8 @@ class UserHandler(BaseHandler):
 
             # Update user with new contact groups
             update_data = {"contactgroups": new_groups}
-            headers = self._if_match_header(f"objects/user_config/{username}")
-            result = self.client.put(f"objects/user_config/{username}", data=update_data, headers=headers)
+            headers = self._if_match_header(f"objects/user_config/{path_segment(username)}")
+            result = self.client.put(f"objects/user_config/{path_segment(username)}", data=update_data, headers=headers)
 
             if result.get("success"):
                 return [
@@ -431,7 +432,7 @@ class UserHandler(BaseHandler):
             return self.error_response("Missing parameters", "username and group_name are required")
 
         # First get current user to retrieve existing contact groups
-        user_result = self.client.get(f"objects/user_config/{username}")
+        user_result = self.client.get(f"objects/user_config/{path_segment(username)}")
         if not user_result.get("success"):
             return self.error_response("User not found", f"User '{username}' does not exist")
 
@@ -445,8 +446,8 @@ class UserHandler(BaseHandler):
 
             # Update user with new contact groups
             update_data = {"contactgroups": new_groups}
-            headers = self._if_match_header(f"objects/user_config/{username}")
-            result = self.client.put(f"objects/user_config/{username}", data=update_data, headers=headers)
+            headers = self._if_match_header(f"objects/user_config/{path_segment(username)}")
+            result = self.client.put(f"objects/user_config/{path_segment(username)}", data=update_data, headers=headers)
 
             if result.get("success"):
                 return [

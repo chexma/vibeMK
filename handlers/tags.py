@@ -5,6 +5,7 @@ Tag group management handlers for CheckMK host and service tags
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -121,7 +122,7 @@ class TagsHandler(BaseHandler):
             return self.error_response("Missing parameter", "tag_id is required")
 
         # First check if tag group exists
-        check_result = self.client.get(f"objects/host_tag_group/{tag_id}")
+        check_result = self.client.get(f"objects/host_tag_group/{path_segment(tag_id)}")
         if not check_result.get("success"):
             return self.error_response("Host tag group not found", f"Tag group '{tag_id}' does not exist")
 
@@ -146,8 +147,8 @@ class TagsHandler(BaseHandler):
             return self.error_response("No data to update", "At least one field must be provided")
 
         # Use ETag for optimistic locking
-        headers = self._if_match_header(f"objects/host_tag_group/{tag_id}")
-        result = self.client.put(f"objects/host_tag_group/{tag_id}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/host_tag_group/{path_segment(tag_id)}")
+        result = self.client.put(f"objects/host_tag_group/{path_segment(tag_id)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -173,7 +174,7 @@ class TagsHandler(BaseHandler):
             return self.error_response("Missing parameter", "tag_id is required")
 
         # Check if tag group exists
-        check_result = self.client.get(f"objects/host_tag_group/{tag_id}")
+        check_result = self.client.get(f"objects/host_tag_group/{path_segment(tag_id)}")
         if not check_result.get("success"):
             return self.error_response("Host tag group not found", f"Tag group '{tag_id}' does not exist")
 
@@ -181,7 +182,7 @@ class TagsHandler(BaseHandler):
         if repair:
             params["repair"] = "true"
 
-        result = self.client.delete(f"objects/host_tag_group/{tag_id}", params=params)
+        result = self.client.delete(f"objects/host_tag_group/{path_segment(tag_id)}", params=params)
 
         if result.get("success"):
             return [

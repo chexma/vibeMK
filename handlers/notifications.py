@@ -13,13 +13,14 @@ import json
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 COLLECTION = "domain-types/notification_rule/collections/all"
 
 
 def _object(rule_id: str) -> str:
-    return f"objects/notification_rule/{rule_id}"
+    return f"objects/notification_rule/{path_segment(rule_id)}"
 
 
 class NotificationHandler(BaseHandler):

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+- `vibemk_test_direct_url` only requests URLs under the configured CheckMK API
+  and no longer follows redirects; it could send the CheckMK credentials to any
+  address
+- Host names, rule ids and other values are encoded in API paths, so a crafted
+  value can no longer address a different object
+
 ### Fixed
 - The `vibemk` command works after `pip install`; it previously exited
   without starting the server

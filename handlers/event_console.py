@@ -5,6 +5,7 @@ Event Console handlers — read and manage CheckMK Event Console (EC) events.
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 # The Event Console's numeric states. A constant rather than a local, which is
@@ -85,7 +86,7 @@ class EventConsoleHandler(BaseHandler):
             return self.error_response("Missing parameter", "event_id is required")
 
         result = self.client.post(
-            f"objects/event_console/{event_id}/actions/update_and_acknowledge/invoke",
+            f"objects/event_console/{path_segment(event_id)}/actions/update_and_acknowledge/invoke",
             {"change_comment": comment},
         )
         if result.get("success"):
@@ -100,7 +101,7 @@ class EventConsoleHandler(BaseHandler):
             return self.error_response("Missing parameter", "event_id and new_state are required")
 
         result = self.client.post(
-            f"objects/event_console/{event_id}/actions/change_state/invoke",
+            f"objects/event_console/{path_segment(event_id)}/actions/change_state/invoke",
             {"new_state": new_state},
         )
         if result.get("success"):

@@ -5,6 +5,7 @@ Service groups management handlers for CheckMK integration
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -59,7 +60,7 @@ class ServiceGroupHandler(BaseHandler):
 
         # Check if service group already exists
         try:
-            existing_group = self.client.get(f"objects/service_group_config/{name}")
+            existing_group = self.client.get(f"objects/service_group_config/{path_segment(name)}")
             if existing_group.get("success"):
                 return self.error_response(
                     "Service group already exists", f"Service group '{name}' already exists. Use update to modify it."
@@ -129,7 +130,7 @@ class ServiceGroupHandler(BaseHandler):
         if not name:
             return self.error_response("Missing parameter", "name is required")
 
-        result = self.client.get(f"objects/service_group_config/{name}")
+        result = self.client.get(f"objects/service_group_config/{path_segment(name)}")
 
         if not result.get("success"):
             return self.error_response("Service group not found", f"Service group '{name}' not found")
@@ -168,7 +169,7 @@ class ServiceGroupHandler(BaseHandler):
 
         # Check if service group exists
         try:
-            existing_group = self.client.get(f"objects/service_group_config/{name}")
+            existing_group = self.client.get(f"objects/service_group_config/{path_segment(name)}")
             if not existing_group.get("success"):
                 return self.error_response("Service group not found", f"Service group '{name}' not found")
         except CheckMKNotFoundError:
@@ -186,7 +187,7 @@ class ServiceGroupHandler(BaseHandler):
                 # If no ETag available, use wildcard
                 headers["If-Match"] = "*"
 
-        result = self.client.put(f"objects/service_group_config/{name}", data=data, headers=headers)
+        result = self.client.put(f"objects/service_group_config/{path_segment(name)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -215,13 +216,13 @@ class ServiceGroupHandler(BaseHandler):
 
         # Check if service group exists
         try:
-            existing_group = self.client.get(f"objects/service_group_config/{name}")
+            existing_group = self.client.get(f"objects/service_group_config/{path_segment(name)}")
             if not existing_group.get("success"):
                 return self.error_response("Service group not found", f"Service group '{name}' not found")
         except CheckMKNotFoundError:
             return self.error_response("Service group not found", f"Service group '{name}' not found")
 
-        result = self.client.delete(f"objects/service_group_config/{name}")
+        result = self.client.delete(f"objects/service_group_config/{path_segment(name)}")
 
         if result.get("success"):
             return [

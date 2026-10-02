@@ -5,6 +5,7 @@ Debug handler for CheckMK API analysis
 from typing import Any, Dict, List, Tuple
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -79,11 +80,11 @@ class DebugHandler(BaseHandler):
 
         # Test various host endpoints
         host_endpoints = [
-            f"objects/host/{host_name}",
-            f"objects/host_config/{host_name}",
+            f"objects/host/{path_segment(host_name)}",
+            f"objects/host_config/{path_segment(host_name)}",
             "domain-types/host/collections/all",
             "domain-types/host_config/collections/all",
-            f"objects/host/{host_name}/actions/show_service/invoke",
+            f"objects/host/{path_segment(host_name)}/actions/show_service/invoke",
         ]
 
         # Test with different query parameters
@@ -189,9 +190,9 @@ class DebugHandler(BaseHandler):
         test_scenarios: List[Tuple[str, str, str, Dict[str, Any]]] = [
             ("GET all hosts", "domain-types/host_config/collections/all", "GET", {}),
             ("GET all monitoring hosts", "domain-types/host/collections/all", "GET", {}),
-            ("GET specific host config", f"objects/host_config/{host_name}", "GET", {}),
-            ("GET specific host object", f"objects/host/{host_name}", "GET", {}),
-            ("POST show services", f"objects/host/{host_name}/actions/show_service/invoke", "POST", {}),
+            ("GET specific host config", f"objects/host_config/{path_segment(host_name)}", "GET", {}),
+            ("GET specific host object", f"objects/host/{path_segment(host_name)}", "GET", {}),
+            ("POST show services", f"objects/host/{path_segment(host_name)}/actions/show_service/invoke", "POST", {}),
         ]
 
         for description, endpoint, method, data in test_scenarios:
@@ -307,8 +308,13 @@ class DebugHandler(BaseHandler):
         test_scenarios = [
             ("GET all services", "domain-types/service/collections/all", "GET", {}),
             ("GET host services", "domain-types/service/collections/all", "GET", {"host_name": host_name}),
-            ("GET specific service", f"objects/service/{host_name}/{encoded_service}", "GET", {}),
-            ("POST show host services", f"objects/host/{host_name}/actions/show_service/invoke", "POST", {}),
+            ("GET specific service", f"objects/service/{path_segment(host_name)}/{encoded_service}", "GET", {}),
+            (
+                "POST show host services",
+                f"objects/host/{path_segment(host_name)}/actions/show_service/invoke",
+                "POST",
+                {},
+            ),
         ]
 
         for description, endpoint, method, params in test_scenarios:

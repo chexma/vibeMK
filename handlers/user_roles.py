@@ -5,6 +5,7 @@ User roles management handlers for CheckMK user role operations
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -85,7 +86,7 @@ class UserRolesHandler(BaseHandler):
         self.logger.debug(f"Showing user role: {role_id}")
 
         try:
-            result = self.client.get(f"objects/user_role/{role_id}")
+            result = self.client.get(f"objects/user_role/{path_segment(role_id)}")
             role_data = result["data"]
 
             return [
@@ -195,7 +196,7 @@ class UserRolesHandler(BaseHandler):
             )
 
         try:
-            result = self.client.put(f"objects/user_role/{role_id}", data=data)
+            result = self.client.put(f"objects/user_role/{path_segment(role_id)}", data=data)
 
             return [
                 {
@@ -247,7 +248,7 @@ class UserRolesHandler(BaseHandler):
         self.logger.debug(f"Deleting user role: {role_id}")
 
         try:
-            result = self.client.delete(f"objects/user_role/{role_id}")
+            result = self.client.delete(f"objects/user_role/{path_segment(role_id)}")
 
             return [
                 {

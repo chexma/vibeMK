@@ -5,6 +5,7 @@ Folder management handlers
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 from utils.folder_validator import validate_folder_path
 
@@ -148,7 +149,7 @@ class FolderHandler(BaseHandler):
 
         encoded_folder = path_validation["checkmk_path"]
         params = {"delete_mode": delete_mode}
-        result = self.client.delete(f"objects/folder_config/{encoded_folder}", params=params)
+        result = self.client.delete(f"objects/folder_config/{path_segment(encoded_folder)}", params=params)
 
         if result.get("success"):
             return [
@@ -197,8 +198,8 @@ class FolderHandler(BaseHandler):
         if not data:
             return self.error_response("Missing parameters", "At least one of 'title' or 'attributes' is required")
 
-        headers = self._if_match_header(f"objects/folder_config/{encoded_folder}")
-        result = self.client.put(f"objects/folder_config/{encoded_folder}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/folder_config/{path_segment(encoded_folder)}")
+        result = self.client.put(f"objects/folder_config/{path_segment(encoded_folder)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -241,7 +242,9 @@ class FolderHandler(BaseHandler):
         destination_checkmk = dest_validation["checkmk_path"]
 
         data = {"destination": destination_checkmk}
-        result = self.client.post(f"objects/folder_config/{encoded_folder}/actions/move/invoke", data=data)
+        result = self.client.post(
+            f"objects/folder_config/{path_segment(encoded_folder)}/actions/move/invoke", data=data
+        )
 
         if result.get("success"):
             return [
@@ -277,7 +280,7 @@ class FolderHandler(BaseHandler):
             return self.error_response("Invalid folder path", path_validation["error_message"])
 
         encoded_folder = path_validation["checkmk_path"]
-        result = self.client.get(f"objects/folder_config/{encoded_folder}/collections/hosts")
+        result = self.client.get(f"objects/folder_config/{path_segment(encoded_folder)}/collections/hosts")
 
         if not result.get("success"):
             error_data = result.get("data", {})

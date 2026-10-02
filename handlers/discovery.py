@@ -6,6 +6,7 @@ Handles service discovery operations for hosts
 from typing import Any, Dict, List
 
 from api import CheckMKClient
+from api.paths import path_segment
 from handlers.base import BaseHandler
 from utils import get_logger
 
@@ -264,7 +265,7 @@ class DiscoveryHandler(BaseHandler):
             if not host_name:
                 return [{"type": "text", "text": "❌ Error: host_name is required"}]
 
-            result = self.client.get(f"objects/service_discovery/{host_name}")
+            result = self.client.get(f"objects/service_discovery/{path_segment(host_name)}")
 
             if result.get("success"):
                 data = result.get("data", {})
@@ -338,7 +339,7 @@ class DiscoveryHandler(BaseHandler):
 
             # CheckMK serves bulk-discovery progress as a background job;
             # objects/discovery_run/{id} is not a route it publishes.
-            result = self.client.get(f"objects/background_job/{job_id}")
+            result = self.client.get(f"objects/background_job/{path_segment(job_id)}")
 
             if result.get("success"):
                 data = result.get("data", {})
@@ -400,7 +401,9 @@ class DiscoveryHandler(BaseHandler):
             if not host_name:
                 return [{"type": "text", "text": "❌ Error: host_name is required"}]
 
-            result = self.client.get(f"objects/service_discovery_run/{host_name}/actions/wait-for-completion/invoke")
+            result = self.client.get(
+                f"objects/service_discovery_run/{path_segment(host_name)}/actions/wait-for-completion/invoke"
+            )
 
             if result.get("success"):
                 return [
@@ -428,7 +431,7 @@ class DiscoveryHandler(BaseHandler):
             if not host_name:
                 return [{"type": "text", "text": "❌ Error: host_name is required"}]
 
-            result = self.client.get(f"objects/service_discovery_run/{host_name}")
+            result = self.client.get(f"objects/service_discovery_run/{path_segment(host_name)}")
 
             if result.get("success"):
                 data = result.get("data", {})

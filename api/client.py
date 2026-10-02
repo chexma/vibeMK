@@ -35,6 +35,7 @@ from api.exceptions import (
     CheckMKNotFoundError,
     CheckMKPermissionError,
 )
+from api.paths import check_endpoint
 from config import CheckMKConfig, MCPConfig
 
 logger = logging.getLogger(__name__)
@@ -161,6 +162,7 @@ class CheckMKClient:
     ) -> Dict[str, Any]:
         """Make HTTP request to CheckMK API with retry logic"""
 
+        check_endpoint(endpoint)
         if use_api_prefix:
             url = f"{self.api_base_url}/{endpoint}"
         else:

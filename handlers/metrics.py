@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -181,7 +182,7 @@ class MetricsHandler(BaseHandler):
             try:
                 # Get service info to find available metrics
                 service_result = self.client.get(
-                    f"objects/host/{host_name}/actions/show_service/invoke",
+                    f"objects/host/{path_segment(host_name)}/actions/show_service/invoke",
                     params={"service_description": service_description},
                 )
 
@@ -256,7 +257,7 @@ class MetricsHandler(BaseHandler):
             # Try to get available metrics for helpful error message
             try:
                 service_result = self.client.get(
-                    f"objects/host/{host_name}/actions/show_service/invoke",
+                    f"objects/host/{path_segment(host_name)}/actions/show_service/invoke",
                     params={"service_description": service_description},
                 )
 

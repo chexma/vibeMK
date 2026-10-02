@@ -5,6 +5,7 @@ Rule management handlers for CheckMK monitoring rules
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 RULESET_DISPLAY_LIMIT = 20
@@ -283,9 +284,9 @@ class RulesHandler(BaseHandler):
             return f"\n⚠️ **Created, but not positioned:** {problem}\n"
 
         moved = self.client.post(
-            f"objects/rule/{rule_id}/actions/move/invoke",
+            f"objects/rule/{path_segment(rule_id)}/actions/move/invoke",
             data=body,
-            headers=self._if_match_header(f"objects/rule/{rule_id}"),
+            headers=self._if_match_header(f"objects/rule/{path_segment(rule_id)}"),
         )
         if moved.get("success"):
             return f"Position: {body['position']}\n"
@@ -320,8 +321,8 @@ class RulesHandler(BaseHandler):
         if not data:
             return self.error_response("No data to update", "At least one field must be provided")
 
-        headers = self._if_match_header(f"objects/rule/{rule_id}")
-        result = self.client.put(f"objects/rule/{rule_id}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/rule/{path_segment(rule_id)}")
+        result = self.client.put(f"objects/rule/{path_segment(rule_id)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -344,7 +345,7 @@ class RulesHandler(BaseHandler):
         if not rule_id:
             return self.error_response("Missing parameter", "rule_id is required")
 
-        result = self.client.delete(f"objects/rule/{rule_id}")
+        result = self.client.delete(f"objects/rule/{path_segment(rule_id)}")
 
         if result.get("success"):
             return [
@@ -374,7 +375,7 @@ class RulesHandler(BaseHandler):
         # One read serves two purposes: the ETag CheckMK demands on a move, and
         # the rule's current folder, which the folder positions require and the
         # caller has no reason to know.
-        endpoint = f"objects/rule/{rule_id}"
+        endpoint = f"objects/rule/{path_segment(rule_id)}"
         try:
             current = self.client.get(endpoint)
         except CheckMKError as error:
