@@ -130,7 +130,7 @@ class ConnectionHandler(BaseHandler):
             ]
 
         except Exception as e:
-            return [{"type": "text", "text": (f"❌ **Request Failed**\n\n" f"URL: {test_url}\n" f"Error: {str(e)}")}]
+            return [{"type": "text", "text": (f"❌ **Request Failed**\n\nURL: {test_url}\nError: {str(e)}")}]
 
     async def _test_all_endpoints(self) -> List[Dict[str, Any]]:
         """Test all major API endpoints"""

@@ -147,7 +147,7 @@ class CheckMKConfig:
 
     def validate(self) -> None:
         """Validate configuration (called automatically in __post_init__)"""
-        pass  # Validation now happens in __post_init__
+        # Validation now happens in __post_init__
 
 
 @dataclass

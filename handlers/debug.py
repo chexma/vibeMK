@@ -241,7 +241,7 @@ class DebugHandler(BaseHandler):
                                     state_fields = (
                                         [
                                             k
-                                            for k in ext.keys()
+                                            for k in ext
                                             if any(
                                                 word in k.lower()
                                                 for word in ["state", "status", "check", "plugin", "last", "output"]
@@ -366,12 +366,12 @@ class DebugHandler(BaseHandler):
 
         # Test basic API access
         basic_tests = [
-            ("API Version", "version", "GET"),
-            ("Domain Types", "domain-types", "GET"),
-            ("User Info", "objects/user_config", "GET"),
+            ("API Version", "version"),
+            ("Domain Types", "domain-types"),
+            ("User Info", "objects/user_config"),
         ]
 
-        for description, endpoint, method in basic_tests:
+        for description, endpoint in basic_tests:
             results.append(f"\\n🧪 **{description}**")
             try:
                 result = self.client.get(endpoint)

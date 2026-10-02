@@ -34,34 +34,22 @@ class CheckMKError(Exception):
 class CheckMKConnectionError(CheckMKError):
     """Connection-related errors"""
 
-    pass
-
 
 class CheckMKAuthenticationError(CheckMKError):
     """Authentication errors"""
-
-    pass
 
 
 class CheckMKPermissionError(CheckMKError):
     """Permission/authorization errors"""
 
-    pass
-
 
 class CheckMKValidationError(CheckMKError):
     """Input validation errors"""
-
-    pass
 
 
 class CheckMKNotFoundError(CheckMKError):
     """Resource not found errors"""
 
-    pass
-
 
 class CheckMKAPIError(CheckMKError):
     """General API errors"""
-
-    pass

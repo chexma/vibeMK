@@ -1174,11 +1174,7 @@ class DowntimeHandler(BaseHandler):
             current_time = datetime.datetime.now().timestamp()
 
             # Check if any host downtime is currently active
-            for downtime in host_downtimes:
-                if self._is_downtime_active(downtime, current_time):
-                    return True
-
-            return False
+            return any(self._is_downtime_active(downtime, current_time) for downtime in host_downtimes)
 
         except Exception as e:
             self.logger.error(f"Error checking host-level downtime for {host_name}: {e}")

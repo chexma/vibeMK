@@ -2009,7 +2009,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_icmp_check",
             "description": (
-                "🏓 ICMP/PING-Check für einen Host anlegen. Prüft Erreichbarkeit, " "Paketverlust und Round-Trip-Zeit."
+                "🏓 ICMP/PING-Check für einen Host anlegen. Prüft Erreichbarkeit, Paketverlust und Round-Trip-Zeit."
             ),
             "inputSchema": {
                 "type": "object",
@@ -2125,7 +2125,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
         {
             "name": "vibemk_create_smtp_check",
             "description": (
-                "📧 SMTP-Check für einen Host anlegen. Prüft SMTP-Dienst, optional STARTTLS " "und Zertifikat-Ablauf."
+                "📧 SMTP-Check für einen Host anlegen. Prüft SMTP-Dienst, optional STARTTLS und Zertifikat-Ablauf."
             ),
             "inputSchema": {
                 "type": "object",

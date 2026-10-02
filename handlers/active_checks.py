@@ -188,9 +188,7 @@ class ActiveChecksHandler(BaseHandler):
             mode = ("cert", {"cert_days": (int(cert_days_warn), int(cert_days_crit))})
         else:
             url_params: Dict[str, Any] = {}
-            if uri and uri != "/":
-                url_params["uri"] = uri
-            elif uri:
+            if uri and uri != "/" or uri:
                 url_params["uri"] = uri
             if use_ssl:
                 url_params["ssl"] = "auto"

@@ -257,7 +257,7 @@ class TestStructuredOutput:
 
         from vibemk_mcp.schemas import OUTPUT_SCHEMAS
 
-        for name, schema in OUTPUT_SCHEMAS.items():
+        for schema in OUTPUT_SCHEMAS.values():
             jsonschema.Draft202012Validator.check_schema(schema)
 
 

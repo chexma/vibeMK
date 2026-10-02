@@ -7,6 +7,10 @@ from typing import Any, Dict, List
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler
 
+# The Event Console's numeric states. A constant rather than a local, which is
+# what it was: a fixed lookup table rebuilt on every call.
+_STATE = {0: "OK", 1: "⚠️ WARN", 2: "🔴 CRIT", 3: "❓ UNKNOWN"}
+
 
 class EventConsoleHandler(BaseHandler):
     """Handle Event Console operations"""
@@ -53,7 +57,6 @@ class EventConsoleHandler(BaseHandler):
         if not events:
             return [{"type": "text", "text": "📭 Keine Event-Console-Events gefunden."}]
 
-        _STATE = {0: "OK", 1: "⚠️ WARN", 2: "🔴 CRIT", 3: "❓ UNKNOWN"}
         lines = [f"🗃️ **Event Console — {len(events)} Events**\n"]
         for ev in events[:50]:
             ext = ev.get("extensions", ev)

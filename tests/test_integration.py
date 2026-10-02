@@ -176,7 +176,7 @@ class TestLoadTesting:
 
         # Create multiple concurrent version requests
         tasks = []
-        for i in range(10):
+        for _ in range(10):
             task = real_client.get("version")
             tasks.append(task)
 
@@ -197,7 +197,7 @@ class TestLoadTesting:
         """Test rapid sequential requests"""
         # Make 20 rapid sequential requests
         success_count = 0
-        for i in range(20):
+        for _ in range(20):
             try:
                 result = await real_client.get("version")
                 if result.get("success"):

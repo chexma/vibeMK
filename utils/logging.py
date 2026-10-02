@@ -5,6 +5,7 @@ Logging configuration for vibeMK
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 
@@ -32,9 +33,9 @@ def setup_logging(level: Optional[str] = None, debug: bool = False) -> None:
     if logfile:
         try:
             # Ensure log directory exists
-            log_dir = os.path.dirname(logfile)
-            if log_dir and not os.path.exists(log_dir):
-                os.makedirs(log_dir, exist_ok=True)
+            log_dir = Path(logfile).parent
+            if str(log_dir) not in ("", "."):
+                log_dir.mkdir(parents=True, exist_ok=True)
 
             file_handler = logging.FileHandler(logfile, mode="a", encoding="utf-8")
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
