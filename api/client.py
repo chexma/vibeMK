@@ -1,7 +1,7 @@
 """
 CheckMK API Client with automatic URL detection and robust error handling
 
-Copyright (C) 2024 Andre <andre@example.com>
+Copyright (C) 2024 Andre <chexma@gmx.de>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/chexma/vibeMK/security/advisories/new
+    about: Do not open a public issue. Private vulnerability reporting keeps the report between you and the maintainer until a fix ships.
+
+  - name: 📖 Installation and configuration
+    url: https://github.com/chexma/vibeMK/blob/main/INSTALL.md
+    about: Client configuration, the HTTP transport, and debug logging are covered here.
+
+  - name: 🐛 A Checkmk bug rather than a vibeMK one
+    url: https://checkmk.com/support
+    about: If the Checkmk REST API returns the same thing outside vibeMK, it belongs upstream.

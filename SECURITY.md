@@ -2,89 +2,72 @@
 
 ## Supported Versions
 
-We actively maintain security updates for the following versions:
+vibeMK is in alpha. Only the latest release gets fixes; there are no
+maintenance branches for older ones.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| 0.5.x   | ✅ |
+| < 0.5   | ❌ |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in vibeMK, please report it responsibly:
+**Do not open a public issue.**
 
-### How to Report
+Use GitHub's private vulnerability reporting:
+[**Report a vulnerability**](https://github.com/chexma/vibeMK/security/advisories/new).
+The report stays private between you and the maintainer until a fix is
+published, and an advisory can be issued directly from it.
 
-1. **DO NOT** create a public GitHub issue for security vulnerabilities
-2. **Email** us directly at: security@your-domain.com
-3. **Include** the following information:
-   - Description of the vulnerability
-   - Steps to reproduce the issue
-   - Potential impact assessment
-   - Suggested fix (if available)
+Please include what you have: what the flaw allows, how to reproduce it, the
+vibeMK and Checkmk versions, and a suggested fix if you have one.
 
-### Response Timeline
+This is a spare-time project. Expect an acknowledgement within a few days
+rather than within hours, and no guaranteed fix timeline. If a report sits
+unanswered for two weeks, you are free to disclose it publicly.
 
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 7 days
-- **Fix Development**: Depends on severity
-- **Disclosure**: Coordinated disclosure after fix
+Reporters are credited in the advisory unless they ask not to be.
 
-### Security Best Practices
+## What is in scope
 
-When using vibeMK:
+vibeMK holds a Checkmk account and exposes it to a language model. The
+interesting failure modes follow from that:
 
-#### Configuration Security
-- **Never commit** `claude_desktop_config.json` with real credentials
-- **Use environment variables** for sensitive data when possible
-- **Rotate API keys** regularly
-- **Enable SSL/TLS** for production CheckMK servers
+- Anything that lets a caller reach the Checkmk API **without** the
+  configured credentials, or with more authority than the automation user has
+- Credential exposure — in logs, in error messages, in tool output, or in the
+  `tools/list` catalogue
+- Authentication bypass on the HTTP transport (`VIBEMK_HTTP_TOKEN`)
+- A tool annotated `readOnlyHint` that in fact writes, or one annotated
+  non-destructive that in fact destroys. Clients use those annotations to
+  decide what to confirm, so a wrong one is a real vulnerability, not a
+  documentation bug
 
-#### Network Security
-- **Restrict network access** to CheckMK servers
-- **Use HTTPS** instead of HTTP
-- **Configure firewalls** appropriately
-- **Monitor access logs**
+## What is not in scope
 
-#### CheckMK Server Security
-- **Use dedicated automation users** with minimal required permissions
-- **Enable audit logging** in CheckMK
-- **Keep CheckMK updated** to latest security patches
-- **Review user permissions** regularly
+- **The model deciding to delete something.** vibeMK gives an LLM write
+  access to your monitoring system; that is what it is for. Scope the
+  automation user's permissions, and set `NEVER_ACTIVATE_CHANGES=true` if you
+  want changes staged rather than activated.
+- Findings that need `CHECKMK_VERIFY_SSL=false`, which is documented as
+  unsafe and defaults to on.
+- Vulnerabilities in Checkmk itself — report those to
+  [Checkmk](https://checkmk.com/security).
 
-### Known Security Considerations
+## Running it safely
 
-#### API Key Storage
-- API keys are stored in `claude_desktop_config.json`
-- This file should have restricted file permissions (600)
-- Consider using environment variables for CI/CD environments
+**Credentials.** vibeMK reads them from the environment. Keep them out of any
+file you commit, and give the automation user the narrowest role that does
+the job — read-only if you only want analysis. Checkmk's own audit log
+records what that user did, which is worth having when an LLM is driving.
 
-#### Network Communications
-- All API calls to CheckMK are made over HTTP(S)
-- SSL certificate verification can be disabled (not recommended for production)
-- Consider using client certificates for additional security
+**The HTTP transport.** `--transport http` turns a local tool into a network
+service that holds your Checkmk account, so whoever reaches the port inherits
+it. `VIBEMK_HTTP_TOKEN` is mandatory and is the only thing in the way. vibeMK
+binds to `127.0.0.1` unless told otherwise, and it does not terminate TLS —
+put a reverse proxy in front of it before exposing it beyond the host.
 
-#### Logging
-- Server logs may contain API endpoints but not credentials
-- Debug mode may log more detailed information
-- Ensure log files have appropriate permissions
-
-### Security Updates
-
-Security updates will be:
-- Released as patch versions (e.g., 2.0.1, 2.0.2)
-- Documented in release notes
-- Announced through GitHub releases
-- Included in the main branch immediately
-
-### Acknowledgments
-
-We appreciate the security research community and will acknowledge responsible disclosure contributors (with their permission) in our security advisories.
-
-## Contact
-
-For security-related questions or concerns:
-- Email: security@your-domain.com
-- For general questions: [GitHub Issues](https://github.com/your-username/vibeMK/issues)
-
-Thank you for helping keep vibeMK secure!
+**Logs.** Debug logging (`LOGFILE`) records endpoints and responses, which
+can include host names and comment text. Tool arguments are deliberately not
+logged, because they carry secrets for the password tools. Give the log file
+restrictive permissions.
