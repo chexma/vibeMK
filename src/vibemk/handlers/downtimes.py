@@ -9,6 +9,46 @@ from vibemk.api.exceptions import CheckMKError
 from vibemk.handlers.base import BaseHandler
 
 
+def unix_time(timestamp: Any) -> float:
+    """A downtime's ISO 8601 time (or a number) as a Unix timestamp; 0.0 when unreadable."""
+    try:
+        if isinstance(timestamp, str):
+            return datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp()
+        if isinstance(timestamp, (int, float)) and not isinstance(timestamp, bool):
+            return float(timestamp)
+    except (ValueError, TypeError):
+        pass
+    return 0.0
+
+
+def is_active(extensions: Dict[str, Any], now: float) -> bool:
+    """Whether a downtime is in effect right now.
+
+    CheckMK 2.5 reports no is_pending field -- a downtime is listed from the
+    moment it is scheduled -- so whether it has started has to be read from its
+    times.
+    """
+    return unix_time(extensions.get("start_time")) <= now <= unix_time(extensions.get("end_time"))
+
+
+def downtime_record(downtime: Dict[str, Any], now: float) -> Dict[str, Any]:
+    """One entry of the DOWNTIME_LIST output schema."""
+    extensions = downtime.get("extensions", {})
+    is_service = extensions.get("is_service") in (True, 1, "1", "yes")
+    return {
+        "downtime_id": str(downtime.get("id", "")),
+        "host_name": str(extensions.get("host_name", "")),
+        "service_description": extensions.get("service_description") if is_service else None,
+        "is_service": is_service,
+        "start_time": str(extensions.get("start_time", "")),
+        "end_time": str(extensions.get("end_time", "")),
+        "active": is_active(extensions, now),
+        "comment": str(extensions.get("comment", "")),
+        "author": str(extensions.get("author", "")),
+        "recurring": bool(extensions.get("recurring")),
+    }
+
+
 class DowntimeHandler(BaseHandler):
     """Handle downtime operations for hosts and services"""
 
@@ -270,6 +310,7 @@ class DowntimeHandler(BaseHandler):
 
             # Filter downtimes if requested
             filtered_downtimes = []
+            now = datetime.datetime.now().timestamp()
             for downtime in downtimes:
                 extensions = downtime.get("extensions", {})
 
@@ -281,13 +322,21 @@ class DowntimeHandler(BaseHandler):
                 if service_description and extensions.get("service_description") != service_description:
                     continue
 
-                # Filter by active status if requested
-                if show_only_active and extensions.get("is_pending", 0) == 1:
+                # Filter by active status if requested. This used to test an
+                # is_pending field CheckMK does not send, so future downtimes
+                # were listed as active.
+                if show_only_active and not is_active(extensions, now):
                     continue
 
                 filtered_downtimes.append(downtime)
 
-            return [{"type": "text", "text": self._format_downtimes_list(filtered_downtimes, host_name)}]
+            return self.structured_response(
+                self._format_downtimes_list(filtered_downtimes, host_name),
+                {
+                    "total": len(filtered_downtimes),
+                    "downtimes": [downtime_record(downtime, now) for downtime in filtered_downtimes],
+                },
+            )
         else:
             error_data = result.get("data", {})
             return self.error_response(
@@ -357,20 +406,18 @@ class DowntimeHandler(BaseHandler):
             for downtime in all_downtimes:
                 extensions = downtime.get("extensions", {})
 
-                # Skip pending downtimes
-                if extensions.get("is_pending", 0) == 1:
-                    continue
-
-                # Check if downtime is currently active (between start_time and end_time)
-                start_time = self._timestamp_to_unix(extensions.get("start_time", 0))
-                end_time = self._timestamp_to_unix(extensions.get("end_time", 0))
-
-                if start_time <= now <= end_time:
+                if is_active(extensions, now):
                     # Filter by host if specified
                     if not host_name or extensions.get("host_name") == host_name:
                         active_downtimes.append(downtime)
 
-            return [{"type": "text", "text": self._format_active_downtimes(active_downtimes, host_name)}]
+            return self.structured_response(
+                self._format_active_downtimes(active_downtimes, host_name),
+                {
+                    "total": len(active_downtimes),
+                    "downtimes": [downtime_record(downtime, now) for downtime in active_downtimes],
+                },
+            )
         else:
             error_data = result.get("data", {})
             return self.error_response(
@@ -654,21 +701,7 @@ class DowntimeHandler(BaseHandler):
 
     def _timestamp_to_unix(self, timestamp: Any) -> float:
         """Convert timestamp to Unix timestamp for comparison"""
-        if not timestamp:
-            return 0.0
-
-        try:
-            # If it's already a string, try to parse as ISO format
-            if isinstance(timestamp, str):
-                dt = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-                return dt.timestamp()
-            # If it's a number, return as-is
-            elif isinstance(timestamp, (int, float)):
-                return float(timestamp)
-            else:
-                return 0.0
-        except (ValueError, TypeError):
-            return 0.0
+        return unix_time(timestamp)
 
     def _get_time_only(self, timestamp: Any) -> str:
         """Extract time-only format (HH:MM) from various timestamp formats"""
