@@ -47,7 +47,7 @@ This project is in the alpha stage and under development. I accept no liability 
 ## 🚀 Quick Start
 
 ```bash
-1. pipx install vibemk   (or: pip install vibemk into a virtual environment)
+1. pipx install vibemk   (or: uv tool install vibemk, or pip install vibemk into a virtual environment)
 2. Edit the configuration file of your LLM Client, e.g. Claude Desktop - claude_desktop_config.json (See examples)
 3. Start your LLM Client
 4. CheckMK automation user setup (Administrator permissions or a customized role if changes are to be made, read-only if only analyses are to be performed.)

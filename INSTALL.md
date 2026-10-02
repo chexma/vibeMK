@@ -20,7 +20,7 @@ A step-by-step guide for installing and configuring vibeMK for LLM interfaces.
 
 ### Software Dependencies
 
-- [pipx](https://pipx.pypa.io/) (recommended) or a Python virtual environment
+- [pipx](https://pipx.pypa.io/) or [uv](https://docs.astral.sh/uv/) (recommended), or a Python virtual environment
 - Git (only when installing from source)
 - Access to CheckMK instance (local or remote)
 
@@ -57,26 +57,34 @@ it together with its only dependency, the MCP SDK, and puts a `vibemk` command
 on your path.
 
 ```bash
-# Recommended: pipx gives vibeMK its own isolated environment
+# Recommended: pipx or uv give vibeMK its own isolated environment
 pipx install vibemk
+# or
+uv tool install vibemk
 
 # Alternative: into a virtual environment
 python3 -m venv ~/.venvs/vibemk
 ~/.venvs/vibemk/bin/pip install vibemk
 
 # Verify
-vibemk --help        # with pipx
+vibemk --help        # with pipx or uv
 ~/.venvs/vibemk/bin/vibemk --help   # with a virtual environment
 ```
 
 A plain `pip install vibemk` into the system Python is refused on many
 systems (Homebrew Python, Debian/Ubuntu: "externally-managed-environment"),
-which is why pipx or a virtual environment is recommended.
+which is why pipx, uv or a virtual environment is recommended.
+
+**Without installing (uv):** `uvx vibemk` downloads vibeMK into uv's cache and
+runs it, so the LLM client can start it directly — see the `uvx` configuration
+in 5.3.
 
 **Updating:**
 
 ```bash
 pipx upgrade vibemk
+# or
+uv tool upgrade vibemk
 # or
 ~/.venvs/vibemk/bin/pip install --upgrade vibemk
 ```
@@ -164,8 +172,9 @@ absolute paths.
 
 **Installed from PyPI (Option A):**
 ```bash
-which vibemk        # pipx, e.g. /Users/you/.local/bin/vibemk
+which vibemk        # pipx or uv, e.g. /Users/you/.local/bin/vibemk
 # or: ~/.venvs/vibemk/bin/vibemk
+which uvx           # for the uvx configuration, e.g. /opt/homebrew/bin/uvx
 ```
 
 **Installed from source (Option B):**
@@ -199,6 +208,28 @@ echo "Python Path: $(which python3)"
   }
 }
 ```
+
+**With uvx, without installing:**
+```json
+{
+  "mcpServers": {
+    "vibemk": {
+      "command": "/absolute/path/to/uvx",
+      "args": ["vibemk"],
+      "env": {
+        "CHECKMK_SERVER_URL": "https://your-checkmk-server",
+        "CHECKMK_SITE": "cmk",
+        "CHECKMK_USERNAME": "vibemk",
+        "CHECKMK_PASSWORD": "Your_real_API_key_here"
+      }
+    }
+  }
+}
+```
+
+uvx keeps using the version it cached first. Use `"args": ["vibemk@latest"]`
+to pick up new releases on every start (needs network access to PyPI), or pin
+one with `"args": ["vibemk==0.6.1"]`.
 
 The configurations below start vibeMK from a source checkout (Option B).
 
