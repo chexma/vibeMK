@@ -47,8 +47,7 @@ This project is in the alpha stage and under development. I accept no liability 
 ## 🚀 Quick Start
 
 ```bash
-1. git clone https://github.com/chexma/vibeMK.git
-1b. pip install -r requirements.txt
+1. pipx install vibemk   (or: uv tool install vibemk, or pip install vibemk into a virtual environment)
 2. Edit the configuration file of your LLM Client, e.g. Claude Desktop - claude_desktop_config.json (See examples)
 3. Start your LLM Client
 4. CheckMK automation user setup (Administrator permissions or a customized role if changes are to be made, read-only if only analyses are to be performed.)
@@ -64,11 +63,11 @@ This project is in the alpha stage and under development. I accept no liability 
 to host, nothing to secure -- the client already owns the process.
 
 **Centrally.** One instance can serve many clients over Streamable HTTP, so
-they need neither Python nor a checkout:
+they need neither Python nor vibeMK installed:
 
 ```bash
 export VIBEMK_HTTP_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-python main.py --transport http --port 8765
+vibemk --transport http --port 8765
 ```
 
 Clients connect to `http://<host>:8765/mcp` and send `Authorization: Bearer <token>`.
