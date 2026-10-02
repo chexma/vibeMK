@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-10-03
+
+### Added
+- vibeMK is published on PyPI: `pip install vibemk`
+
 ## [0.6.0] - 2026-10-02
 
 ### Changed

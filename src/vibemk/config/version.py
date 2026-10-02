@@ -8,4 +8,4 @@ Deliberately free of imports: setuptools reads this attribute without
 executing the package, which only works while the module stays this simple.
 """
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
