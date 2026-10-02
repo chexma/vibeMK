@@ -22,13 +22,13 @@ class AcknowledgementHandler(BaseHandler):
 
     def __init__(self, client: CheckMKClient) -> None:
         super().__init__(client)
-        self._checkMK_version: Optional[str] = None
+        self._checkmk_version: Optional[str] = None
         self._endpoints_tested = False
 
-    async def _detect_checkMK_version(self) -> str:
+    async def _detect_checkmk_version(self) -> str:
         """Detect CheckMK version to use appropriate endpoints"""
-        if self._checkMK_version is not None and self._endpoints_tested:
-            return self._checkMK_version
+        if self._checkmk_version is not None and self._endpoints_tested:
+            return self._checkmk_version
 
         try:
             # Get version info from the API
@@ -38,20 +38,20 @@ class AcknowledgementHandler(BaseHandler):
                 versions = version_data.get("versions", {})
                 checkmk_version = versions.get("checkmk", "")
 
-                if checkmk_version.startswith("2.4") or checkmk_version.startswith("2.5"):
-                    self._checkMK_version = "2.4+"
+                if checkmk_version.startswith(("2.4", "2.5")):
+                    self._checkmk_version = "2.4+"
                     logger.info(f"Detected CheckMK {checkmk_version} - using 2.4+ acknowledge endpoints")
                 else:
-                    self._checkMK_version = "2.3"
+                    self._checkmk_version = "2.3"
                     logger.info(f"Detected CheckMK {checkmk_version} - using 2.3 acknowledge endpoints")
             else:
                 # Fallback: try server URL port to guess version
                 server_url = self.client.config.server_url
                 if ":8081" in server_url:
-                    self._checkMK_version = "2.4+"
+                    self._checkmk_version = "2.4+"
                     logger.info("Port 8081 detected - assuming CheckMK 2.4+")
                 else:
-                    self._checkMK_version = "2.3"
+                    self._checkmk_version = "2.3"
                     logger.info("Port 8080 detected - assuming CheckMK 2.3")
 
         except Exception as e:
@@ -60,16 +60,16 @@ class AcknowledgementHandler(BaseHandler):
             try:
                 server_url = self.client.config.server_url
                 if ":8081" in server_url:
-                    self._checkMK_version = "2.4+"
+                    self._checkmk_version = "2.4+"
                     logger.info("Port 8081 detected - assuming CheckMK 2.4+")
                 else:
-                    self._checkMK_version = "2.3"
+                    self._checkmk_version = "2.3"
                     logger.info("Port 8080 detected - assuming CheckMK 2.3")
             except:
-                self._checkMK_version = "2.3"
+                self._checkmk_version = "2.3"
 
         self._endpoints_tested = True
-        return self._checkMK_version
+        return self._checkmk_version
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, str]]:
         """Route acknowledgement tool calls to appropriate methods"""
@@ -99,7 +99,7 @@ class AcknowledgementHandler(BaseHandler):
                 return [{"type": "text", "text": "❌ Error: host_name is required"}]
 
             # Detect CheckMK version and use appropriate endpoint
-            version = await self._detect_checkMK_version()
+            version = await self._detect_checkmk_version()
 
             # Both CheckMK 2.3 and 2.4+ support the same endpoint
             endpoint = "domain-types/acknowledge/collections/host"
@@ -158,7 +158,7 @@ class AcknowledgementHandler(BaseHandler):
                 return [{"type": "text", "text": "❌ Error: host_name and service_description are required"}]
 
             # Detect CheckMK version and use appropriate endpoint
-            version = await self._detect_checkMK_version()
+            version = await self._detect_checkmk_version()
 
             # Both CheckMK 2.3 and 2.4+ support the same endpoint
             endpoint = "domain-types/acknowledge/collections/service"

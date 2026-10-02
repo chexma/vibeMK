@@ -11,7 +11,6 @@ coroutine that was never awaited, and the wheel shipped the local `build/`
 artefact, the private `claude.md` notes and the `tmp/` planning files.
 """
 
-import glob
 import os
 import pathlib
 import subprocess
@@ -123,7 +122,7 @@ def wheel(tmp_path_factory):
     if completed.returncode != 0:
         pytest.fail(f"wheel build failed:\n{completed.stdout}\n{completed.stderr}")
 
-    wheels = glob.glob(str(outdir / "*.whl"))
+    wheels = sorted(outdir.glob("*.whl"))
     assert wheels, "the build produced no wheel"
 
     with zipfile.ZipFile(wheels[0]) as archive:

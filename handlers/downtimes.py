@@ -449,11 +449,18 @@ class DowntimeHandler(BaseHandler):
     def _parse_downtime_times(
         self, start_time: Optional[str], end_time: Optional[str], duration_minutes: int
     ) -> Dict[str, str]:
-        """Parse and convert downtime start/end times to ISO format with enhanced natural language support"""
-        from datetime import datetime, timedelta
+        """Parse and convert downtime start/end times to ISO format with enhanced natural language support
 
-        # Use datetime.utcnow() to match CheckMK working example
-        default_start_time = datetime.utcnow()
+        Everything here is timezone-aware, and the result is converted to UTC
+        at the end because the API is sent a `Z` suffix. It used to be mixed:
+        the default and relative paths used utcnow(), but a natural-language
+        time like "22:00 tomorrow" came from datetime.now() -- local -- and
+        was stamped with the same Z. In Europe/Berlin that moved the window
+        two hours later than the operator asked for.
+        """
+        from datetime import datetime, timedelta, timezone
+
+        default_start_time = datetime.now(timezone.utc)
         default_end_time = default_start_time + timedelta(minutes=duration_minutes or 30)
 
         # Parse start time with enhanced natural language support
@@ -462,7 +469,7 @@ class DowntimeHandler(BaseHandler):
         elif start_time.startswith("+"):
             # Relative time like "+1h", "+30m" - parse as start_after
             delta_minutes = self._parse_time_delta(start_time)
-            start_dt = datetime.utcnow() + timedelta(minutes=delta_minutes)
+            start_dt = datetime.now(timezone.utc) + timedelta(minutes=delta_minutes)
         else:
             # Enhanced natural language parsing for user-friendly formats
             parsed_start = self._parse_natural_time(start_time)
@@ -479,6 +486,11 @@ class DowntimeHandler(BaseHandler):
                     # Fallback to default start time if parsing fails
                     self.logger.warning(f"Could not parse start_time '{start_time}', using default")
                     start_dt = default_start_time
+
+        # An ISO string without an offset parses naive, and comparing that to
+        # an aware value raises. Treat it as local, like every other
+        # wall-clock input.
+        start_dt = self._as_aware(start_dt)
 
         # Parse end time with enhanced natural language support
         if not end_time or end_time == "":
@@ -505,16 +517,30 @@ class DowntimeHandler(BaseHandler):
                     self.logger.warning(f"Could not parse end_time '{end_time}', using start + duration")
                     end_dt = start_dt + timedelta(minutes=duration_minutes or 30)
 
+        end_dt = self._as_aware(end_dt)
+
         # Ensure end time is after start time
         if end_dt <= start_dt:
             self.logger.warning("End time is before start time, adjusting")
             end_dt = start_dt + timedelta(minutes=duration_minutes or 30)
 
-        # Return in CheckMK API format (ISO with Z suffix)
+        # Return in CheckMK API format. The Z is only truthful after the
+        # conversion: both values may still be on the operator's local offset.
         return {
-            "start_time": start_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "end_time": end_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "start_time": start_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "end_time": end_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
+
+    @staticmethod
+    def _as_aware(value: "datetime.datetime") -> "datetime.datetime":
+        """Attach the local offset to a naive datetime, leave aware ones alone.
+
+        Every wall-clock time a user gives is on their own clock, so local is
+        the only defensible reading of a naive value here.
+        """
+        if value.tzinfo is None:
+            return value.astimezone()
+        return value
 
     def _parse_natural_time(self, time_str: str) -> Optional["datetime.datetime"]:
         """
@@ -534,7 +560,11 @@ class DowntimeHandler(BaseHandler):
             return None
 
         time_str = time_str.strip().lower()
-        now = datetime.now()
+        # Local, and explicitly so. "22:00" is a wall-clock time on the
+        # operator's clock; every datetime derived from `now` below inherits
+        # that offset, which is what lets _parse_downtime_times convert the
+        # result to UTC instead of mislabelling it as UTC.
+        now = datetime.now().astimezone()
 
         # Pattern 1: "HH:MM today" or "HH:MM" or "today at HH:MM"
         time_pattern = r"(?:today\s+at\s+|at\s+)?(\d{1,2}):(\d{2})(?:\s+today)?"
@@ -593,7 +623,9 @@ class DowntimeHandler(BaseHandler):
             minute = int(match.group(5)) if match.group(5) else now.minute
 
             try:
-                return datetime(year, month, day, hour, minute)
+                # astimezone() on a naive value attaches the local offset,
+                # matching every other branch here.
+                return datetime(year, month, day, hour, minute).astimezone()
             except ValueError:
                 pass  # Invalid date, fall through
 
@@ -1142,11 +1174,7 @@ class DowntimeHandler(BaseHandler):
             current_time = datetime.datetime.now().timestamp()
 
             # Check if any host downtime is currently active
-            for downtime in host_downtimes:
-                if self._is_downtime_active(downtime, current_time):
-                    return True
-
-            return False
+            return any(self._is_downtime_active(downtime, current_time) for downtime in host_downtimes)
 
         except Exception as e:
             self.logger.error(f"Error checking host-level downtime for {host_name}: {e}")

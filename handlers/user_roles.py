@@ -241,7 +241,7 @@ class UserRolesHandler(BaseHandler):
         if role_id in builtin_roles:
             return self.error_response(
                 "Cannot Delete Built-in Role",
-                f"The role '{role_id}' is a built-in role and cannot be deleted. " "Only custom roles can be deleted.",
+                f"The role '{role_id}' is a built-in role and cannot be deleted. Only custom roles can be deleted.",
             )
 
         self.logger.debug(f"Deleting user role: {role_id}")
@@ -356,14 +356,14 @@ class UserRolesHandler(BaseHandler):
             response += "**Key Permissions** (showing first 10):\n"
             if isinstance(permissions, list):
                 # Permissions is a list of permission names
-                for i, perm_id in enumerate(permissions[:10]):
+                for perm_id in permissions[:10]:
                     response += f"✅ `{perm_id}`\n"
 
                 if len(permissions) > 10:
                     response += f"... and {len(permissions) - 10} more permissions\n"
             else:
                 # Permissions is a dictionary (fallback for older API versions)
-                for i, (perm_id, enabled) in enumerate(list(permissions.items())[:10]):
+                for perm_id, enabled in list(permissions.items())[:10]:
                     status = "✅" if enabled else "❌"
                     response += f"{status} `{perm_id}`\n"
 

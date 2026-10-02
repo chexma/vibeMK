@@ -107,18 +107,26 @@ target-version = "py310"
 # out of the staged list below as their findings are cleared.
 select = [
     "A",    # builtins shadowed by locals
+    "B",    # bugbear: raise-without-from, unused loop variables
     "C4",   # comprehension rewrites
+    "ERA",  # commented-out code
+    "EXE",  # shebang without the executable bit
     "F",    # pyflakes: undefined names, unused imports, dead locals
     "I",    # import sorting (agrees with isort's black profile)
     "ICN",  # conventional import aliases
+    "ISC",  # implicit string concatenation, which hides a missing comma
+    "N",    # pep8 naming
     "NPY",
     "PD",
     "PGH",  # blanket noqa / type: ignore
+    "PIE",  # redundant pass, repeated startswith
     "PT",   # pytest style
+    "PTH",  # os.path calls that pathlib does better
     "PYI",
     "Q",    # quote style (agrees with black)
     "RSE",  # raise with unnecessary parentheses
     "T10",  # stray breakpoint()
+    "T20",  # print() where a logger belongs
     "TID",  # banned relative imports
     "W",    # pycodestyle warnings
 ]
@@ -130,14 +138,21 @@ ignore = [
     "F841",   # 12: assigned-and-unused locals, several of them stale reads
 ]
 
-# Groups deliberately not selected yet, with the count each would report.
-# Roughly in the order they are worth taking on:
+# Groups deliberately not selected, with the count each would report.
 #
-#   B    7     bugbear; B904 (raise ... from) is the one that matters
-#   PIE  8     redundant pass / repeated startswith
-#   SIM  11    collapsible ifs, any()/all() rewrites
-#   DTZ  12    naive datetime calls -- needs care, these feed Checkmk's
-#              timestamp format and a blind fix could change behaviour
+# DTZ was investigated and rejected rather than deferred. Its one finding
+# that mattered -- a wall-clock time read as local and labelled UTC -- is
+# fixed, and the rest are false alarms here: `datetime.now().timestamp()`
+# converts correctly, because Python reads a naive value from now() as local,
+# and the `fromtimestamp()` calls render timestamps for a human to read,
+# where local is the point. Enabling it would buy noqa comments, not
+# correctness.
+#
+# The rest, roughly in the order they are worth taking on:
+#
+#   SIM  8     collapsible ifs and ternaries; several of its suggestions read
+#              worse than the code they replace, so this one needs judgement
+#              per site rather than a sweep
 #   SLF  22    private-member access, mostly in tests reaching into handlers
 #   ARG  37    unused arguments, many of them interface-mandated
 #   TRY  40    exception-handling style
@@ -153,6 +168,9 @@ ignore = [
 # The licence header sits above the module docstring in these, which is a
 # deliberate choice, not an oversight.
 "main.py" = ["E402"]
+# A token missing at startup has to reach the operator's terminal, and the
+# logger is not configured yet at that point. stderr is the right channel.
+"vibemk_mcp/cli.py" = ["T201"]
 
 [tool.ruff.format]
 # black owns formatting; ruff is here to lint, not to fight over it.

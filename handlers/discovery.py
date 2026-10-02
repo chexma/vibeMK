@@ -283,14 +283,19 @@ class DiscoveryHandler(BaseHandler):
                     1 for item in check_table if isinstance(item, dict) and item.get("state") == "vanished"
                 )
 
+                # Parenthesised so it reads as the single string it is. Without
+                # them these seven lines look like seven list entries, and a
+                # missing comma between any two of them is invisible.
                 output = [
-                    f"📊 **Service Discovery Status**\n\n"
-                    f"Host: **{host_name}**\n\n"
-                    f"📋 **Service Summary:**\n"
-                    f"  • New services: {new_services}\n"
-                    f"  • Unchanged services: {unchanged_services}\n"
-                    f"  • Vanished services: {vanished_services}\n"
-                    f"  • Total services: {len(check_table)}\n\n"
+                    (
+                        f"📊 **Service Discovery Status**\n\n"
+                        f"Host: **{host_name}**\n\n"
+                        f"📋 **Service Summary:**\n"
+                        f"  • New services: {new_services}\n"
+                        f"  • Unchanged services: {unchanged_services}\n"
+                        f"  • Vanished services: {vanished_services}\n"
+                        f"  • Total services: {len(check_table)}\n\n"
+                    )
                 ]
 
                 if host_labels:

@@ -37,9 +37,6 @@ from api.exceptions import (
 )
 from config import CheckMKConfig, MCPConfig
 
-# Avoid conflict with built-in 'types' module - comment out for now
-# from checkmk_types.checkmk_types import CheckMKAPIResponse
-
 logger = logging.getLogger(__name__)
 
 _RETRYABLE_STATUS_CODES = (429, 500, 502, 503, 504)
@@ -209,7 +206,9 @@ class CheckMKClient:
                 try:
                     parsed_data = json.loads(response_data) if response_data else {}
                 except json.JSONDecodeError as e:
-                    raise CheckMKAPIError(f"Invalid JSON response: {str(e)}", response.status, {"raw": response_data})
+                    raise CheckMKAPIError(
+                        f"Invalid JSON response: {str(e)}", response.status, {"raw": response_data}
+                    ) from e
 
                 result = {
                     "status": response.status,
