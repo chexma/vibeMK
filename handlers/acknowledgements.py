@@ -12,6 +12,11 @@ from utils import get_logger
 logger = get_logger(__name__)
 
 
+ACKNOWLEDGEMENT_COMMENTS = "domain-types/comment/collections/all"
+# Livestatus comments.entry_type: 1 user, 2 downtime, 3 flapping, 4 acknowledgement.
+ACKNOWLEDGEMENT_ENTRY_TYPE = "4"
+
+
 class AcknowledgementHandler:
     """Handler for CheckMK acknowledgement operations"""
 
@@ -202,24 +207,22 @@ class AcknowledgementHandler:
     async def list_acknowledgements(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """List all current acknowledgements"""
         try:
-            # Use CheckMK 2.4 compatible endpoint - acknowledgements are stored as comments
-            endpoint = "domain-types/comment/collections/all"
-            result = self.client.get(endpoint)
+            # Acknowledgements are comments, and CheckMK types every comment:
+            # the Livestatus entry_type column is 1 for a user comment, 2 for
+            # downtime, 3 for flapping and 4 for an acknowledgement. Asking for
+            # that type is exact. The previous rule guessed from the text -- it
+            # took any comment containing "ack" as a substring, or merely marked
+            # persistent -- so "track the vendor ticket" and "packaging" both
+            # qualified, and those ids are what remove_acknowledgement deletes by.
+            result = self.client.get(
+                ACKNOWLEDGEMENT_COMMENTS,
+                params={"query": {"op": "=", "left": "entry_type", "right": ACKNOWLEDGEMENT_ENTRY_TYPE}},
+            )
 
             if not result.get("success"):
                 return [{"type": "text", "text": "❌ Unable to retrieve acknowledgements from CheckMK API"}]
 
-            comments = result.get("data", {}).get("value", [])
-
-            # Filter for acknowledgement comments (they have specific characteristics)
-            acknowledgements = []
-            for comment in comments:
-                extensions = comment.get("extensions", {})
-                # Acknowledgements typically have certain markers or are persistent comments
-                # In CheckMK 2.4, we filter by comment content or other indicators
-                comment_text = extensions.get("comment", "").lower()
-                if "acknowledge" in comment_text or "ack" in comment_text or extensions.get("persistent", False):
-                    acknowledgements.append(comment)
+            acknowledgements = result.get("data", {}).get("value", [])
 
             if not acknowledgements:
                 return [{"type": "text", "text": "✅ **Acknowledgements List**\n\nNo active acknowledgements found."}]
