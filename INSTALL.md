@@ -209,6 +209,7 @@ echo "Python Path: $(which python3)"
 | `CHECKMK_TIMEOUT` | `30` | Request timeout in seconds |
 | `CHECKMK_MAX_RETRIES` | `3` | Maximum number of retry attempts |
 | `NEVER_ACTIVATE_CHANGES` | `false` | **Safety feature**: Disable change activation |
+| `VIBEMK_READ_ONLY` | `false` | **Safety feature**: Offer only the tools that read; every write is refused (same as `--read-only`) |
 | `PYTHONIOENCODING` | - | Set to `utf-8` for Windows compatibility |
 
 **🚫 Safety Feature - NEVER_ACTIVATE_CHANGES:**
@@ -243,6 +244,7 @@ Authorization: Bearer <VIBEMK_HTTP_TOKEN>
 | Port | `--port` | `VIBEMK_HTTP_PORT` | `8765` |
 | URL path | `--path` | `VIBEMK_HTTP_PATH` | `/mcp` |
 | Bearer token | — | `VIBEMK_HTTP_TOKEN` | *required* |
+| Read-only | `--read-only` | `VIBEMK_READ_ONLY` | off |
 
 **Give the client a generous timeout.** CheckMK operations are not all fast:
 activating changes or running a discovery can take tens of seconds, and a

@@ -37,6 +37,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from api import CheckMKClient
 from config import CheckMKConfig, MCPConfig
 from utils import get_logger
+from vibemk_mcp.annotations import READ_ONLY
 from vibemk_mcp.dispatch import Dispatcher
 from vibemk_mcp.http_auth import BearerTokenMiddleware, read_token
 from vibemk_mcp.registry import ToolRegistry
@@ -48,12 +49,15 @@ logger = get_logger(__name__)
 class CheckMKMCPServer:
     """vibeMK MCP server for CheckMK integration."""
 
-    def __init__(self) -> None:
+    def __init__(self, read_only: bool = False) -> None:
         self.mcp_config = MCPConfig()
+        self.read_only = read_only
         self._registry: Optional[ToolRegistry] = None
         # Tool calls run on worker threads, so the first few can arrive together.
         self._registry_lock = threading.Lock()
-        self._dispatcher = Dispatcher(self._registry_provider)
+        # Read-only is enforced twice: write tools are not listed, and a call
+        # that names one anyway is refused by the dispatcher.
+        self._dispatcher = Dispatcher(self._registry_provider, allowed_tools=READ_ONLY if read_only else None)
         # The version belongs on the Server itself, not only in the stdio
         # InitializationOptions: the HTTP transport reads it from here.
         self._server = Server(self.mcp_config.server_name, version=self.mcp_config.server_version)
@@ -76,7 +80,10 @@ class CheckMKMCPServer:
         async def list_tools(_ctx: Any, _params: Any) -> types.ListToolsResult:
             # The catalogue is declared as plain dictionaries in camelCase,
             # which is the shape the Tool model validates from directly.
-            return types.ListToolsResult(tools=[types.Tool.model_validate(tool) for tool in get_all_tools()])
+            tools = get_all_tools()
+            if self.read_only:
+                tools = [tool for tool in tools if tool["name"] in READ_ONLY]
+            return types.ListToolsResult(tools=[types.Tool.model_validate(tool) for tool in tools])
 
         async def call_tool(_ctx: Any, params: types.CallToolRequestParams) -> types.CallToolResult:
             return await self._dispatcher.call_tool(params.name, params.arguments)
@@ -111,6 +118,8 @@ class CheckMKMCPServer:
         app = self.http_app(path=path, host=host)
 
         logger.info("Starting vibeMK %s on http://%s:%d%s", self.mcp_config.server_version, host, port, path)
+        if self.read_only:
+            logger.info("Read-only mode: only the tools that read are offered")
         if host not in ("127.0.0.1", "localhost", "::1"):
             logger.warning(
                 "Listening on %s, which is reachable beyond this machine. "
@@ -124,6 +133,8 @@ class CheckMKMCPServer:
     async def run(self) -> None:
         """Serve MCP requests on stdio until the input ends."""
         logger.info("Starting vibeMK %s", self.mcp_config.server_version)
+        if self.read_only:
+            logger.info("Read-only mode: only the tools that read are offered")
         async with stdio_server() as (read_stream, write_stream):
             await self._server.run(
                 read_stream,

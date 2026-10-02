@@ -64,6 +64,12 @@ def parse_arguments(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         default=os.environ.get("VIBEMK_HTTP_PATH", "/mcp"),
         help="URL path to serve in http mode (default: /mcp)",
     )
+    parser.add_argument(
+        "--read-only",
+        action="store_true",
+        default=os.environ.get("VIBEMK_READ_ONLY", "").strip().lower() in ("1", "true", "yes", "on"),
+        help="offer only the tools that read; refuse every write (env: VIBEMK_READ_ONLY=1)",
+    )
     return parser.parse_args(argv)
 
 
@@ -89,7 +95,7 @@ async def main(argv: Optional[Sequence[str]] = None) -> None:
     setup_logging(debug=debug_mode)
 
     # Create and run server (CheckMK config loaded on first tool call)
-    server = CheckMKMCPServer()
+    server = CheckMKMCPServer(read_only=options.read_only)
     if options.transport == "http":
         try:
             await server.run_http(host=options.host, port=options.port, path=options.path)
