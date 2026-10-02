@@ -23,7 +23,10 @@ def get_connection_tools() -> List[Dict[str, Any]]:
         },
         {
             "name": "vibemk_test_direct_url",
-            "description": "🧪 Test direct URL - Test a specific API URL manually",
+            "description": (
+                "🧪 Test direct URL - Send a GET to a URL under the configured CheckMK API and show the raw "
+                "response. URLs on other hosts or outside the API path are refused."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
