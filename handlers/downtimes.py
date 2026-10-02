@@ -73,7 +73,6 @@ class DowntimeHandler(BaseHandler):
         end_time = arguments.get("end_time")
         duration = arguments.get("duration", "60m")  # Default 1 hour, support string format
         comment = arguments.get("comment", "Scheduled maintenance")
-        author = arguments.get("author", "vibeMK")  # Optional author field
 
         # Convert duration to minutes if it's a string
         if isinstance(duration, str):
@@ -105,6 +104,11 @@ class DowntimeHandler(BaseHandler):
             "end_time": downtime_times["end_time"],
             "comment": comment,
         }
+        # Repeating downtimes are a commercial-edition feature. A Raw/Community
+        # site accepts the field but schedules the downtime once.
+        recur = arguments.get("recur")
+        if recur:
+            downtime_data["recur"] = recur
 
         self.logger.debug(f"Scheduling host downtime with data: {downtime_data}")
 
@@ -165,7 +169,6 @@ class DowntimeHandler(BaseHandler):
         end_time = arguments.get("end_time")
         duration = arguments.get("duration", "60m")  # Default 1 hour, support string format
         comment = arguments.get("comment", "Scheduled service maintenance")
-        author = arguments.get("author", "vibeMK")  # Optional author field
 
         # Convert duration to minutes if it's a string
         if isinstance(duration, str):
@@ -203,6 +206,11 @@ class DowntimeHandler(BaseHandler):
             "end_time": downtime_times["end_time"],
             "comment": comment,
         }
+        # Repeating downtimes are a commercial-edition feature. A Raw/Community
+        # site accepts the field but schedules the downtime once.
+        recur = arguments.get("recur")
+        if recur:
+            downtime_data["recur"] = recur
 
         self.logger.debug(f"Scheduling service downtime with data: {downtime_data}")
 
@@ -318,95 +326,19 @@ class DowntimeHandler(BaseHandler):
         )
 
     async def _delete_downtime(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Delete downtimes using query-based deletion (based on working CheckMK example)"""
-        # Support both specific downtime_id deletion and bulk deletion by criteria
+        """Delete one downtime by its id.
+
+        An id identifies exactly one downtime, and CheckMK can delete it that
+        way. This used to fall back to a query on host, service and comment,
+        built from regular-expression matches -- "web" also matched "web01" and
+        "web02", and a downtime without a comment matched every downtime on the
+        host. The schema has required downtime_id for a while, so that branch
+        could no longer be reached; it is gone rather than kept as a trap.
+        """
         downtime_id = arguments.get("downtime_id")
-        host_name = arguments.get("host_name")
-        service_descriptions = arguments.get("service_descriptions", [])
-        service_description = arguments.get("service_description")
-        comment = arguments.get("comment")
-
-        # Convert single service to list
-        if service_description and not service_descriptions:
-            service_descriptions = [service_description]
-
-        # An id identifies exactly one downtime, and CheckMK can delete it that
-        # way. Resolving the id into a host-and-comment query, as this used to
-        # do, turns "delete this downtime" into "delete everything that looks
-        # like it" -- and a downtime without a comment (which the API allows)
-        # matched every downtime on the host.
-        if downtime_id:
-            return self._delete_downtime_by_id(downtime_id)
-
-        if not host_name:
-            return self.error_response("Missing parameter", "host_name or downtime_id is required")
-
-        # Check existing downtimes before deletion (based on working example)
-        existing_downtimes = await self._get_current_downtimes(host_name, service_descriptions, comment)
-        is_service = len(service_descriptions) > 0
-
-        if not existing_downtimes:
-            item = f"{host_name}/[{', '.join(service_descriptions)}]" if is_service else host_name
-            return [
-                {
-                    "type": "text",
-                    "text": f"ℹ️ **No Matching Downtimes**\n\n'{item}' has no downtimes with comment '{comment}'",
-                }
-            ]
-
-        # Build query filters for deletion (based on working CheckMK example)
-        query_filters = []
-
-        if is_service:
-            # Handle service downtime deletion
-            if len(service_descriptions) > 1:
-                # Multiple services - use OR filter
-                service_filter_parts = [
-                    f'{{"op": "~", "left": "service_description", "right": "{s}"}}' for s in service_descriptions
-                ]
-                query_filters.append(f'{{"op": "or", "expr": [{", ".join(service_filter_parts)}]}}')
-            else:
-                # Single service
-                query_filters.append(
-                    f'{{"op": "~", "left": "service_description", "right": "{service_descriptions[0]}"}}'
-                )
-
-        # Add host name filter
-        query_filters.append(f'{{"op": "~", "left": "host_name", "right": "{host_name}"}}')
-
-        # Add comment filter if provided
-        if comment:
-            query_filters.append(f'{{"op": "~", "left": "comment", "right": "{comment}"}}')
-
-        # Build delete request data using query-based deletion (working CheckMK format)
-        delete_data = {"delete_type": "query", "query": f'{{"op": "and", "expr": [{", ".join(query_filters)}]}}'}
-
-        self.logger.debug(f"Deleting downtime with query data: {delete_data}")
-
-        result = self.client.post("domain-types/downtime/actions/delete/invoke", data=delete_data)
-
-        if result.get("success"):
-            item = f"{host_name}/[{', '.join(service_descriptions)}]" if is_service else host_name
-            downtime_type = "Service" if is_service else "Host"
-
-            response = "✅ **Downtime Deleted Successfully**\n\n"
-            if downtime_id:
-                response += f"**Downtime ID:** {downtime_id}\n"
-            response += f"**Type:** {downtime_type} downtime\n"
-            response += f"**Target:** {item}\n"
-            if comment:
-                response += f"**Comment:** {comment}\n"
-            response += "**Status:** Removed from monitoring schedule\n"
-            response += "\n💡 **Tip:** Use `vibemk_list_downtimes` to view remaining active downtimes"
-
-            return [{"type": "text", "text": response}]
-        else:
-            error_data = result.get("data", {})
-            item = f"{host_name}/[{', '.join(service_descriptions)}]" if is_service else host_name
-            return self.error_response(
-                "Failed to delete downtime",
-                f"Could not delete downtime for '{item}' with comment '{comment}': {error_data.get('title', str(error_data))}",
-            )
+        if not downtime_id:
+            return self.error_response("Missing parameter", "downtime_id is required (get it from list_downtimes)")
+        return self._delete_downtime_by_id(downtime_id)
 
     async def _get_active_downtimes(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get only currently active downtimes"""

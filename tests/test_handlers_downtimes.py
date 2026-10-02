@@ -9,6 +9,8 @@ took every downtime on the host with it, and `op: "~"` is a substring match,
 so deleting "Patch" also deleted "Patching".
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from handlers.downtimes import DowntimeHandler
@@ -55,3 +57,33 @@ class TestDeleteByIdentifier:
 
         assert "❌" in result[0]["text"]
         assert handler.client.post.call_count == 0
+
+
+class TestRecurIsSent:
+    """recur was advertised but never read: a weekly downtime came out as a single one."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("tool", ["vibemk_schedule_host_downtime", "vibemk_schedule_service_downtime"])
+    async def test_recur_reaches_checkmk(self, handler, tool):
+        handler.client.get.return_value = {"success": True, "data": {"value": []}}
+        handler.client.post.return_value = {"success": True, "data": {}}
+        arguments = {"host_name": "web01", "duration": "30m", "comment": "patch window", "recur": "week"}
+        if tool == "vibemk_schedule_service_downtime":
+            arguments["service_descriptions"] = ["CPU load"]
+
+        with patch("asyncio.sleep", new=AsyncMock()):
+            await handler.handle(tool, arguments)
+
+        sent = next(c.kwargs["data"] for c in handler.client.post.call_args_list if "downtime/collections" in c.args[0])
+        assert sent["recur"] == "week"
+
+    @pytest.mark.asyncio
+    async def test_no_recur_sends_no_field(self, handler):
+        handler.client.get.return_value = {"success": True, "data": {"value": []}}
+        handler.client.post.return_value = {"success": True, "data": {}}
+
+        with patch("asyncio.sleep", new=AsyncMock()):
+            await handler.handle("vibemk_schedule_host_downtime", {"host_name": "web01", "duration": "30m"})
+
+        sent = next(c.kwargs["data"] for c in handler.client.post.call_args_list if "downtime/collections" in c.args[0])
+        assert "recur" not in sent

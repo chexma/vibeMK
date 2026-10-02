@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
   that read and refuses every write
 - Tool arguments are checked against each tool's schema; a missing or wrong
   argument is answered with every problem at once instead of reaching CheckMK
+- An argument a tool does not know (such as `hostname` for `host_name`) is
+  named and refused instead of being silently ignored
+- Downtime scheduling takes a `force` option to add a downtime even when one
+  with the same comment exists
 
 ### Security
 - `vibemk_test_direct_url` only requests URLs under the configured CheckMK API
@@ -37,6 +41,9 @@ All notable changes to this project will be documented in this file.
 - `get_pending_changes` shows what changed and by whom instead of "Unknown"
 - Host status shows "Never" for a state that has not changed yet, instead of
   a time 56 years ago
+- `recur` on downtimes takes effect (commercial editions); it was accepted but
+  never sent, and offered a `month` value CheckMK does not have
+- `create_smtp_check` applies the `port` it reports; it was never sent
 
 ## [0.5.1] - 2026-10-02
 

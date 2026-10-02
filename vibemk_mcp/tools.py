@@ -1450,8 +1450,25 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
                     },
                     "recur": {
                         "type": "string",
-                        "description": "Optional recurring pattern: 'hour', 'day', 'week', 'month'",
-                        "enum": ["hour", "day", "week", "month"],
+                        "description": (
+                            "Repeat the downtime. Commercial editions only: a Raw/Community site accepts it "
+                            "but schedules the downtime once. Default: once"
+                        ),
+                        "enum": [
+                            "hour",
+                            "day",
+                            "week",
+                            "second_week",
+                            "fourth_week",
+                            "weekday_start",
+                            "weekday_end",
+                            "day_of_month",
+                        ],
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Schedule even if a downtime with the same comment already exists. Default: false",
+                        "default": False,
                     },
                 },
                 "required": ["host_name"],
@@ -1488,8 +1505,25 @@ def get_downtime_tools() -> List[Dict[str, Any]]:
                     },
                     "recur": {
                         "type": "string",
-                        "description": "Optional recurring pattern: 'hour', 'day', 'week', 'month'",
-                        "enum": ["hour", "day", "week", "month"],
+                        "description": (
+                            "Repeat the downtime. Commercial editions only: a Raw/Community site accepts it "
+                            "but schedules the downtime once. Default: once"
+                        ),
+                        "enum": [
+                            "hour",
+                            "day",
+                            "week",
+                            "second_week",
+                            "fourth_week",
+                            "weekday_start",
+                            "weekday_end",
+                            "day_of_month",
+                        ],
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Schedule even if a downtime with the same comment already exists. Default: false",
+                        "default": False,
                     },
                 },
                 "required": ["host_name", "service_descriptions"],
@@ -2134,6 +2168,12 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                 "properties": {
                     "hostname": {"type": "string", "description": "Hostname"},
                     "name": {"type": "string", "description": "Service name (default: 'SMTP')"},
+                    "port": {
+                        "type": "integer",
+                        "description": "SMTP port, e.g. 587 for submission or 465 for SMTPS (default: the check's own, 25)",
+                        "minimum": 1,
+                        "maximum": 65535,
+                    },
                     "starttls": {
                         "type": "boolean",
                         "description": "Use STARTTLS and check the certificate (default: false)",
@@ -3114,11 +3154,16 @@ def _enriched(tool: Dict[str, Any]) -> Dict[str, Any]:
     if schema is not None:
         tool.setdefault("outputSchema", schema)
 
-    # A tool with no parameters: the specification recommends saying so
-    # explicitly rather than accepting any object.
+    # Only the declared arguments are accepted. A misspelt one ("hostname"
+    # for "host_name") used to be dropped without a word, and the tool ran on
+    # its default instead; now validation names it. Only the top level is
+    # closed: free-form objects such as host attributes stay open.
+    # tests/test_argument_validation.py checks that no handler reads an
+    # argument its schema does not declare, which this would make dead.
     schema = tool.get("inputSchema")
-    if schema and schema.get("type") == "object" and not schema.get("properties"):
-        schema.pop("properties", None)
+    if schema and schema.get("type") == "object":
+        if not schema.get("properties"):
+            schema.pop("properties", None)
         schema.setdefault("additionalProperties", False)
 
     return tool
