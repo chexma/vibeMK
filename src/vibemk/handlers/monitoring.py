@@ -22,6 +22,24 @@ from typing import Any, Dict, List
 
 from vibemk.api.exceptions import CheckMKError
 from vibemk.handlers.base import BaseHandler
+from vibemk.handlers.downtimes import downtime_record
+
+
+def _handling(extensions: Dict[str, Any]) -> Dict[str, bool]:
+    """Whether someone already deals with a problem: acknowledged, or inside a downtime."""
+    return {
+        "acknowledged": bool(extensions.get("acknowledged")),
+        "in_downtime": bool(extensions.get("scheduled_downtime_depth")),
+    }
+
+
+def _handling_note(extensions: Dict[str, Any]) -> str:
+    """The same in prose, for clients that pass only the text on to the model."""
+    handling = _handling(extensions)
+    notes = [
+        label for key, label in (("acknowledged", "acknowledged"), ("in_downtime", "in downtime")) if handling[key]
+    ]
+    return f" ({', '.join(notes)})" if notes else ""
 
 
 class MonitoringHandler(BaseHandler):
@@ -74,6 +92,8 @@ class MonitoringHandler(BaseHandler):
         """Get current problems (hosts and services with issues)"""
         target_host = arguments.get("host_name")
         problems = []
+        host_problems: List[Dict[str, Any]] = []
+        service_problems: List[Dict[str, Any]] = []
 
         try:
             # Hosts: query the monitoring 'host' collection ONCE with the state
@@ -82,7 +102,7 @@ class MonitoringHandler(BaseHandler):
             # so it silently missed every DOWN host.)
             host_list_result = self.client.get(
                 "domain-types/host/collections/all",
-                params={"columns": ["name", "state"]},
+                params={"columns": ["name", "state", "acknowledged", "scheduled_downtime_depth"]},
             )
 
             if host_list_result.get("success"):
@@ -97,7 +117,15 @@ class MonitoringHandler(BaseHandler):
                     state = ext.get("state", 0)
                     if state != 0:
                         state_name = {1: "DOWN", 2: "UNREACHABLE"}.get(state, f"STATE({state})")
-                        problems.append(f"🖥️ HOST: {host_name} - {state_name}")
+                        problems.append(f"🖥️ HOST: {host_name} - {state_name}{_handling_note(ext)}")
+                        host_problems.append(
+                            {
+                                "host_name": host_name,
+                                "state": state_name,
+                                "state_code": state,
+                                **_handling(ext),
+                            }
+                        )
 
             # Services: query the monitoring 'service' collection ONCE with the
             # state column and filter in memory. (The old code fired a separate
@@ -112,6 +140,8 @@ class MonitoringHandler(BaseHandler):
                         "state",
                         "plugin_output",
                         "last_state_change",
+                        "acknowledged",
+                        "scheduled_downtime_depth",
                     ]
                 },
             )
@@ -133,20 +163,35 @@ class MonitoringHandler(BaseHandler):
                             self._format_service_problem(
                                 host_name,
                                 description,
-                                state_name,
+                                state_name + _handling_note(ext),
                                 ext.get("plugin_output", ""),
                                 ext.get("last_state_change", 0),
                             )
+                        )
+                        changed = ext.get("last_state_change")
+                        service_problems.append(
+                            {
+                                "host_name": host_name,
+                                "service_description": description,
+                                "state": state_name,
+                                "state_code": state,
+                                "plugin_output": (ext.get("plugin_output") or "").strip(),
+                                "last_state_change": changed if isinstance(changed, int) and changed > 0 else None,
+                                **_handling(ext),
+                            }
                         )
 
         except Exception as e:
             self.logger.exception("Error getting current problems")
             return self.error_response("Error retrieving problems", str(e))
 
+        data = {"total": len(problems), "host_problems": host_problems, "service_problems": service_problems}
         if not problems:
-            return [{"type": "text", "text": "✅ No current problems found"}]
+            return self.structured_response("✅ No current problems found", data)
 
-        return [{"type": "text", "text": f"🚨 **Current Problems** ({len(problems)} total):\n\n" + "\n".join(problems)}]
+        return self.structured_response(
+            f"🚨 **Current Problems** ({len(problems)} total):\n\n" + "\n".join(problems), data
+        )
 
     async def _acknowledge_problem(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Acknowledge a host or service problem"""
@@ -219,8 +264,10 @@ class MonitoringHandler(BaseHandler):
             return self.error_response("Failed to retrieve downtimes")
 
         downtimes = result["data"].get("value", [])
+        now = datetime.now().timestamp()
+        data = {"total": len(downtimes), "downtimes": [downtime_record(downtime, now) for downtime in downtimes]}
         if not downtimes:
-            return [{"type": "text", "text": "ℹ️ No scheduled downtimes"}]
+            return self.structured_response("ℹ️ No scheduled downtimes", data)
 
         downtime_list = []
         for downtime in downtimes[:20]:
@@ -235,12 +282,9 @@ class MonitoringHandler(BaseHandler):
             target = f"{host}/{service}" if service else host
             downtime_list.append(f"⏰ ID:{downtime_id} - {target} ({start_time} - {end_time}) - {comment}")
 
-        return [
-            {
-                "type": "text",
-                "text": f"⏰ **Scheduled Downtimes** ({len(downtimes)} total):\n\n" + "\n".join(downtime_list),
-            }
-        ]
+        return self.structured_response(
+            f"⏰ **Scheduled Downtimes** ({len(downtimes)} total):\n\n" + "\n".join(downtime_list), data
+        )
 
     async def _get_comments(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get list of comments"""

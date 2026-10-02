@@ -4,7 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Service status, current problems, downtimes and metrics also return
+  machine-readable data
+- Current problems say whether each one is acknowledged or in a downtime
+
 ### Fixed
+- Listing a host's or service's available metrics no longer reports none
+- Host metrics can be retrieved (every request was refused)
+- A metric's latest value no longer reads "None", and a window without values
+  no longer fails
+- A CRITICAL service's status is no longer reported as a failed tool call
+- `vibemk_list_downtimes` with `active_only` leaves out downtimes that have not
+  started yet
 - Active checks can be created with their options on CheckMK 2.5: thresholds,
   certificate lifetimes, passwords and host choices of the HTTP, TCP, ICMP,
   SMTP, LDAP, SMB and Event Console checks were refused

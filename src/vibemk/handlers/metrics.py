@@ -6,8 +6,25 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from vibemk.api.exceptions import CheckMKError
-from vibemk.api.paths import path_segment
 from vibemk.handlers.base import BaseHandler
+
+
+def series_summary(metric: Dict[str, Any]) -> Dict[str, Any]:
+    """One curve of a metric answer, reduced to what a reader compares.
+
+    CheckMK's newest bucket is usually still empty, so the latest value is the
+    last point that carries one, not the last point.
+    """
+    points = metric.get("data_points") or []
+    values = [p for p in points if isinstance(p, (int, float)) and not isinstance(p, bool)]
+    return {
+        "title": str(metric.get("title", "")),
+        "points": len(points),
+        "latest": values[-1] if values else None,
+        "min": min(values) if values else None,
+        "max": max(values) if values else None,
+        "avg": round(sum(values) / len(values), 4) if values else None,
+    }
 
 
 class MetricsHandler(BaseHandler):
@@ -20,7 +37,6 @@ class MetricsHandler(BaseHandler):
 
     # Display/formatting limits for large responses.
     _MAX_DISPLAYED_METRICS = 5
-    _MAX_PERF_DATA_ITEMS = 10
     _MAX_LISTED_METRICS = 20
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -101,28 +117,8 @@ class MetricsHandler(BaseHandler):
         # Parse time range to Unix timestamps
         time_data = self._parse_time_range(time_range)
 
-        # For host metrics, we need a different approach since hosts don't have services
-        # Try common host metric IDs or get available host metrics
         if not metric_name:
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"📊 **Host Metrics for {host_name}**\n\n"
-                        f"**Common Host Metric IDs:**\n"
-                        f"• cpu_util_guest - Guest CPU utilization\n"
-                        f"• cpu_util_steal - Stolen CPU time\n"
-                        f"• cpu_util_system - System CPU utilization\n"
-                        f"• cpu_util_user - User CPU utilization\n"
-                        f"• cpu_util_wait - CPU wait time\n"
-                        f"• load1 - 1-minute load average\n"
-                        f"• load15 - 15-minute load average\n"
-                        f"• load5 - 5-minute load average\n\n"
-                        f"💡 **Usage:** Specify metric_name parameter with one of these IDs\n"
-                        f"📝 **Note:** Host metrics depend on which services are configured for this host"
-                    ),
-                }
-            ]
+            return self._metric_listing(host_name, None)
 
         # Build metrics request for specific host metric
         data = {
@@ -130,6 +126,10 @@ class MetricsHandler(BaseHandler):
             "reduce": reduce_function,
             "site": getattr(self.client.config, "site", "cmk"),
             "host_name": host_name,
+            # The endpoint requires a service; a host's own metrics (the host
+            # check's rta, pl, ...) sit under CheckMK's pseudo-service _HOST_.
+            # Without it every host metric request answered 400.
+            "service_description": "_HOST_",
             "type": "single_metric",
             "metric_id": metric_name,
         }
@@ -141,12 +141,10 @@ class MetricsHandler(BaseHandler):
             metrics_data = result["data"]
 
             # Format metrics response
-            return [
-                {
-                    "type": "text",
-                    "text": self._format_host_metrics_response(host_name, metric_name, metrics_data, time_range),
-                }
-            ]
+            return self.structured_response(
+                self._format_host_metrics_response(host_name, metric_name, metrics_data, time_range),
+                self._series_data(host_name, None, metric_name, time_range, metrics_data),
+            )
         except CheckMKError as e:
             # Handle host metrics request failure with detailed HTTP status analysis
             http_status = getattr(e, "status_code", 0)
@@ -177,45 +175,11 @@ class MetricsHandler(BaseHandler):
         # Parse time range to Unix timestamps
         time_data = self._parse_time_range(time_range)
 
-        # If no specific metric requested, try to get available metrics first
+        # Without a metric, say which ones the service has. show_service cannot
+        # answer that: on 2.5 it returns no perf_data at all, so this used to
+        # report "no performance metrics" for every service.
         if not metric_name:
-            try:
-                # Get service info to find available metrics
-                service_result = self.client.get(
-                    f"objects/host/{path_segment(host_name)}/actions/show_service/invoke",
-                    params={"service_description": service_description},
-                )
-
-                if service_result.get("success") and "extensions" in service_result.get("data", {}):
-                    extensions = service_result["data"]["extensions"]
-                    perf_data = extensions.get("perf_data", {})
-
-                    if perf_data:
-                        available_metrics = list(perf_data.keys())
-                        return [
-                            {
-                                "type": "text",
-                                "text": (
-                                    f"📊 **Available Metrics for {host_name}/{service_description}**\n\n"
-                                    f"**Available Metric IDs:** {', '.join(available_metrics)}\n\n"
-                                    f"💡 **Usage:** Specify metric_name parameter with one of these IDs\n\n"
-                                    f"**Current Performance Data:**\n"
-                                    + "\n".join(
-                                        [f"• {k}: {v}" for k, v in list(perf_data.items())[: self._MAX_PERF_DATA_ITEMS]]
-                                    )
-                                ),
-                            }
-                        ]
-                    return self.error_response(
-                        "No Metrics Available",
-                        f"Service '{service_description}' has no performance metrics available",
-                    )
-            except Exception as e:
-                self.logger.debug("Could not retrieve available metrics: %s", e)
-                return self.error_response(
-                    "Service Lookup Failed",
-                    f"Could not get service information for '{host_name}/{service_description}'",
-                )
+            return self._metric_listing(host_name, service_description)
 
         # Build metrics request for specific metric
         data = {
@@ -235,14 +199,12 @@ class MetricsHandler(BaseHandler):
             metrics_data = result["data"]
 
             # Format metrics response
-            return [
-                {
-                    "type": "text",
-                    "text": self._format_service_metrics_response(
-                        host_name, service_description, metric_name or "", metrics_data, time_range
-                    ),
-                }
-            ]
+            return self.structured_response(
+                self._format_service_metrics_response(
+                    host_name, service_description, metric_name or "", metrics_data, time_range
+                ),
+                self._series_data(host_name, service_description, metric_name, time_range, metrics_data),
+            )
         except CheckMKError as e:
             # Handle metrics request failure with detailed HTTP status analysis
             http_status = getattr(e, "status_code", 0)
@@ -254,19 +216,10 @@ class MetricsHandler(BaseHandler):
                 or f"HTTP {http_status}: {error_data.get('title', str(e))}"
             )
 
-            # Try to get available metrics for helpful error message
+            # Name the metrics the service does have, so the next attempt can succeed
             try:
-                service_result = self.client.get(
-                    f"objects/host/{path_segment(host_name)}/actions/show_service/invoke",
-                    params={"service_description": service_description},
-                )
-
-                extensions = service_result["data"]["extensions"]
-                perf_data = extensions.get("perf_data", {})
-
-                if perf_data:
-                    available_metrics = list(perf_data.keys())
-
+                available_metrics = self._available_metrics(host_name, service_description)
+                if available_metrics:
                     return [
                         {
                             "type": "text",
@@ -296,61 +249,98 @@ class MetricsHandler(BaseHandler):
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
 
-        # Get host with metrics column to see available metrics
-        query_data = {"query": {"op": "=", "left": "name", "right": host_name}}
+        return self._metric_listing(host_name, service_description)
 
+    def _available_metrics(self, host_name: str, service_description: Optional[str]) -> Optional[List[str]]:
+        """The metric IDs CheckMK records for a host or service; None when it does not exist.
+
+        The monitoring collections answer this in their `metrics` column, but
+        only when it is asked for: without `columns` they return host_name and
+        description alone, which is why the listing reported no metrics anywhere.
+        """
         if service_description:
-            # Get service metrics
-            query_data["query"] = {
-                "op": "and",
-                "expr": [
-                    {"op": "=", "left": "host_name", "right": host_name},
-                    {"op": "=", "left": "description", "right": service_description},
-                ],
-            }
-            result = self.client.get("domain-types/service/collections/all", params=query_data)
+            result = self.client.get(
+                "domain-types/service/collections/all",
+                params={
+                    "columns": ["host_name", "description", "metrics"],
+                    "query": {
+                        "op": "and",
+                        "expr": [
+                            {"op": "=", "left": "host_name", "right": host_name},
+                            {"op": "=", "left": "description", "right": service_description},
+                        ],
+                    },
+                },
+            )
         else:
-            # Get host metrics
-            result = self.client.get("domain-types/host/collections/all", params=query_data)
+            result = self.client.get(
+                "domain-types/host/collections/all",
+                params={"columns": ["name", "metrics"], "query": {"op": "=", "left": "name", "right": host_name}},
+            )
 
         if not result.get("success"):
-            return self.error_response("Failed to retrieve metrics list")
+            raise CheckMKError("Failed to retrieve metrics list")
 
-        items = result["data"].get("value", [])
+        items = result.get("data", {}).get("value", [])
         if not items:
-            return self.error_response("Host/service not found", f"No data found for {host_name}")
+            return None
+        metrics = items[0].get("extensions", {}).get("metrics") or []
+        return [str(metric) for metric in metrics]
 
-        item = items[0]
-        extensions = item.get("extensions", {})
-        available_metrics = extensions.get("metrics", [])
+    def _metric_listing(self, host_name: str, service_description: Optional[str]) -> List[Dict[str, Any]]:
+        """Answer "which metrics are there" for a host or one of its services."""
+        target = f"{host_name}/{service_description}" if service_description else host_name
+        available_metrics = self._available_metrics(host_name, service_description)
+        if available_metrics is None:
+            return self.error_response("Host/service not found", f"No data found for {target}")
 
+        data = {
+            "host_name": host_name,
+            "service_description": service_description,
+            "metric_id": None,
+            "available_metrics": available_metrics,
+            "series": [],
+        }
         if not available_metrics:
-            return [
-                {
-                    "type": "text",
-                    "text": f"📊 **No Metrics Available**\n\nNo historical metrics found for {host_name}"
-                    + (f"/{service_description}" if service_description else ""),
-                }
-            ]
+            return self.structured_response(
+                f"📊 **No Metrics Available**\n\nNo historical metrics found for {target}", data
+            )
 
         metric_list = "\n".join([f"📈 {metric}" for metric in available_metrics[: self._MAX_LISTED_METRICS]])
+        more = len(available_metrics) - self._MAX_LISTED_METRICS
+        return self.structured_response(
+            (
+                f"📊 **Available Metrics**\n\n"
+                f"Target: {target}\n"
+                f"Metrics ({len(available_metrics)} total):\n\n"
+                f"{metric_list}"
+                + (f"\n\n... and {more} more metrics" if more > 0 else "")
+                + "\n\n💡 **Usage:** pass one of these as metric_name to get its values"
+            ),
+            data,
+        )
 
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"📊 **Available Metrics**\n\n"
-                    f"Target: {host_name}" + (f"/{service_description}" if service_description else "") + f"\n"
-                    f"Metrics ({len(available_metrics)} total):\n\n"
-                    f"{metric_list}"
-                    + (
-                        f"\n\n... and {len(available_metrics) - self._MAX_LISTED_METRICS} more metrics"
-                        if len(available_metrics) > self._MAX_LISTED_METRICS
-                        else ""
-                    )
-                ),
-            }
-        ]
+    def _series_data(
+        self,
+        host_name: str,
+        service_description: Optional[str],
+        metric_id: str,
+        time_range: str,
+        metrics_data: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """The METRIC_DATA object for a metric answer."""
+        window = metrics_data.get("time_range") or {}
+        step = metrics_data.get("step")
+        return {
+            "host_name": host_name,
+            "service_description": service_description,
+            "metric_id": metric_id,
+            "time_range": time_range,
+            "start": window.get("start"),
+            "end": window.get("end"),
+            "step": step if isinstance(step, int) else None,
+            "series": [series_summary(metric) for metric in metrics_data.get("metrics", [])],
+        }
 
     def _format_metrics_response(
         self, target: str, target_type: str, metrics_data: Dict[str, Any], time_range: str
@@ -430,20 +420,15 @@ class MetricsHandler(BaseHandler):
             data_points = metric.get("data_points", [])
 
             if data_points:
-                # Filter out None values for calculations
-                valid_points = [p for p in data_points if p is not None]
-
-                latest_value = data_points[-1] if data_points else "No data"
-                if valid_points:
-                    min_value = min(valid_points)
-                    max_value = max(valid_points)
-                    avg_value = sum(valid_points) / len(valid_points)
+                summary = series_summary(metric)
+                if summary["latest"] is None:
+                    stats = "N/A (no values in this window)"
                 else:
-                    min_value = max_value = avg_value = "N/A"
+                    stats = f"{summary['min']} / {summary['max']} / {summary['avg']:.2f}"
 
                 response += f"📈 **{title}**\n"
-                response += f"   Latest Value: {latest_value}\n"
-                response += f"   Min/Max/Avg: {min_value} / {max_value} / {avg_value:.2f}\n"
+                response += f"   Latest Value: {summary['latest'] if summary['latest'] is not None else 'No data'}\n"
+                response += f"   Min/Max/Avg: {stats}\n"
                 response += f"   Data Points: {len(data_points)}\n"
                 response += f"   Line Type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
@@ -477,20 +462,15 @@ class MetricsHandler(BaseHandler):
             data_points = metric.get("data_points", [])
 
             if data_points:
-                # Filter out None values for calculations
-                valid_points = [p for p in data_points if p is not None]
-
-                latest_value = data_points[-1] if data_points else "No data"
-                if valid_points:
-                    min_value = min(valid_points)
-                    max_value = max(valid_points)
-                    avg_value = sum(valid_points) / len(valid_points)
+                summary = series_summary(metric)
+                if summary["latest"] is None:
+                    stats = "N/A (no values in this window)"
                 else:
-                    min_value = max_value = avg_value = "N/A"
+                    stats = f"{summary['min']} / {summary['max']} / {summary['avg']:.2f}"
 
                 response += f"📈 **{title}**\n"
-                response += f"   Latest Value: {latest_value}\n"
-                response += f"   Min/Max/Avg: {min_value} / {max_value} / {avg_value:.2f}\n"
+                response += f"   Latest Value: {summary['latest'] if summary['latest'] is not None else 'No data'}\n"
+                response += f"   Min/Max/Avg: {stats}\n"
                 response += f"   Data Points: {len(data_points)}\n"
                 response += f"   Line Type: {line_type}\n"
                 response += f"   Color: {color}\n\n"
