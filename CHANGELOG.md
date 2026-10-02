@@ -14,8 +14,15 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Service param tools, agent bakery, active checks, audit log, aux tags,
-  event console and site management (149 tools in total)
+  event console and site management
+- Notification rule management - list, show, create, update and delete
+- Acknowledgement tools are now reachable (they were built but never offered)
 - CheckMK 2.4 compatibility fixes for monitoring data and host listings
+
+### Removed
+- Three tools whose CheckMK endpoints do not exist: `vibemk_reschedule_check`,
+  `vibemk_discover_services` (use `vibemk_start_service_discovery`) and
+  `vibemk_test_notification`
 
 ## [0.3.10] - 2025-08-23
 ### Added
