@@ -5,6 +5,7 @@ Site management handlers — list and manage distributed CheckMK site connection
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -68,7 +69,7 @@ class SitesHandler(BaseHandler):
             return self.error_response("Missing parameter", "site_id, username and password are required")
 
         result = self.client.post(
-            f"objects/site_connection/{site_id}/actions/login/invoke",
+            f"objects/site_connection/{path_segment(site_id)}/actions/login/invoke",
             {"username": username, "password": password},
         )
         if result.get("success"):
@@ -80,7 +81,7 @@ class SitesHandler(BaseHandler):
         if not site_id:
             return self.error_response("Missing parameter", "site_id is required")
 
-        result = self.client.post(f"objects/site_connection/{site_id}/actions/logout/invoke", {})
+        result = self.client.post(f"objects/site_connection/{path_segment(site_id)}/actions/logout/invoke", {})
         if result.get("success"):
             return [{"type": "text", "text": f"✅ Logged out of site '{site_id}'."}]
         return self.error_response("Logout failed", str(result.get("data", {})))

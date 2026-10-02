@@ -6,6 +6,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError, CheckMKNotFoundError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 from utils.folder_validator import validate_folder_path
 
@@ -147,7 +148,7 @@ class HostHandler(BaseHandler):
                 ]
             }
 
-            result = self.client.get(f"objects/host/{host_name}", params=params)
+            result = self.client.get(f"objects/host/{path_segment(host_name)}", params=params)
             self.logger.debug(f"Host status API result: {result}")
 
             if result.get("success"):
@@ -325,7 +326,7 @@ class HostHandler(BaseHandler):
 
         # Method 3: Final fallback - check if host exists in configuration
         try:
-            host_config = self.client.get(f"objects/host_config/{host_name}")
+            host_config = self.client.get(f"objects/host_config/{path_segment(host_name)}")
             if host_config.get("success"):
                 return self.structured_response(
                     (
@@ -383,7 +384,7 @@ class HostHandler(BaseHandler):
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
 
-        result = self.client.get(f"objects/host_config/{host_name}")
+        result = self.client.get(f"objects/host_config/{path_segment(host_name)}")
 
         if not result.get("success"):
             return self.error_response("Host not found", f"Host '{host_name}' not found")
@@ -411,7 +412,7 @@ class HostHandler(BaseHandler):
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
 
-        result = self.client.get(f"objects/host_config/{host_name}")
+        result = self.client.get(f"objects/host_config/{path_segment(host_name)}")
 
         if not result.get("success"):
             return self.error_response("Host not found", f"Host '{host_name}' not found")
@@ -474,7 +475,7 @@ class HostHandler(BaseHandler):
 
         # Check if host already exists (handle 404 properly for non-existent hosts)
         try:
-            existing_host = self.client.get(f"objects/host_config/{host_name}")
+            existing_host = self.client.get(f"objects/host_config/{path_segment(host_name)}")
             if existing_host.get("success"):
                 return self.error_response(
                     "Host already exists", f"Host '{host_name}' already exists. Use update_host to modify it."
@@ -667,7 +668,7 @@ class HostHandler(BaseHandler):
             return self.error_response("Validation failed", "\n".join(validation_errors))
 
         # Get current host configuration with ETag for proper concurrency control
-        current_config = self.client.get(f"objects/host_config/{host_name}")
+        current_config = self.client.get(f"objects/host_config/{path_segment(host_name)}")
         if not current_config.get("success"):
             return self.error_response("Host not found", f"Host '{host_name}' not found")
 
@@ -721,7 +722,7 @@ class HostHandler(BaseHandler):
 
         # Perform the update with proper error handling
         try:
-            result = self.client.put(f"objects/host_config/{host_name}", data=data, headers=headers)
+            result = self.client.put(f"objects/host_config/{path_segment(host_name)}", data=data, headers=headers)
 
             if result.get("success"):
                 # Calculate what actually changed for better user feedback
@@ -789,7 +790,7 @@ class HostHandler(BaseHandler):
         if not host_name:
             return self.error_response("Missing parameter", "host_name is required")
 
-        result = self.client.delete(f"objects/host_config/{host_name}")
+        result = self.client.delete(f"objects/host_config/{path_segment(host_name)}")
 
         if result.get("success"):
             return [
@@ -817,7 +818,7 @@ class HostHandler(BaseHandler):
             return self.error_response("Missing parameters", "host_name and target_folder are required")
 
         data = {"target_folder": target_folder}
-        result = self.client.post(f"objects/host_config/{host_name}/actions/move/invoke", data=data)
+        result = self.client.post(f"objects/host_config/{path_segment(host_name)}/actions/move/invoke", data=data)
 
         if result.get("success"):
             return self.success_response(
@@ -836,7 +837,7 @@ class HostHandler(BaseHandler):
             return self.error_response("Missing parameters", "host_name and new_name are required")
 
         result = self.client.put(
-            f"objects/host_config/{host_name}/actions/rename/invoke",
+            f"objects/host_config/{path_segment(host_name)}/actions/rename/invoke",
             data={"new_name": new_name},
         )
 
@@ -952,7 +953,7 @@ class HostHandler(BaseHandler):
 
         # Operation-specific validation
         if operation == "create":
-            existing_host = self.client.get(f"objects/host_config/{host_name}")
+            existing_host = self.client.get(f"objects/host_config/{path_segment(host_name)}")
             if existing_host.get("success"):
                 validation_errors.append("Host already exists")
 
@@ -990,7 +991,7 @@ class HostHandler(BaseHandler):
             return self.error_response("Missing parameter", "host_name is required")
 
         # Get current configuration
-        current_config = self.client.get(f"objects/host_config/{host_name}")
+        current_config = self.client.get(f"objects/host_config/{path_segment(host_name)}")
         if not current_config.get("success"):
             return self.error_response("Host not found", f"Host '{host_name}' not found")
 
@@ -1019,7 +1020,7 @@ class HostHandler(BaseHandler):
             return self.error_response("Missing parameter", "host_name is required")
 
         # Get host configuration
-        host_config = self.client.get(f"objects/host_config/{host_name}")
+        host_config = self.client.get(f"objects/host_config/{path_segment(host_name)}")
         if not host_config.get("success"):
             return self.error_response("Host not found", f"Host '{host_name}' not found")
 
@@ -1031,7 +1032,9 @@ class HostHandler(BaseHandler):
         # Get folder configuration for inherited attributes
         folder_config = None
         if folder_path != "/":
-            folder_config = self.client.get(f"objects/folder_config/{folder_path}")
+            # The host reports its folder as "/linux/web"; the API addresses it as "~linux~web".
+            folder_ident = "~" + folder_path.strip("/").replace("/", "~")
+            folder_config = self.client.get(f"objects/folder_config/{path_segment(folder_ident)}")
 
         effective_attributes = {}
         inherited_attributes = {}
@@ -1089,7 +1092,7 @@ class HostHandler(BaseHandler):
                 "source_hostname and target_hostname are required",
             )
 
-        source_result = self.client.get(f"objects/host_config/{source}")
+        source_result = self.client.get(f"objects/host_config/{path_segment(source)}")
         ext = source_result["data"].get("extensions", {})
         folder = ext.get("folder", "/")
         attributes = {k: v for k, v in ext.get("attributes", {}).items() if k != "meta_data"}
@@ -1139,8 +1142,8 @@ class HostHandler(BaseHandler):
     def _validate_folder_exists(self, folder: str) -> bool:
         """Check if folder exists (basic validation)"""
         try:
-            folder_path = folder if folder != "/" else "~"
-            result = self.client.get(f"objects/folder_config/{folder_path}")
+            folder_path = "~" + folder.strip("/~").replace("/", "~")
+            result = self.client.get(f"objects/folder_config/{path_segment(folder_path)}")
             return bool(result.get("success", False))
         except:
             return False

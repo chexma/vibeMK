@@ -6,6 +6,7 @@ Handles problem acknowledgements for hosts and services
 from typing import Any, Dict, List, Optional
 
 from api import CheckMKClient
+from api.paths import path_segment
 from handlers.base import BaseHandler
 from utils import get_logger
 
@@ -294,7 +295,7 @@ class AcknowledgementHandler(BaseHandler):
 
             if ack_id:
                 # Remove by acknowledgement ID (stored as comment in CheckMK 2.4)
-                endpoint = f"objects/comment/{ack_id}"
+                endpoint = f"objects/comment/{path_segment(ack_id)}"
                 result = self.client.delete(endpoint)
 
                 if result.get("success"):

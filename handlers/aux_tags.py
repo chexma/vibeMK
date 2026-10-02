@@ -7,6 +7,7 @@ based on their tag group memberships.
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -104,7 +105,7 @@ class AuxTagsHandler(BaseHandler):
         if not body:
             return self.error_response("Missing parameter", "At least one field to update is required")
 
-        result = self.client.put(f"objects/aux_tag/{tag_id}", body)
+        result = self.client.put(f"objects/aux_tag/{path_segment(tag_id)}", body)
         if result.get("success"):
             return [{"type": "text", "text": f"✅ Auxiliary tag '{tag_id}' updated."}]
         return self.error_response("Updating the auxiliary tag failed", str(result.get("data", {})))
@@ -114,7 +115,7 @@ class AuxTagsHandler(BaseHandler):
         if not tag_id:
             return self.error_response("Missing parameter", "tag_id is required")
 
-        result = self.client.post(f"objects/aux_tag/{tag_id}/actions/delete/invoke", {})
+        result = self.client.post(f"objects/aux_tag/{path_segment(tag_id)}/actions/delete/invoke", {})
         if result.get("success"):
             return [{"type": "text", "text": f"✅ Auxiliary tag '{tag_id}' deleted."}]
         return self.error_response("Deleting the auxiliary tag failed", str(result.get("data", {})))

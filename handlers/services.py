@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 # Keyed by Optional[int]: Method 3's column-array shape can leave state
@@ -221,7 +222,7 @@ class ServiceHandler(BaseHandler):
         # "unsuccessful" / "wrong shape" returns just below are not exceptions
         # -- they stay terminal on purpose (see the docstring above).
         try:
-            endpoint = f"objects/host/{host_name}/actions/show_service/invoke"
+            endpoint = f"objects/host/{path_segment(host_name)}/actions/show_service/invoke"
             params = {"service_description": service_description}
 
             result = self.client.get(endpoint, params=params)

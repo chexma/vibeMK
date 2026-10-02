@@ -5,6 +5,7 @@ Specialized handler for host group and contact group rules
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -208,7 +209,7 @@ class HostGroupRulesHandler(BaseHandler):
 
         for candidate in hostgroup_ruleset_candidates:
             try:
-                result = self.client.get(f"objects/ruleset/{candidate}")
+                result = self.client.get(f"objects/ruleset/{path_segment(candidate)}")
                 if result.get("success"):
                     working_ruleset = candidate
                     break

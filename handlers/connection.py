@@ -3,10 +3,13 @@ Connection and diagnostics handlers
 """
 
 import json
+import posixpath
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+from api.client import _NoRedirectHandler
 from api.exceptions import CheckMKError
 from handlers.base import BaseHandler
 
@@ -87,11 +90,23 @@ class ConnectionHandler(BaseHandler):
         if not test_url:
             return self.error_response("Missing URL", "test_url parameter is required")
 
+        # The request carries the CheckMK credentials, and the URL comes from
+        # the model -- which reads host aliases and plugin output an attacker
+        # may control. Only the configured API is a legitimate target.
+        refusal = self._refuse_foreign_url(test_url)
+        if refusal:
+            return self.error_response("URL not allowed", refusal)
+
+        # No redirects either: a 3xx would hand the credentials on to
+        # wherever the Location header points.
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPSHandler(context=self.client._ssl_context),
+            _NoRedirectHandler,
+        )
+
         try:
             req = urllib.request.Request(test_url, headers=self.client.headers)
-            with urllib.request.urlopen(
-                req, context=self.client._ssl_context, timeout=self.client.config.timeout
-            ) as response:
+            with opener.open(req, timeout=self.client.config.timeout) as response:
                 response_data = response.read().decode()
 
                 try:
@@ -131,6 +146,27 @@ class ConnectionHandler(BaseHandler):
 
         except Exception as e:
             return [{"type": "text", "text": (f"❌ **Request Failed**\n\nURL: {test_url}\nError: {str(e)}")}]
+
+    def _refuse_foreign_url(self, test_url: str) -> Optional[str]:
+        """Explain why a URL lies outside the CheckMK API, or None if it does not."""
+        base = urllib.parse.urlsplit(self.client.api_base_url)
+        target = urllib.parse.urlsplit(test_url)
+
+        if target.scheme.lower() != base.scheme.lower() or target.netloc.lower() != base.netloc.lower():
+            return f"Only URLs on the configured CheckMK API are allowed: {self.client.api_base_url}"
+        if target.username or target.password:
+            return "URLs with embedded credentials are not allowed"
+
+        # Compare the path as the server will resolve it, so ../ cannot climb
+        # out of the API prefix. Percent-encoded dots are decoded first.
+        segments = urllib.parse.unquote(target.path).split("/")
+        if ".." in segments:
+            return "Path segments '..' are not allowed"
+        base_path = base.path.rstrip("/")
+        path = posixpath.normpath(urllib.parse.unquote(target.path) or "/")
+        if path != base_path and not path.startswith(base_path + "/"):
+            return f"Only URLs under the CheckMK API are allowed: {self.client.api_base_url}"
+        return None
 
     async def _test_all_endpoints(self) -> List[Dict[str, Any]]:
         """Test all major API endpoints"""

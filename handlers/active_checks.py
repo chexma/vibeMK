@@ -7,6 +7,7 @@ Active checks are implemented as rules on active_checks:* rulesets.
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -103,7 +104,7 @@ class ActiveChecksHandler(BaseHandler):
         if explicit_folder:
             return explicit_folder
         try:
-            result = self.client.get(f"objects/host_config/{hostname}")
+            result = self.client.get(f"objects/host_config/{path_segment(hostname)}")
             raw_folder = str(result["data"].get("extensions", {}).get("folder", "/"))
             return "~" + raw_folder.lstrip("/").replace("/", "~")
         except Exception:
@@ -695,5 +696,5 @@ class ActiveChecksHandler(BaseHandler):
                 "Provide rule_id or hostname",
             )
 
-        self.client.delete(f"objects/rule/{rule_id}")
+        self.client.delete(f"objects/rule/{path_segment(rule_id)}")
         return [{"type": "text", "text": f"✅ Active check rule '{rule_id}' deleted."}]

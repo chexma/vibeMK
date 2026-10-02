@@ -10,6 +10,7 @@ import ast
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -59,7 +60,7 @@ class ServiceParamsHandler(BaseHandler):
         if explicit_folder:
             return explicit_folder
         try:
-            result = self.client.get(f"objects/host_config/{hostname}")
+            result = self.client.get(f"objects/host_config/{path_segment(hostname)}")
             raw_folder = str(result["data"].get("extensions", {}).get("folder", "/"))
             return "~" + raw_folder.lstrip("/").replace("/", "~")
         except Exception:
@@ -69,7 +70,7 @@ class ServiceParamsHandler(BaseHandler):
         """Trigger service discovery (refresh) to apply new process rules to autochecks."""
         try:
             self.client.post(
-                f"objects/host/{hostname}/actions/discover_services/invoke",
+                f"objects/host/{path_segment(hostname)}/actions/discover_services/invoke",
                 {"mode": "refresh"},
             )
             return f"✅ Service discovery run for '{hostname}' — the new thresholds are active."
@@ -360,5 +361,5 @@ class ServiceParamsHandler(BaseHandler):
         rule_id = arguments.get("rule_id", "")
         if not rule_id:
             return self.error_response("Missing parameter", "rule_id is required")
-        self.client.delete(f"objects/rule/{rule_id}")
+        self.client.delete(f"objects/rule/{path_segment(rule_id)}")
         return [{"type": "text", "text": f"✅ Rule `{rule_id}` deleted."}]

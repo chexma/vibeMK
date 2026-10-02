@@ -5,6 +5,7 @@ Password management handlers for CheckMK credential storage
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -126,7 +127,7 @@ class PasswordsHandler(BaseHandler):
             return self.error_response("Missing parameter", "ident is required")
 
         # Check if password exists
-        check_result = self.client.get(f"objects/password/{ident}")
+        check_result = self.client.get(f"objects/password/{path_segment(ident)}")
         if not check_result.get("success"):
             return self.error_response("Password not found", f"Password '{ident}' does not exist")
 
@@ -149,8 +150,8 @@ class PasswordsHandler(BaseHandler):
             return self.error_response("No data to update", "At least one field must be provided")
 
         # Use ETag for optimistic locking
-        headers = self._if_match_header(f"objects/password/{ident}")
-        result = self.client.put(f"objects/password/{ident}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/password/{path_segment(ident)}")
+        result = self.client.put(f"objects/password/{path_segment(ident)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -176,14 +177,14 @@ class PasswordsHandler(BaseHandler):
             return self.error_response("Missing parameter", "ident is required")
 
         # Check if password exists
-        check_result = self.client.get(f"objects/password/{ident}")
+        check_result = self.client.get(f"objects/password/{path_segment(ident)}")
         if not check_result.get("success"):
             return self.error_response("Password not found", f"Password '{ident}' does not exist")
 
         # CheckMK declares If-Match required on this delete and answers 428
         # without it.
-        headers = self._if_match_header(f"objects/password/{ident}")
-        result = self.client.delete(f"objects/password/{ident}", headers=headers)
+        headers = self._if_match_header(f"objects/password/{path_segment(ident)}")
+        result = self.client.delete(f"objects/password/{path_segment(ident)}", headers=headers)
 
         if result.get("success"):
             return [

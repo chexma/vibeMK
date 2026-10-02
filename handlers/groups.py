@@ -5,6 +5,7 @@ Host and service group management handlers
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -95,7 +96,7 @@ class GroupsHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # First get the current host group to check if it exists
-        current_group_result = self.client.get(f"objects/host_group_config/{name}")
+        current_group_result = self.client.get(f"objects/host_group_config/{path_segment(name)}")
         if not current_group_result.get("success"):
             return self.error_response("Host group not found", f"Host group '{name}' does not exist")
 
@@ -108,8 +109,8 @@ class GroupsHandler(BaseHandler):
             return self.error_response("No data to update", "At least one field (alias) must be provided")
 
         # Use ETag for optimistic locking
-        headers = self._if_match_header(f"objects/host_group_config/{name}")
-        result = self.client.put(f"objects/host_group_config/{name}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/host_group_config/{path_segment(name)}")
+        result = self.client.put(f"objects/host_group_config/{path_segment(name)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -134,11 +135,11 @@ class GroupsHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # Check if host group exists
-        check_result = self.client.get(f"objects/host_group_config/{name}")
+        check_result = self.client.get(f"objects/host_group_config/{path_segment(name)}")
         if not check_result.get("success"):
             return self.error_response("Host group not found", f"Host group '{name}' does not exist")
 
-        result = self.client.delete(f"objects/host_group_config/{name}")
+        result = self.client.delete(f"objects/host_group_config/{path_segment(name)}")
 
         if result.get("success"):
             return [
@@ -216,7 +217,7 @@ class GroupsHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # First get the current service group to check if it exists
-        current_group_result = self.client.get(f"objects/service_group_config/{name}")
+        current_group_result = self.client.get(f"objects/service_group_config/{path_segment(name)}")
         if not current_group_result.get("success"):
             return self.error_response("Service group not found", f"Service group '{name}' does not exist")
 
@@ -229,8 +230,8 @@ class GroupsHandler(BaseHandler):
             return self.error_response("No data to update", "At least one field (alias) must be provided")
 
         # Use ETag for optimistic locking
-        headers = self._if_match_header(f"objects/service_group_config/{name}")
-        result = self.client.put(f"objects/service_group_config/{name}", data=data, headers=headers)
+        headers = self._if_match_header(f"objects/service_group_config/{path_segment(name)}")
+        result = self.client.put(f"objects/service_group_config/{path_segment(name)}", data=data, headers=headers)
 
         if result.get("success"):
             return [
@@ -255,11 +256,11 @@ class GroupsHandler(BaseHandler):
             return self.error_response("Missing parameter", "name is required")
 
         # Check if service group exists
-        check_result = self.client.get(f"objects/service_group_config/{name}")
+        check_result = self.client.get(f"objects/service_group_config/{path_segment(name)}")
         if not check_result.get("success"):
             return self.error_response("Service group not found", f"Service group '{name}' does not exist")
 
-        result = self.client.delete(f"objects/service_group_config/{name}")
+        result = self.client.delete(f"objects/service_group_config/{path_segment(name)}")
 
         if result.get("success"):
             return [

@@ -5,6 +5,7 @@ Rulesets management handlers for CheckMK ruleset discovery and display
 from typing import Any, Dict, List
 
 from api.exceptions import CheckMKError
+from api.paths import path_segment
 from handlers.base import BaseHandler
 
 
@@ -120,7 +121,7 @@ class RulesetsHandler(BaseHandler):
         self.logger.debug(f"Showing ruleset: {ruleset_name}")
 
         try:
-            result = self.client.get(f"objects/ruleset/{ruleset_name}")
+            result = self.client.get(f"objects/ruleset/{path_segment(ruleset_name)}")
             ruleset_data = result["data"]
 
             return [
