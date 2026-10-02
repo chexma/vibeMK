@@ -6,6 +6,7 @@ Process thresholds: inventory_processes_rules + service discovery (refresh).
 Interface params: checkgroup_parameters:if + activate (no discovery needed).
 """
 
+import ast
 from typing import Any, Dict, List, Optional
 
 from api.exceptions import CheckMKError
@@ -208,7 +209,8 @@ class ServiceParamsHandler(BaseHandler):
             hosts_str = ", ".join(hosts) if hosts else "all hosts"
 
             try:
-                v = eval(vr)
+                # value_raw comes from the server: read it as a literal, never run it
+                v = ast.literal_eval(vr)
                 descr = v.get("descr", "?")
                 match = v.get("match", "?")
                 dp = v.get("default_params", {})

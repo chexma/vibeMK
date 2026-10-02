@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Listing or deleting active checks across all types is faster
 - The active check, Event Console, auxiliary tag and service parameter tools
   describe themselves and answer in English throughout
+- Listing process rules no longer executes the rule values CheckMK returns
 
 ## [0.5.1] - 2026-10-02
 
