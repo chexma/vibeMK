@@ -3,7 +3,7 @@
 # The official MCP SDK owns the protocol: version negotiation, JSON-RPC
 # framing, the stdio and Streamable HTTP transports, and the distinction
 # between a protocol error and a tool execution error.
-mcp>=2.0.0
+mcp>=2.0.0,<3
 
 # Validates tool arguments against each tool's inputSchema.
 jsonschema>=4.0.0

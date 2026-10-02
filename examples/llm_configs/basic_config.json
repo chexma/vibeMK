@@ -1,8 +1,7 @@
 {
   "mcpServers": {
     "vibemk": {
-      "command": "python",
-      "args": ["/Users/yourname/vibeMK/main.py"],
+      "command": "/absolute/path/to/vibemk",
       "env": {
         "CHECKMK_SERVER_URL": "https://checkmk.company.com",
         "CHECKMK_SITE": "production",

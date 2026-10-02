@@ -25,7 +25,9 @@ classifiers = [
 ]
 keywords = ["checkmk", "monitoring", "mcp", "claude", "automation"]
 dependencies = [
-    "mcp>=2.0.0",
+    # Capped below the next major: vibeMK is an application, and a new major of
+    # the SDK must not reach fresh installs before it has been tested here.
+    "mcp>=2.0.0,<3",
     # Imported directly to validate tool arguments; the SDK depends on it too,
     # but a direct import should not rest on someone else's dependency list.
     "jsonschema>=4.0.0",

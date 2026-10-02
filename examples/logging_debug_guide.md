@@ -13,8 +13,7 @@ Add the `LOGFILE` environment variable to your MCP server configuration:
 {
   "mcpServers": {
     "vibeMK": {
-      "command": "python3",
-      "args": ["/path/to/vibeMK/main.py"],
+      "command": "/absolute/path/to/vibemk",
       "env": {
         "CHECKMK_SERVER_URL": "http://localhost:8080",
         "CHECKMK_SITE": "cmk", 
@@ -137,7 +136,7 @@ You can test the logging configuration manually:
 export LOGFILE="/tmp/vibemk_test.log"
 
 # Test with a sample MCP initialize request
-echo '{"jsonrpc": "2.0", "id": "test", "method": "initialize", "params": {"protocolVersion": "2024-11-05"}}' | python3 main.py
+echo '{"jsonrpc": "2.0", "id": "test", "method": "initialize", "params": {"protocolVersion": "2024-11-05"}}' | vibemk   # from a source checkout: python3 main.py
 
 # Check the log file content
 cat /tmp/vibemk_test.log
