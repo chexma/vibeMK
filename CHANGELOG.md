@@ -4,17 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Changed
-- Checkmk 2.5 is listed as supported; 2.2 and older are not
+## [0.5.1] - 2026-10-02
 
 ### Fixed
 - `activate_changes` works again on host, service parameter, active check and
   auxiliary tag writes; it raised an internal error instead of activating
-- Custom graph and metric search results render again instead of failing
+- Custom graph and metric search results render again instead of raising an
+  internal error
 - Metric search works: it now takes the `graph_id` or `metric_id` CheckMK
   requires, instead of always answering HTTP 400
 - A metric's latest value skips a still-empty final bucket instead of
   reporting "None"
+
+### Changed
+- Checkmk 2.5 is listed as supported; 2.2 and older are not
 
 ## [0.5.0] - 2026-10-02
 
