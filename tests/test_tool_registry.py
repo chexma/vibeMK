@@ -9,6 +9,7 @@ reachable.
 
 import ast
 import inspect
+import itertools
 import pathlib
 import re
 import tokenize
@@ -391,7 +392,7 @@ class TestTheCatalogueIsInEnglish:
         for path in sorted(pathlib.Path("handlers").glob("*.py")):
             with path.open("rb") as source:
                 tokens = [t for t in tokenize.tokenize(source.readline) if t.type not in self._INSIGNIFICANT]
-            for previous, token in zip(tokens, tokens[1:]):
+            for previous, token in itertools.pairwise(tokens):
                 if token.type not in self._STRING_TOKENS:
                     continue
                 # A string that opens a statement is a docstring
