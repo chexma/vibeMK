@@ -1106,12 +1106,12 @@ class HostHandler(BaseHandler):
 
         if not result.get("success"):
             error_details = result.get("data", {})
-            return self.error_response("Clone fehlgeschlagen", str(error_details))
+            return self.error_response("Clone failed", str(error_details))
 
         msg = (
-            f"✅ Host '{target}' wurde als Klon von '{source}' angelegt.\n"
-            f"Ordner: {folder}\n"
-            f"Attribute: {json.dumps(attributes, indent=2)}"
+            f"✅ Host '{target}' created as a clone of '{source}'.\n"
+            f"Folder: {folder}\n"
+            f"Attributes: {json.dumps(attributes, indent=2)}"
         )
         return [{"type": "text", "text": msg}]
 

@@ -47,13 +47,13 @@ class AuditLogHandler(BaseHandler):
 
         result = self.client.get("domain-types/audit_log/collections/all", params=params)
         if not result.get("success"):
-            return self.error_response("Audit-Log konnte nicht abgerufen werden")
+            return self.error_response("Could not retrieve the audit log")
 
         entries = result["data"].get("value", [])
         if not entries:
-            return [{"type": "text", "text": f"📋 Keine Audit-Log-Einträge für {date}."}]
+            return [{"type": "text", "text": f"📋 No audit log entries for {date}."}]
 
-        lines = [f"📋 **Audit Log — {date} ({len(entries)} Einträge)**\n"]
+        lines = [f"📋 **Audit Log — {date} ({len(entries)} entries)**\n"]
         for entry in entries[:limit]:
             ext = entry.get("extensions", {})
             time_ts = ext.get("time", 0)

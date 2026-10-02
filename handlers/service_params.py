@@ -71,9 +71,9 @@ class ServiceParamsHandler(BaseHandler):
                 f"objects/host/{hostname}/actions/discover_services/invoke",
                 {"mode": "refresh"},
             )
-            return f"✅ Service Discovery für '{hostname}' ausgeführt — neue Schwellwerte aktiv."
+            return f"✅ Service discovery run for '{hostname}' — the new thresholds are active."
         except Exception as exc:
-            return f"⚠️  Service Discovery fehlgeschlagen: {exc}"
+            return f"⚠️  Service discovery failed: {exc}"
 
     async def _set_process_thresholds(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -156,13 +156,13 @@ class ServiceParamsHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ Prozess-Schwellwerte für 'Process {proc}' auf '{hostname}' angelegt.\n"
+                f"✅ Process thresholds for 'Process {proc}' on '{hostname}' created.\n"
                 f"Minimum: warn<{warn_min}, crit<{crit_min}\n"
                 f"Maximum: warn>={warn_max}, crit>={crit_max}\n"
-                + (f"CPU gesamt: warn {cpu_warn}%, crit {cpu_crit}%\n" if cpu_warn else "")
-                + (f"CPU pro Prozess: warn {single_cpu_warn}%, crit {single_cpu_crit}%\n" if single_cpu_warn else "")
-                + (f"CPU-Mittelwert: {cpu_average_min} Minuten\n" if cpu_average_min else "")
-                + (f"Virtueller Speicher: warn {mem_warn_mb} MB, crit {mem_crit_mb} MB\n" if mem_warn_mb else "")
+                + (f"CPU total: warn {cpu_warn}%, crit {cpu_crit}%\n" if cpu_warn else "")
+                + (f"CPU per process: warn {single_cpu_warn}%, crit {single_cpu_crit}%\n" if single_cpu_warn else "")
+                + (f"CPU averaged over: {cpu_average_min} minutes\n" if cpu_average_min else "")
+                + (f"Virtual memory: warn {mem_warn_mb} MB, crit {mem_crit_mb} MB\n" if mem_warn_mb else "")
                 + (
                     f"Resident-Speicher: warn {resident_warn_mb} MB, crit {resident_crit_mb} MB\n"
                     if resident_warn_mb
@@ -175,9 +175,9 @@ class ServiceParamsHandler(BaseHandler):
                 msg += self._run_activation() + "\n"
                 msg += self._discover_services(hostname)
             else:
-                msg += "⚠️  Noch keine Service Discovery ausgeführt — Schwellwerte erst nach Discovery aktiv."
+                msg += "⚠️  No service discovery has run yet — the thresholds take effect only after one does."
             return [{"type": "text", "text": msg}]
-        return self.error_response("Regel anlegen fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the rule failed", str(result.get("data", {})))
 
     async def _list_process_rules(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname")
@@ -188,9 +188,9 @@ class ServiceParamsHandler(BaseHandler):
             params={"ruleset_name": "inventory_processes_rules"},
         )
         if not result.get("success"):
-            return self.error_response("Abruf fehlgeschlagen", "inventory_processes_rules nicht erreichbar")
+            return self.error_response("Could not retrieve the rules", "inventory_processes_rules is not reachable")
 
-        lines = ["🔍 **Prozess-Monitoring-Regeln (inventory_processes_rules)**\n"]
+        lines = ["🔍 **Process monitoring rules (inventory_processes_rules)**\n"]
         for rule in result["data"].get("value", []):
             ext = rule.get("extensions", {})
             cond = ext.get("conditions", {})
@@ -266,7 +266,7 @@ class ServiceParamsHandler(BaseHandler):
         value["speed"] = speed_bits
 
         props: Dict[str, Any] = {"disabled": False}
-        props["description"] = description or f"{service_desc} auf {hostname}: expected speed {speed_mbit} Mbit/s"
+        props["description"] = description or f"{service_desc} on {hostname}: expected speed {speed_mbit} Mbit/s"
 
         result = self.client.post(
             "domain-types/rule/collections/all",
@@ -288,13 +288,13 @@ class ServiceParamsHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ Interface-Parameter für '{service_desc}' auf '{hostname}' gesetzt.\n"
-                f"Erwartete Geschwindigkeit: {speed_mbit} Mbit/s ({speed_bits:,} bits/s)\n"
+                f"✅ Interface parameters set for '{service_desc}' on '{hostname}'.\n"
+                f"Expected speed: {speed_mbit} Mbit/s ({speed_bits:,} bits/s)\n"
                 f"Rule-ID: {rule_id}\n"
-                f"ℹ️  Änderungen aktivieren damit die Regel greift."
+                f"ℹ️  Activate changes for the rule to take effect."
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("Regel anlegen fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the rule failed", str(result.get("data", {})))
 
     async def _set_memory_thresholds(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -344,19 +344,19 @@ class ServiceParamsHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ Memory-Schwellwerte für '{hostname}' gesetzt.\n"
+                f"✅ Memory thresholds set for '{hostname}'.\n"
                 + (f"RAM: warn>={ram_warn}%, crit>={ram_crit}%\n" if "levels_virtual" in value else "")
                 + (f"Swap: warn>={swap_warn}%, crit>={swap_crit}%\n" if "levels_swap" in value else "")
                 + f"Rule-ID: {rule_id}\n"
-                + "ℹ️  Regel steht ganz oben — höher priorisiert als ältere Regeln."
+                + "ℹ️  The rule is at the top, so it takes precedence over older rules."
             )
             return [{"type": "text", "text": msg}]
         detail = result.get("data", {})
-        return self.error_response("Regel anlegen fehlgeschlagen", f"{detail}\nvalue_raw: {repr(value)}")
+        return self.error_response("Creating the rule failed", f"{detail}\nvalue_raw: {repr(value)}")
 
     async def _delete_service_param_rule(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         rule_id = arguments.get("rule_id", "")
         if not rule_id:
             return self.error_response("Missing parameter", "rule_id is required")
         self.client.delete(f"objects/rule/{rule_id}")
-        return [{"type": "text", "text": f"✅ Regel `{rule_id}` gelöscht."}]
+        return [{"type": "text", "text": f"✅ Rule `{rule_id}` deleted."}]

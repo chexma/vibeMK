@@ -239,9 +239,9 @@ class ActiveChecksHandler(BaseHandler):
                 details.append(f"Beschreibung: {description}")
             details.append(f"Rule-ID: {rule_id}")
             return [
-                {"type": "text", "text": f"✅ HTTP-Check '{name}' für '{hostname}' angelegt.\n" + "\n".join(details)}
+                {"type": "text", "text": f"✅ HTTP check '{name}' created for '{hostname}'.\n" + "\n".join(details)}
             ]
-        return self.error_response("HTTP-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the HTTP check failed", str(result.get("data", {})))
 
     async def _create_tcp_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -284,14 +284,14 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ TCP-Check Port {port} für '{hostname}' angelegt.\n"
+                f"✅ TCP check on port {port} created for '{hostname}'.\n"
                 f"Service: {name or f'TCP Port {port}'}, SSL: {use_ssl}\n"
                 + (f"Expect: {expect}\n" if expect else "")
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("TCP-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the TCP check failed", str(result.get("data", {})))
 
     async def _create_icmp_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -328,8 +328,8 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ ICMP/PING-Check '{name}' für '{hostname}' angelegt.\n"
-                f"Pakete: {packets}, Timeout: {timeout}s\n"
+                f"✅ ICMP/PING check '{name}' created for '{hostname}'.\n"
+                f"Packets: {packets}, timeout: {timeout}s\n"
                 + (f"Ziel-IP: {explicit_address}\n" if explicit_address else "")
                 + (f"RTA: warn {rta_warn}ms / crit {rta_crit}ms\n" if rta_warn else "")
                 + (f"Loss: warn {loss_warn}% / crit {loss_crit}%\n" if loss_warn else "")
@@ -337,7 +337,7 @@ class ActiveChecksHandler(BaseHandler):
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("ICMP-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the ICMP check failed", str(result.get("data", {})))
 
     async def _create_custom_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -364,11 +364,11 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ Custom-Check '{service_description}' für '{hostname}' angelegt.\n"
-                f"Kommando: {command_line}\nRule-ID: {rule_id}"
+                f"✅ Custom check '{service_description}' created for '{hostname}'.\n"
+                f"Command: {command_line}\nRule ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("Custom-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the Custom check failed", str(result.get("data", {})))
 
     async def _create_dns_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -398,14 +398,14 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ DNS-Check für '{hostname}' angelegt.\n"
+                f"✅ DNS check created for '{hostname}'.\n"
                 f"Lookup: {lookup_hostname}, DNS-Server: {dns_server or 'Standard'}\n"
                 + (f"Erwartete IPs: {expected_addresses} (alle: {expect_all})\n" if expected_addresses else "")
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("DNS-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the DNS check failed", str(result.get("data", {})))
 
     async def _create_smtp_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -430,13 +430,13 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ SMTP-Check '{name}' für '{hostname}' angelegt.\n"
+                f"✅ SMTP check '{name}' created for '{hostname}'.\n"
                 f"Port: {port or 'Standard'}, STARTTLS: {starttls}\n"
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("SMTP-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the SMTP check failed", str(result.get("data", {})))
 
     async def _create_ftp_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -460,12 +460,12 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ FTP-Check Port {port} für '{hostname}' angelegt.\n"
+                f"✅ FTP check on port {port} created for '{hostname}'.\n"
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("FTP-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the FTP check failed", str(result.get("data", {})))
 
     async def _create_ldap_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -500,13 +500,13 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ LDAP-Check '{name}' für '{hostname}' angelegt.\n"
+                f"✅ LDAP check '{name}' created for '{hostname}'.\n"
                 f"Base-DN: {base_dn}\n"
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("LDAP-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the LDAP check failed", str(result.get("data", {})))
 
     async def _create_smb_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -537,13 +537,13 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ SMB-Check Share '{share}' für '{hostname}' angelegt.\n"
+                f"✅ SMB check on share '{share}' created for '{hostname}'.\n"
                 f"Warn: {warn_pct}%, Krit: {crit_pct}%\n"
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("SMB-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the SMB check failed", str(result.get("data", {})))
 
     async def _create_mkevents_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -567,12 +567,12 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ Event-Console-Check für '{hostname}' angelegt.\n"
+                f"✅ Event Console check created for '{hostname}'.\n"
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("mkevents-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the mkevents check failed", str(result.get("data", {})))
 
     async def _create_inventory_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname", "")
@@ -599,12 +599,12 @@ class ActiveChecksHandler(BaseHandler):
         if result.get("success"):
             rule_id = result["data"].get("id", "")
             msg = (
-                f"✅ HW/SW-Inventory-Check für '{hostname}' angelegt.\n"
+                f"✅ HW/SW inventory check created for '{hostname}'.\n"
                 + (f"Beschreibung: {description}\n" if description else "")
                 + f"Rule-ID: {rule_id}"
             )
             return [{"type": "text", "text": msg}]
-        return self.error_response("Inventory-Check fehlgeschlagen", str(result.get("data", {})))
+        return self.error_response("Creating the Inventory check failed", str(result.get("data", {})))
 
     async def _list_active_checks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         hostname = arguments.get("hostname")
@@ -641,7 +641,7 @@ class ActiveChecksHandler(BaseHandler):
                 )
 
         if len(lines) == 1:
-            lines.append("Keine Active-Check-Regeln gefunden.")
+            lines.append("No active check rules found.")
         return [{"type": "text", "text": "\n".join(lines)}]
 
     async def _delete_active_check(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -675,13 +675,13 @@ class ActiveChecksHandler(BaseHandler):
 
             if not matches:
                 return self.error_response(
-                    "Keine Regel gefunden",
-                    f"Keine Active-Check-Regel für '{hostname}'"
-                    + (f" mit Service '{service_name}'" if service_name else "")
-                    + " gefunden.",
+                    "No rule found",
+                    f"No active check rule for '{hostname}'"
+                    + (f" with service '{service_name}'" if service_name else "")
+                    + ".",
                 )
             if len(matches) > 1:
-                lines = [f"Mehrere Regeln für '{hostname}' gefunden — bitte rule_id angeben:\n"]
+                lines = [f"Several rules match '{hostname}'. Name one with rule_id:\n"]
                 for rid, rs, vr in matches:
                     lines.append(f"• {rs}: {rid}\n  Value: `{vr[:100]}`")
                 return [{"type": "text", "text": "\n".join(lines)}]
@@ -695,4 +695,4 @@ class ActiveChecksHandler(BaseHandler):
             )
 
         self.client.delete(f"objects/rule/{rule_id}")
-        return [{"type": "text", "text": f"✅ Active-Check-Regel '{rule_id}' gelöscht."}]
+        return [{"type": "text", "text": f"✅ Active check rule '{rule_id}' deleted."}]

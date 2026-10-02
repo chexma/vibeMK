@@ -51,11 +51,11 @@ class EventConsoleHandler(BaseHandler):
 
         result = self.client.get("domain-types/event_console/collections/all", params=params)
         if not result.get("success"):
-            return self.error_response("EC-Events konnten nicht abgerufen werden")
+            return self.error_response("Could not retrieve Event Console events")
 
         events = result["data"].get("value", [])
         if not events:
-            return [{"type": "text", "text": "📭 Keine Event-Console-Events gefunden."}]
+            return [{"type": "text", "text": "📭 No Event Console events found."}]
 
         lines = [f"🗃️ **Event Console — {len(events)} Events**\n"]
         for ev in events[:50]:
@@ -89,8 +89,8 @@ class EventConsoleHandler(BaseHandler):
             {"change_comment": comment},
         )
         if result.get("success"):
-            return [{"type": "text", "text": f"✅ Event {event_id} wurde quittiert."}]
-        return self.error_response("Quittierung fehlgeschlagen", str(result.get("data", {})))
+            return [{"type": "text", "text": f"✅ Event {event_id} acknowledged."}]
+        return self.error_response("Acknowledgement failed", str(result.get("data", {})))
 
     async def _change_event_state(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         event_id = arguments.get("event_id")
@@ -104,8 +104,8 @@ class EventConsoleHandler(BaseHandler):
             {"new_state": new_state},
         )
         if result.get("success"):
-            return [{"type": "text", "text": f"✅ Event {event_id}: Status auf '{new_state}' gesetzt."}]
-        return self.error_response("Statusänderung fehlgeschlagen", str(result.get("data", {})))
+            return [{"type": "text", "text": f"✅ Event {event_id}: state set to '{new_state}'."}]
+        return self.error_response("Changing the state failed", str(result.get("data", {})))
 
     async def _delete_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         event_ids = arguments.get("event_ids")
@@ -127,6 +127,6 @@ class EventConsoleHandler(BaseHandler):
             )
 
         if result.get("success"):
-            count = len(event_ids) if event_ids else "alle"
-            return [{"type": "text", "text": f"✅ {count} Event(s) gelöscht."}]
-        return self.error_response("Löschen fehlgeschlagen", str(result.get("data", {})))
+            count = len(event_ids) if event_ids else "All"
+            return [{"type": "text", "text": f"✅ {count} event(s) deleted."}]
+        return self.error_response("Deletion failed", str(result.get("data", {})))
