@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Read-only mode: `--read-only` or `VIBEMK_READ_ONLY=1` offers only the tools
   that read and refuses every write
+- Tool arguments are checked against each tool's schema; a missing or wrong
+  argument is answered with every problem at once instead of reaching CheckMK
 
 ### Security
 - `vibemk_test_direct_url` only requests URLs under the configured CheckMK API

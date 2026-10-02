@@ -57,7 +57,11 @@ class CheckMKMCPServer:
         self._registry_lock = threading.Lock()
         # Read-only is enforced twice: write tools are not listed, and a call
         # that names one anyway is refused by the dispatcher.
-        self._dispatcher = Dispatcher(self._registry_provider, allowed_tools=READ_ONLY if read_only else None)
+        self._dispatcher = Dispatcher(
+            self._registry_provider,
+            allowed_tools=READ_ONLY if read_only else None,
+            input_schemas={tool["name"]: tool["inputSchema"] for tool in get_all_tools()},
+        )
         # The version belongs on the Server itself, not only in the stdio
         # InitializationOptions: the HTTP transport reads it from here.
         self._server = Server(self.mcp_config.server_name, version=self.mcp_config.server_version)
