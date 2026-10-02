@@ -1,30 +1,50 @@
-# Python
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+
+# Packaging artefacts. Anchored to the repository root on purpose: an
+# unanchored build/ or lib/ would silently swallow a source directory of the
+# same name anywhere in the tree.
+/build/
+/dist/
+/sdist/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/var/
+/wheels/
+/develop-eggs/
+/downloads/
+/parts/
 *.egg-info/
-.installed.cfg
 *.egg
+.installed.cfg
 MANIFEST
 
-# Virtual environments
+# Virtual environments. venv writes its own .gitignore inside the directory
+# since Python 3.11, so .venv/ looks covered without being listed -- but that
+# does not hold for virtualenv, for older interpreters, or for a directory
+# someone names differently.
+.venv/
 venv/
 env/
 ENV/
+
+# Tool caches. mypy and ruff also self-ignore, with the same caveat.
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
 
 # IDE
 .vscode/
@@ -42,7 +62,7 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-# Environment variables (WICHTIG: Credentials nicht committen!)
+# Credentials: never commit these
 .env
 .env.local
 .env.production
@@ -51,41 +71,37 @@ Thumbs.db
 *.log
 logs/
 
-# Temporary files
-temp/
+# Scratch space
 tmp/
+temp/
 *.tmp
-
-# Coverage reports
-htmlcov/
-.coverage
-.coverage.*
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
 
 # Documentation builds
 docs/_build/
 
-# LLM Client configs mit Credentials
+# LLM client configurations, which hold credentials
 claude_desktop_config.json
 llm_config.json
 
-# CheckMK specific
+# Checkmk specifics
 checkmk_config.json
 test_credentials.json
 openapi-swagger-ui.yaml
 
-# Claude development documentation (private, not for repository)
+# Claude development notes: private, not for the repository. Both cases are
+# listed because git matches patterns case-sensitively on Linux -- CLAUDE.md
+# was only ever ignored here by accident of a case-insensitive filesystem.
 claude.md
 */claude.md
 **/claude.md
-
-# My ignores
-recommendations.md
-.gitignore
-pytest.errors
+CLAUDE.md
+**/CLAUDE.md
+CLAUDE.local.md
+**/CLAUDE.local.md
 .claude/agents/
-/tmp/
+.claude/settings.local.json
+
+# Personal working files
+recommendations.md
+pytest.errors
 /plan
