@@ -91,8 +91,68 @@ target-version = ['py310']
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "C4", "DTZ", "T10", "EXE", "ISC", "ICN", "G", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "RUF"]
-ignore = ["ANN101", "ANN102", "ANN401"]
+
+[tool.ruff.lint]
+# These settings used to live at the top level, where ruff has not read them
+# since 0.2 -- it warned on every run, and nothing ran ruff anyway. The old
+# selection asked for 36 rule groups and would have reported 2181 findings,
+# which is a selection nobody can act on.
+#
+# What is enabled here is what the code already satisfies, so CI enforces it
+# from the first run and the count cannot creep back up. Groups are promoted
+# out of the staged list below as their findings are cleared.
+select = [
+    "A",    # builtins shadowed by locals
+    "C4",   # comprehension rewrites
+    "F",    # pyflakes: undefined names, unused imports, dead locals
+    "I",    # import sorting (agrees with isort's black profile)
+    "ICN",  # conventional import aliases
+    "NPY",
+    "PD",
+    "PGH",  # blanket noqa / type: ignore
+    "PT",   # pytest style
+    "PYI",
+    "Q",    # quote style (agrees with black)
+    "RSE",  # raise with unnecessary parentheses
+    "T10",  # stray breakpoint()
+    "TID",  # banned relative imports
+    "W",    # pycodestyle warnings
+]
+
+ignore = [
+    # --- staged: real findings inside an otherwise-enabled group ---
+    "F403",   # 2: star re-exports in checkmk_types/__init__.py
+    "F405",   # 15: names that come from those star imports
+    "F841",   # 12: assigned-and-unused locals, several of them stale reads
+]
+
+# Groups deliberately not selected yet, with the count each would report.
+# Roughly in the order they are worth taking on:
+#
+#   B    7     bugbear; B904 (raise ... from) is the one that matters
+#   PIE  8     redundant pass / repeated startswith
+#   SIM  11    collapsible ifs, any()/all() rewrites
+#   DTZ  12    naive datetime calls -- needs care, these feed Checkmk's
+#              timestamp format and a blind fix could change behaviour
+#   SLF  22    private-member access, mostly in tests reaching into handlers
+#   ARG  37    unused arguments, many of them interface-mandated
+#   TRY  40    exception-handling style
+#   E    52    line length and bare except; the bare ones are worth it
+#   RUF  67    ambiguous unicode in the emoji-heavy response strings
+#   G    74    logging f-strings -- 74 call sites, mechanical but noisy
+#   RET  104   superfluous else-after-return
+#   PL   188   pylint port; magic values and long argument lists
+#   ANN  435   annotations in tests, which are deliberately untyped
+#   UP   1056  Dict -> dict and friends; one mechanical sweep, huge diff
+
+[tool.ruff.lint.per-file-ignores]
+# The licence header sits above the module docstring in these, which is a
+# deliberate choice, not an oversight.
+"main.py" = ["E402"]
+
+[tool.ruff.format]
+# black owns formatting; ruff is here to lint, not to fight over it.
+exclude = ["*"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -128,6 +188,28 @@ ensure_newline_before_comments = true
 known_first_party = ["api", "checkmk_types", "config", "handlers", "utils", "vibemk_mcp"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
+# The single source of pytest configuration. There used to be a pytest.ini
+# alongside this, which pytest preferred -- and every option in it was
+# silently dropped, because it carried the section header [tool:pytest], a
+# form only setup.cfg understands. pytest.ini needs [pytest]. The result was
+# two config files, neither of which had any effect.
 testpaths = ["tests"]
 python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+# Every async test currently carries an explicit @pytest.mark.asyncio, so
+# strict mode would also pass today. auto is the safer default: under strict,
+# an async test that forgets the marker is skipped rather than failed, and a
+# guard that silently stops running is this project's recurring failure mode.
+asyncio_mode = "auto"
+
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+
+# No filterwarnings: the suite currently runs clean under -W default, and
+# the previous config's blanket DeprecationWarning filter would have hidden
+# the next one.
