@@ -25,6 +25,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
+import threading
 from typing import Any, Optional
 
 import mcp.types as types
@@ -50,6 +51,8 @@ class CheckMKMCPServer:
     def __init__(self) -> None:
         self.mcp_config = MCPConfig()
         self._registry: Optional[ToolRegistry] = None
+        # Tool calls run on worker threads, so the first few can arrive together.
+        self._registry_lock = threading.Lock()
         self._dispatcher = Dispatcher(self._registry_provider)
         # The version belongs on the Server itself, not only in the stdio
         # InitializationOptions: the HTTP transport reads it from here.
@@ -58,13 +61,16 @@ class CheckMKMCPServer:
 
     def _registry_provider(self) -> ToolRegistry:
         """Build the registry on first use; raises when configuration is unusable."""
-        if self._registry is None:
-            logger.info("Initializing CheckMK connection for the first tool call")
-            config = CheckMKConfig.from_env()
-            logger.info("CheckMK config loaded: %s site=%s user=%s", config.server_url, config.site, config.username)
-            self._registry = ToolRegistry.from_client(CheckMKClient(config))
-            logger.info("Registry initialized: %d tools", len(self._registry.tool_names()))
-        return self._registry
+        with self._registry_lock:
+            if self._registry is None:
+                logger.info("Initializing CheckMK connection for the first tool call")
+                config = CheckMKConfig.from_env()
+                logger.info(
+                    "CheckMK config loaded: %s site=%s user=%s", config.server_url, config.site, config.username
+                )
+                self._registry = ToolRegistry.from_client(CheckMKClient(config))
+                logger.info("Registry initialized: %d tools", len(self._registry.tool_names()))
+            return self._registry
 
     def _register_handlers(self) -> None:
         async def list_tools(_ctx: Any, _params: Any) -> types.ListToolsResult:
