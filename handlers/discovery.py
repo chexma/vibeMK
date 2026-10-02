@@ -48,6 +48,21 @@ _BULK_OPTIONS_BY_MODE = {
         "update_host_labels": True,
         "do_full_scan": False,
     },
+    "only_service_labels": {
+        "monitor_undecided_services": False,
+        "remove_vanished_services": False,
+        "update_service_labels": True,
+        "update_host_labels": False,
+        "do_full_scan": False,
+    },
+    # Remove everything and rediscover: every option on, with a full scan.
+    "tabula_rasa": {
+        "monitor_undecided_services": True,
+        "remove_vanished_services": True,
+        "update_service_labels": True,
+        "update_host_labels": True,
+        "do_full_scan": True,
+    },
 }
 
 
@@ -315,7 +330,9 @@ class DiscoveryHandler:
             if not job_id:
                 return [{"type": "text", "text": "❌ Error: job_id is required"}]
 
-            result = self.client.get(f"objects/discovery_run/{job_id}")
+            # CheckMK serves bulk-discovery progress as a background job;
+            # objects/discovery_run/{id} is not a route it publishes.
+            result = self.client.get(f"objects/background_job/{job_id}")
 
             if result.get("success"):
                 data = result.get("data", {})

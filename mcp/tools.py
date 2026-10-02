@@ -339,6 +339,21 @@ def get_monitoring_tools() -> List[Dict[str, Any]]:
                     "host_name": {"type": "string", "description": "Name of the host"},
                     "service_description": {"type": "string", "description": "Service description (for service ack)"},
                     "comment": {"type": "string", "description": "Acknowledgment comment"},
+                    "sticky": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Hold the acknowledgement until the object returns to UP/OK",
+                    },
+                    "notify": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Send notifications to the configured contacts",
+                    },
+                    "persistent": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Keep the comment after the acknowledgement is removed",
+                    },
                 },
                 "required": ["acknowledge_type", "host_name", "comment"],
             },
@@ -1602,9 +1617,20 @@ def get_discovery_tools() -> List[Dict[str, Any]]:
                     "host_name": {"type": "string", "description": "Host name to discover services on"},
                     "mode": {
                         "type": "string",
-                        "description": "Discovery mode: 'new', 'remove', 'fix_all', 'refresh', 'only_host_labels'",
+                        "description": (
+                            "Discovery mode. 'tabula_rasa' removes every service and rediscovers, "
+                            "so it is the destructive one."
+                        ),
                         "default": "refresh",
-                        "enum": ["new", "remove", "fix_all", "refresh", "only_host_labels"],
+                        "enum": [
+                            "new",
+                            "remove",
+                            "fix_all",
+                            "refresh",
+                            "tabula_rasa",
+                            "only_host_labels",
+                            "only_service_labels",
+                        ],
                     },
                 },
                 "required": ["host_name"],

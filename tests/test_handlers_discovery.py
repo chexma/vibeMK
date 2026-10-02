@@ -63,13 +63,13 @@ class TestDiscoveryModes:
 
     @pytest.mark.asyncio
     async def test_an_unknown_mode_is_refused(self, handler):
-        """Four membership tests mean an unmapped mode asks CheckMK to do nothing.
+        """Four membership tests meant an unmapped mode asked CheckMK to do nothing.
 
-        It then reports success, so the caller believes a discovery ran.
+        It then reported success, so the caller believed a discovery had run.
         """
         handler.client.post.return_value = {"success": True, "data": {"id": "job-1"}}
 
-        result = await handler._fallback_to_bulk_discovery("web01", "tabula_rasa")
+        result = await handler._fallback_to_bulk_discovery("web01", "scorched_earth")
 
         assert "❌" in result[0]["text"]
         assert handler.client.post.call_count == 0
