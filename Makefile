@@ -55,6 +55,10 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@# setuptools reuses build/lib between runs and packages whatever it finds
+	@# there, so a tree left over from an older configuration ends up inside
+	@# the next wheel. Removing it is what keeps a build reproducible.
+	@rm -rf build dist 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup completed"
