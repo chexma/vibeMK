@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.6.4] - 2026-10-03
 
 ### Added
 - Service status, current problems, downtimes and metrics also return
