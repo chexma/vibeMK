@@ -240,7 +240,33 @@ def get_host_tools() -> List[Dict[str, Any]]:
             "description": "🔄 Bulk update hosts - Update multiple hosts at once",
             "inputSchema": {
                 "type": "object",
-                "properties": {"entries": {"type": "array", "description": "List of host update entries"}},
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "description": "One entry per host to change",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "host_name": {"type": "string", "description": "Host to change"},
+                                "update_attributes": {
+                                    "type": "object",
+                                    "description": "Attributes to set or change, others stay, e.g. {'alias': 'web'}",
+                                },
+                                "remove_attributes": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Attribute names to remove, e.g. ['alias']",
+                                },
+                                "attributes": {
+                                    "type": "object",
+                                    "description": "Replace ALL attributes with these (unset ones are removed)",
+                                },
+                            },
+                            "required": ["host_name"],
+                        },
+                    }
+                },
                 "required": ["entries"],
             },
         },
@@ -2208,10 +2234,6 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     "hostname": {"type": "string", "description": "Hostname"},
                     "port": {"type": "integer", "description": "FTP port (default: 21)"},
                     "timeout": {"type": "integer", "description": "Timeout in seconds (optional)"},
-                    "passive": {
-                        "type": "boolean",
-                        "description": "Passive FTP mode (optional)",
-                    },
                     "refuse_state": {
                         "type": "string",
                         "description": "State when the connection is refused: 'crit', 'warn', 'ok' (default: 'crit')",
@@ -2316,7 +2338,7 @@ def get_active_check_tools() -> List[Dict[str, Any]]:
                     },
                     "show_last_log": {
                         "type": "string",
-                        "description": "'none', 'summary' or 'long' (default: 'summary')",
+                        "description": "'summary' (in the service summary), 'details' or 'no' (default: 'summary')",
                     },
                     "remote_ec_host": {
                         "type": "string",
@@ -2448,6 +2470,10 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "event_id": {"type": "integer", "description": "Event ID"},
+                    "site_id": {
+                        "type": "string",
+                        "description": "Site the event lives on (optional, defaults to the connected site)",
+                    },
                     "comment": {"type": "string", "description": "Comment recorded with the acknowledgement"},
                 },
                 "required": ["event_id"],
@@ -2460,6 +2486,10 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
                 "type": "object",
                 "properties": {
                     "event_id": {"type": "integer", "description": "Event ID"},
+                    "site_id": {
+                        "type": "string",
+                        "description": "Site the event lives on (optional, defaults to the connected site)",
+                    },
                     "new_state": {
                         "type": "string",
                         "description": "New state: 'ok', 'warning', 'critical', 'unknown'",
@@ -2476,6 +2506,10 @@ def get_event_console_tools() -> List[Dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "site_id": {
+                        "type": "string",
+                        "description": "Site the event lives on (optional, defaults to the connected site)",
+                    },
                     "event_ids": {
                         "type": "array",
                         "items": {"type": "integer"},

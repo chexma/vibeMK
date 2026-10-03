@@ -4,11 +4,27 @@ Active check management — creates CheckMK active check rules
 Active checks are implemented as rules on active_checks:* rulesets.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from vibemk.api.exceptions import CheckMKError
 from vibemk.api.paths import path_segment
 from vibemk.handlers.base import BaseHandler
+
+_DAY = 86400.0
+
+
+# The rulesets moved to CheckMK's form specs store levels, passwords and
+# choices in a new shape. Their migrations only run when a stored rule is
+# loaded -- a value_raw sent through the REST API must already be in the new
+# shape, or CheckMK answers 400 "Unable to transform value".
+def _fixed_levels(warn: Any, crit: Any, scale: float = 1.0) -> Tuple[str, Tuple[float, float]]:
+    """SimpleLevels in their stored form; scale converts to the spec's unit (seconds)."""
+    return ("fixed", (float(warn) * scale, float(crit) * scale))
+
+
+def _explicit_password(password: str) -> Tuple[str, str, Tuple[str, str]]:
+    """A Password form spec value holding the secret itself rather than a store reference."""
+    return ("cmk_postprocessed", "explicit_password", ("", password))
 
 
 class ActiveChecksHandler(BaseHandler):
@@ -152,7 +168,10 @@ class ActiveChecksHandler(BaseHandler):
         if port:
             host_cfg["port"] = int(port)
         if address_family:
-            host_cfg["address_family"] = address_family
+            # The tool takes ipv4 / ipv6; the ruleset's own names are passed through.
+            host_cfg["address_family"] = {"ipv4": "ipv4_enforced", "ipv6": "ipv6_enforced"}.get(
+                address_family, address_family
+            )
         if proxy_address:
             host_cfg["address"] = ("proxy", {"address": proxy_address, "port": int(proxy_port or 80)})
         elif direct_address:
@@ -162,7 +181,7 @@ class ActiveChecksHandler(BaseHandler):
 
         # --- mode block ---
         if cert_mode:
-            mode = ("cert", {"cert_days": (int(cert_days_warn), int(cert_days_crit))})
+            mode = ("cert", {"cert_days": _fixed_levels(cert_days_warn, cert_days_crit, _DAY)})
         else:
             url_params: Dict[str, Any] = {}
             if uri and uri != "/" or uri:
@@ -172,7 +191,12 @@ class ActiveChecksHandler(BaseHandler):
             if expect_string:
                 url_params["expect_string"] = expect_string
             if expect_regex:
-                url_params["expect_regex"] = expect_regex
+                url_params["expect_regex"] = {
+                    "regex": expect_regex,
+                    "case_insensitive": False,
+                    "crit_if_found": False,
+                    "multiline": False,
+                }
             if expect_response:
                 url_params["expect_response"] = (
                     expect_response if isinstance(expect_response, list) else [expect_response]
@@ -180,7 +204,7 @@ class ActiveChecksHandler(BaseHandler):
             if timeout:
                 url_params["timeout"] = int(timeout)
             if warn_seconds and crit_seconds:
-                url_params["response_time"] = (float(warn_seconds), float(crit_seconds))
+                url_params["response_time"] = _fixed_levels(warn_seconds, crit_seconds)
             if method:
                 url_params["method"] = method.upper()
             if no_body:
@@ -190,7 +214,7 @@ class ActiveChecksHandler(BaseHandler):
             if extended_perfdata:
                 url_params["extended_perfdata"] = True
             if auth_user and auth_password:
-                url_params["auth"] = (auth_user, ("password", auth_password))
+                url_params["auth"] = {"user": auth_user, "password": _explicit_password(auth_password)}
             mode = ("url", url_params)
 
         value = {"name": name, "host": host_cfg, "mode": mode}
@@ -245,7 +269,7 @@ class ActiveChecksHandler(BaseHandler):
         if use_ssl:
             value["ssl"] = True
         if cert_warn and cert_crit:
-            value["cert_days"] = (int(cert_warn), int(cert_crit))
+            value["cert_days"] = _fixed_levels(cert_warn, cert_crit, _DAY)
         if expect:
             value["expect"] = expect if isinstance(expect, list) else [expect]
         if refuse_state:
@@ -255,7 +279,7 @@ class ActiveChecksHandler(BaseHandler):
         if timeout:
             value["timeout"] = int(timeout)
         if warn_s and crit_s:
-            value["response_time"] = (float(warn_s), float(crit_s))
+            value["response_time"] = _fixed_levels(warn_s, crit_s)
 
         result = self._post_rule("active_checks:tcp", repr(value), hostname, folder, description)
         if result.get("success"):
@@ -276,7 +300,7 @@ class ActiveChecksHandler(BaseHandler):
         description = arguments.get("description", "")
         folder = self._resolve_folder(hostname, arguments.get("folder"))
         packets = arguments.get("packets", 5)
-        timeout = arguments.get("timeout", 20.0)
+        timeout = arguments.get("timeout", 20)
         explicit_address = arguments.get("explicit_address")  # ping a different IP
         rta_warn = arguments.get("rta_warn_ms")  # round-trip warn ms
         rta_crit = arguments.get("rta_crit_ms")  # round-trip crit ms
@@ -290,7 +314,7 @@ class ActiveChecksHandler(BaseHandler):
         value: Dict[str, Any] = {
             "description": name,
             "packets": int(packets),
-            "timeout": float(timeout),
+            "timeout": int(timeout),
         }
         if explicit_address:
             value["address"] = ("explicit", explicit_address)
@@ -403,7 +427,7 @@ class ActiveChecksHandler(BaseHandler):
         if starttls:
             value["starttls"] = True
         if starttls or arguments.get("check_cert"):
-            value["cert_days"] = (int(cert_warn), int(cert_crit))
+            value["cert_days"] = _fixed_levels(cert_warn, cert_crit, _DAY)
 
         result = self._post_rule("active_checks:smtp", repr(value), hostname, folder, description)
         if result.get("success"):
@@ -421,7 +445,6 @@ class ActiveChecksHandler(BaseHandler):
         hostname = arguments.get("hostname", "")
         port = int(arguments.get("port", 21))
         timeout = arguments.get("timeout")
-        passive = arguments.get("passive")
         refuse_state = arguments.get("refuse_state", "crit")
         description = arguments.get("description", "")
         folder = self._resolve_folder(hostname, arguments.get("folder"))
@@ -432,8 +455,6 @@ class ActiveChecksHandler(BaseHandler):
         value: Dict[str, Any] = {"port": port, "refuse_state": refuse_state}
         if timeout is not None:
             value["timeout"] = int(timeout)
-        if passive is not None:
-            value["passive"] = passive
 
         result = self._post_rule("active_checks:ftp", repr(value), hostname, folder, description)
         if result.get("success"):
@@ -466,10 +487,10 @@ class ActiveChecksHandler(BaseHandler):
         value: Dict[str, Any] = {
             "name": name,
             "base_dn": base_dn,
-            "response_time": (warn_ms, crit_ms),
+            "response_time": _fixed_levels(warn_ms, crit_ms, 0.001),
         }
         if bind_dn and password:
-            value["authentication"] = (bind_dn, ("password", password))
+            value["authentication"] = {"bind_dn": bind_dn, "password": _explicit_password(password)}
         if port:
             value["port"] = int(port)
         if attribute:
@@ -504,11 +525,12 @@ class ActiveChecksHandler(BaseHandler):
 
         value: Dict[str, Any] = {
             "share": share,
-            "host": smb_host,
-            "levels": (warn_pct, crit_pct),
+            # use_parent_host, or the name of the host that serves the share
+            "host": ("use_parent_host", "") if smb_host == "use_parent_host" else ("define_host", smb_host),
+            "levels": _fixed_levels(warn_pct, crit_pct),
         }
         if username and password:
-            value["auth"] = (username, ("password", password))
+            value["auth"] = {"user": username, "password": _explicit_password(password)}
         if workgroup:
             value["workgroup"] = workgroup
 
@@ -537,9 +559,12 @@ class ActiveChecksHandler(BaseHandler):
 
         value: Dict[str, Any] = {
             "hostspec": ["$HOSTNAME$", "$HOSTADDRESS$", "$HOSTALIAS$"],
-            "ignore_acknowledged": ignore_acknowledged,
-            "remote": ("socket", remote) if remote else None,
-            "show_last_log": show_last_log,
+            # A FixedValue(True): the key is present to ignore them, absent otherwise
+            **({"ignore_acknowledged": True} if ignore_acknowledged else {}),
+            # None is the local Event Console; a remote one is reached over TCP
+            "remote": (remote, 6558) if remote else None,
+            # The ruleset's choices are summary, details and no
+            "show_last_log": {"none": "no", "long": "details"}.get(show_last_log, show_last_log),
         }
 
         result = self._post_rule("active_checks:mkevents", repr(value), hostname, folder, description)

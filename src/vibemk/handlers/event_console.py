@@ -87,7 +87,7 @@ class EventConsoleHandler(BaseHandler):
 
         result = self.client.post(
             f"objects/event_console/{path_segment(event_id)}/actions/update_and_acknowledge/invoke",
-            {"change_comment": comment},
+            {"change_comment": comment, "site_id": self._site(arguments)},
         )
         if result.get("success"):
             return [{"type": "text", "text": f"✅ Event {event_id} acknowledged."}]
@@ -102,29 +102,39 @@ class EventConsoleHandler(BaseHandler):
 
         result = self.client.post(
             f"objects/event_console/{path_segment(event_id)}/actions/change_state/invoke",
-            {"new_state": new_state},
+            {"new_state": new_state, "site_id": self._site(arguments)},
         )
         if result.get("success"):
             return [{"type": "text", "text": f"✅ Event {event_id}: state set to '{new_state}'."}]
         return self.error_response("Changing the state failed", str(result.get("data", {})))
 
+    def _site(self, arguments: Dict[str, Any]) -> str:
+        """The site an event lives on: the one given, else the site vibeMK is connected to.
+
+        CheckMK requires it on every write -- an event ID is only unique per site.
+        """
+        return str(arguments.get("site_id") or getattr(self.client.config, "site", ""))
+
     async def _delete_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         event_ids = arguments.get("event_ids")
 
+        # The endpoint takes one of three filter shapes, named by filter_type.
+        # by_id deletes a single event, so a list of IDs is one call each.
         if event_ids:
-            result = self.client.post(
-                "domain-types/event_console/actions/delete/invoke",
-                {"event_ids": event_ids},
-            )
+            for event_id in event_ids:
+                result = self.client.post(
+                    "domain-types/event_console/actions/delete/invoke",
+                    {"filter_type": "by_id", "site_id": self._site(arguments), "event_id": int(event_id)},
+                )
+                if not result.get("success"):
+                    break
         else:
-            phase = arguments.get("phase", "open")
-            host = arguments.get("host")
-            body: Dict[str, Any] = {"phase": phase}
-            if host:
-                body["host"] = host
+            filters: Dict[str, Any] = {"phase": arguments.get("phase", "open")}
+            if host := arguments.get("host"):
+                filters["host"] = host
             result = self.client.post(
                 "domain-types/event_console/actions/delete/invoke",
-                body,
+                {"filter_type": "params", "filters": filters},
             )
 
         if result.get("success"):
