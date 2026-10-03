@@ -141,8 +141,6 @@ select = [
 
 ignore = [
     # --- staged: real findings inside an otherwise-enabled group ---
-    "F403",   # 2: star re-exports in checkmk_types/__init__.py
-    "F405",   # 15: names that come from those star imports
     "F841",   # 12: assigned-and-unused locals, several of them stale reads
 ]
 
