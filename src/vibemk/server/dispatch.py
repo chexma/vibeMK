@@ -21,10 +21,10 @@ CONFIGURATION_HELP = (
     "- CHECKMK_SERVER_URL\n- CHECKMK_SITE\n- CHECKMK_USERNAME\n- CHECKMK_PASSWORD"
 )
 
-# Handlers mark a failure by opening the first text block with this. It is the
-# convention BaseHandler.error_response established and every handler follows,
-# including the ones that build their content inline.
-ERROR_MARKER = "❌"
+# Handlers mark a failure with a block of this type (BaseHandler.error_response
+# and error_text add it). Reading the failure back out of the prose -- a
+# leading ❌ -- misreported a CRITICAL service and a failed job as failed calls.
+ERROR_BLOCK = "_error"
 
 # Handlers attach machine-readable data in a block of this type. It is lifted
 # out here into the result's structuredContent and never sent as content.
@@ -37,12 +37,9 @@ def is_error(content: Sequence[Dict[str, Any]]) -> bool:
     MCP distinguishes a protocol error (the request was malformed, or the tool
     does not exist) from a tool execution error (the tool ran and failed). The
     second belongs in the result with `isError: true`, because that is what a
-    model can act on. Handlers signal it in prose, so it is read back here.
+    model can act on. Handlers say so explicitly, with an ERROR_BLOCK.
     """
-    for block in content:
-        if block.get("type") == "text":
-            return str(block.get("text", "")).lstrip().startswith(ERROR_MARKER)
-    return False
+    return any(block.get("type") == ERROR_BLOCK for block in content)
 
 
 def to_content_blocks(content: Sequence[Dict[str, Any]]) -> List[types.ContentBlock]:
@@ -50,7 +47,7 @@ def to_content_blocks(content: Sequence[Dict[str, Any]]) -> List[types.ContentBl
     return [
         types.TextContent(type="text", text=str(block.get("text", "")))
         for block in content
-        if block.get("type") != STRUCTURED_BLOCK
+        if block.get("type") not in (STRUCTURED_BLOCK, ERROR_BLOCK)
     ]
 
 

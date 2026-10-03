@@ -156,26 +156,21 @@ class ServiceHandler(BaseHandler):
                 return response
 
         # If all methods failed, return comprehensive error information
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"❌ **Service Status Retrieval Failed**\n\n"
-                    f"Service: {host_name}/{service_description}\n\n"
-                    f"**Tried Methods:**\n"
-                    f"1️⃣ Service collection with check output\n"
-                    f"2️⃣ show_service action (state only)\n"
-                    f"3️⃣ Query API\n\n"
-                    f"**Possible Issues:**\n"
-                    f"• Service not found in monitoring system\n"
-                    f"• Service description name mismatch\n"
-                    f"• CheckMK API version compatibility\n"
-                    f"• Monitoring data not yet available\n\n"
-                    f"**Recommendation:**\n"
-                    f"Verify the service exists in CheckMK GUI and is being monitored."
-                ),
-            }
-        ]
+        return self.error_text(
+            f"❌ **Service Status Retrieval Failed**\n\n"
+            f"Service: {host_name}/{service_description}\n\n"
+            f"**Tried Methods:**\n"
+            f"1️⃣ Service collection with check output\n"
+            f"2️⃣ show_service action (state only)\n"
+            f"3️⃣ Query API\n\n"
+            f"**Possible Issues:**\n"
+            f"• Service not found in monitoring system\n"
+            f"• Service description name mismatch\n"
+            f"• CheckMK API version compatibility\n"
+            f"• Monitoring data not yet available\n\n"
+            f"**Recommendation:**\n"
+            f"Verify the service exists in CheckMK GUI and is being monitored."
+        )
 
     def _service_status_via_collection(
         self, host_name: str, service_description: str

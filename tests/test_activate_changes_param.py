@@ -29,12 +29,13 @@ READ_SCHEMA = {"type": "object", "properties": {"name": {"type": "string"}}, "ad
 
 
 class ActivatingHandler:
-    def __init__(self, text: str = "✅ **Rule created**") -> None:
+    def __init__(self, text: str = "✅ **Rule created**", failed: bool = False) -> None:
         self.text = text
+        self.failed = failed
         self.activations = 0
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        return [{"type": "text", "text": self.text}]
+        return [{"type": "text", "text": self.text}, *([{"type": "_error"}] if self.failed else [])]
 
     def _run_activation(self) -> str:
         self.activations += 1
@@ -68,7 +69,7 @@ class TestTheDispatcherActivates:
 
     @pytest.mark.asyncio
     async def test_a_failed_write_is_not_activated(self):
-        handler = ActivatingHandler(text="❌ **Creating the rule failed**")
+        handler = ActivatingHandler(text="❌ **Creating the rule failed**", failed=True)
 
         result = await _dispatcher(handler).call_tool("write", {"name": "x", "activate_changes": True})
 

@@ -29,16 +29,17 @@ OTHER_TOOL = "vibemk_get_host_status"
 class RecordingHandler:
     """A handler that records what it was asked and answers predictably."""
 
-    def __init__(self, text: str = "✅ **Done**", raises: BaseException | None = None) -> None:
+    def __init__(self, text: str = "✅ **Done**", raises: BaseException | None = None, failed: bool = False) -> None:
         self.text = text
         self.raises = raises
+        self.failed = failed
         self.calls: List[Dict[str, Any]] = []
 
     async def handle(self, tool_name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         self.calls.append({"tool": tool_name, "arguments": arguments})
         if self.raises is not None:
             raise self.raises
-        return [{"type": "text", "text": self.text}]
+        return [{"type": "text", "text": self.text}, *([{"type": "_error"}] if self.failed else [])]
 
 
 def make_dispatcher(handlers: Dict[str, Any] | None = None) -> Dispatcher:
@@ -58,7 +59,7 @@ class TestErrorsAreReportedAsResults:
 
     @pytest.mark.asyncio
     async def test_a_handler_reporting_failure_sets_is_error(self):
-        handlers = {TOOL: RecordingHandler(text="❌ **Host not found**")}
+        handlers = {TOOL: RecordingHandler(text="❌ **Host not found**", failed=True)}
 
         result = await make_dispatcher(handlers).call_tool(TOOL, {})
 
@@ -225,17 +226,27 @@ class TestToolCallsLeaveATrace:
 
 
 class TestIsErrorDetection:
-    def test_a_cross_marks_a_failure(self):
-        assert is_error([{"type": "text", "text": "❌ **Failed**"}]) is True
+    """A failure is what the handler declares, not what its prose looks like."""
 
-    def test_leading_whitespace_does_not_hide_the_marker(self):
-        assert is_error([{"type": "text", "text": "  ❌ **Failed**"}]) is True
+    def test_the_error_block_marks_a_failure(self):
+        assert is_error([{"type": "text", "text": "❌ **Failed**"}, {"type": "_error"}]) is True
+
+    def test_a_cross_in_the_text_alone_is_not_a_failure(self):
+        """A CRITICAL service or a failed job may well be shown with ❌ -- the call itself succeeded."""
+        assert is_error([{"type": "text", "text": "❌ **Check_MK** is CRITICAL"}]) is False
 
     def test_a_tick_is_a_success(self):
         assert is_error([{"type": "text", "text": "✅ **Done**"}]) is False
 
     def test_empty_content_is_a_success(self):
         assert is_error([]) is False
+
+    def test_the_error_block_never_reaches_the_client(self):
+        from vibemk.server.dispatch import to_content_blocks
+
+        blocks = to_content_blocks([{"type": "text", "text": "❌ **Failed**"}, {"type": "_error"}])
+
+        assert [block.text for block in blocks] == ["❌ **Failed**"]
 
 
 class TestServerWiring:

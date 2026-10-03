@@ -220,19 +220,14 @@ class MetricsHandler(BaseHandler):
             try:
                 available_metrics = self._available_metrics(host_name, service_description)
                 if available_metrics:
-                    return [
-                        {
-                            "type": "text",
-                            "text": (
-                                f"❌ **Metrics Request Failed**\n\n"
-                                f"Service: {host_name}/{service_description}\n"
-                                f"Requested metric: {metric_name}\n"
-                                f"Error: {error_msg}\n\n"
-                                f"✅ **Available Metrics:** {', '.join(available_metrics)}\n\n"
-                                f"💡 **Suggestion:** Try one of these metric IDs instead"
-                            ),
-                        }
-                    ]
+                    return self.error_text(
+                        f"❌ **Metrics Request Failed**\n\n"
+                        f"Service: {host_name}/{service_description}\n"
+                        f"Requested metric: {metric_name}\n"
+                        f"Error: {error_msg}\n\n"
+                        f"✅ **Available Metrics:** {', '.join(available_metrics)}\n\n"
+                        f"💡 **Suggestion:** Try one of these metric IDs instead"
+                    )
             except Exception as e2:
                 self.logger.debug("Service lookup for error message failed: %s", e2)
 

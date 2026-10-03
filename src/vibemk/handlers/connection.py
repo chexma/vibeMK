@@ -132,20 +132,15 @@ class ConnectionHandler(BaseHandler):
             except:
                 error_data = {"error": e.reason}
 
-            return [
-                {
-                    "type": "text",
-                    "text": (
-                        f"❌ **HTTP Error {e.code}**\n\n"
-                        f"URL: {test_url}\n"
-                        f"Error: {e.reason}\n"
-                        f"Response: {json.dumps(error_data, indent=2)}"
-                    ),
-                }
-            ]
+            return self.error_text(
+                f"❌ **HTTP Error {e.code}**\n\n"
+                f"URL: {test_url}\n"
+                f"Error: {e.reason}\n"
+                f"Response: {json.dumps(error_data, indent=2)}"
+            )
 
         except Exception as e:
-            return [{"type": "text", "text": (f"❌ **Request Failed**\n\nURL: {test_url}\nError: {str(e)}")}]
+            return self.error_text(f"❌ **Request Failed**\n\nURL: {test_url}\nError: {str(e)}")
 
     def _refuse_foreign_url(self, test_url: str) -> Optional[str]:
         """Explain why a URL lies outside the CheckMK API, or None if it does not."""
