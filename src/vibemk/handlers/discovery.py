@@ -95,7 +95,7 @@ class DiscoveryHandler(BaseHandler):
         }
 
         if tool_name not in method_map:
-            return [{"type": "text", "text": f"❌ Unknown discovery tool: {tool_name}"}]
+            return self.error_text(f"❌ Unknown discovery tool: {tool_name}")
 
         return await method_map[tool_name](arguments)
 
@@ -106,13 +106,13 @@ class DiscoveryHandler(BaseHandler):
             mode = args.get("mode", "refresh")  # Default to refresh mode
 
             if not host_name:
-                return [{"type": "text", "text": "❌ Error: host_name is required"}]
+                return self.error_text("❌ Error: host_name is required")
 
             # Validate mode
             # The same table that maps modes for the bulk fallback, which a
             # test keeps equal to the enum the schema advertises.
             if mode not in _BULK_OPTIONS_BY_MODE:
-                return [{"type": "text", "text": f"❌ Error: mode must be one of {sorted(_BULK_OPTIONS_BY_MODE)}"}]
+                return self.error_text(f"❌ Error: mode must be one of {sorted(_BULK_OPTIONS_BY_MODE)}")
 
             data = {"host_name": host_name, "mode": mode}
 
@@ -181,7 +181,7 @@ class DiscoveryHandler(BaseHandler):
 
         except Exception as e:
             logger.exception(f"Error starting service discovery for {host_name}")
-            return [{"type": "text", "text": f"❌ Error starting service discovery: {str(e)}"}]
+            return self.error_text(f"❌ Error starting service discovery: {str(e)}")
 
     async def _fallback_to_bulk_discovery(self, host_name: str, mode: str) -> List[Dict[str, str]]:
         """Fallback to bulk discovery for single host when individual discovery fails"""
@@ -193,12 +193,7 @@ class DiscoveryHandler(BaseHandler):
             mapping = _BULK_OPTIONS_BY_MODE.get(mode)
             if mapping is None:
                 known = ", ".join(sorted(_BULK_OPTIONS_BY_MODE))
-                return [
-                    {
-                        "type": "text",
-                        "text": f"❌ Error: unknown discovery mode '{mode}'. Known modes: {known}",
-                    }
-                ]
+                return self.error_text(f"❌ Error: unknown discovery mode '{mode}'. Known modes: {known}")
 
             bulk_options = {key: value for key, value in mapping.items() if key != "do_full_scan"}
 
@@ -228,16 +223,13 @@ class DiscoveryHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [
-                    {
-                        "type": "text",
-                        "text": f"❌ Failed to start discovery (both single and bulk methods failed): {error_msg}",
-                    }
-                ]
+                return self.error_text(
+                    f"❌ Failed to start discovery (both single and bulk methods failed): {error_msg}"
+                )
 
         except Exception as e:
             logger.exception(f"Error in fallback bulk discovery for {host_name}")
-            return [{"type": "text", "text": f"❌ Error in fallback discovery method: {str(e)}"}]
+            return self.error_text(f"❌ Error in fallback discovery method: {str(e)}")
 
     async def start_bulk_discovery(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Start bulk discovery for multiple hosts"""
@@ -249,7 +241,7 @@ class DiscoveryHandler(BaseHandler):
             ignore_errors = args.get("ignore_errors", True)
 
             if not hostnames:
-                return [{"type": "text", "text": "❌ Error: hostnames list is required"}]
+                return self.error_text("❌ Error: hostnames list is required")
 
             # CheckMK defaults every BulkDiscoveryOptions flag to False. Only the
             # additive one is turned on here: a call carrying nothing but
@@ -298,11 +290,11 @@ class DiscoveryHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to start bulk discovery: {error_msg}"}]
+                return self.error_text(f"❌ Failed to start bulk discovery: {error_msg}")
 
         except Exception as e:
             logger.exception("Error starting bulk discovery")
-            return [{"type": "text", "text": f"❌ Error starting bulk discovery: {str(e)}"}]
+            return self.error_text(f"❌ Error starting bulk discovery: {str(e)}")
 
     async def get_discovery_status(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get current service discovery result for a host"""
@@ -310,7 +302,7 @@ class DiscoveryHandler(BaseHandler):
             host_name = args.get("host_name")
 
             if not host_name:
-                return [{"type": "text", "text": "❌ Error: host_name is required"}]
+                return self.error_text("❌ Error: host_name is required")
 
             result = self.client.get(f"objects/service_discovery/{path_segment(host_name)}")
 
@@ -370,11 +362,11 @@ class DiscoveryHandler(BaseHandler):
                 return [{"type": "text", "text": "".join(output)}]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to get discovery status: {error_msg}"}]
+                return self.error_text(f"❌ Failed to get discovery status: {error_msg}")
 
         except Exception as e:
             logger.exception(f"Error getting discovery status for {host_name}")
-            return [{"type": "text", "text": f"❌ Error getting discovery status: {str(e)}"}]
+            return self.error_text(f"❌ Error getting discovery status: {str(e)}")
 
     async def get_bulk_discovery_status(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get status of a bulk discovery job"""
@@ -382,7 +374,7 @@ class DiscoveryHandler(BaseHandler):
             job_id = args.get("job_id")
 
             if not job_id:
-                return [{"type": "text", "text": "❌ Error: job_id is required"}]
+                return self.error_text("❌ Error: job_id is required")
 
             # CheckMK serves bulk-discovery progress as a background job;
             # objects/discovery_run/{id} is not a route it publishes.
@@ -424,11 +416,11 @@ class DiscoveryHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to get bulk discovery status: {error_msg}"}]
+                return self.error_text(f"❌ Failed to get bulk discovery status: {error_msg}")
 
         except Exception as e:
             logger.exception(f"Error getting bulk discovery status for job {job_id}")
-            return [{"type": "text", "text": f"❌ Error getting bulk discovery status: {str(e)}"}]
+            return self.error_text(f"❌ Error getting bulk discovery status: {str(e)}")
 
     async def get_discovery_result(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get the current service discovery result (alias for get_discovery_status)"""
@@ -440,7 +432,7 @@ class DiscoveryHandler(BaseHandler):
             host_name = args.get("host_name")
 
             if not host_name:
-                return [{"type": "text", "text": "❌ Error: host_name is required"}]
+                return self.error_text("❌ Error: host_name is required")
 
             timeout = float(args.get("timeout", _WAIT_TIMEOUT_SECONDS))
             endpoint = f"objects/service_discovery_run/{path_segment(host_name)}/actions/wait-for-completion/invoke"
@@ -474,11 +466,11 @@ class DiscoveryHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to wait for discovery completion: {error_msg}"}]
+                return self.error_text(f"❌ Failed to wait for discovery completion: {error_msg}")
 
         except Exception as e:
             logger.exception(f"Error waiting for discovery completion for {host_name}")
-            return [{"type": "text", "text": f"❌ Error waiting for discovery completion: {str(e)}"}]
+            return self.error_text(f"❌ Error waiting for discovery completion: {str(e)}")
 
     async def get_discovery_background_job(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get the last service discovery background job status on a host"""
@@ -486,7 +478,7 @@ class DiscoveryHandler(BaseHandler):
             host_name = args.get("host_name")
 
             if not host_name:
-                return [{"type": "text", "text": "❌ Error: host_name is required"}]
+                return self.error_text("❌ Error: host_name is required")
 
             result = self.client.get(f"objects/service_discovery_run/{path_segment(host_name)}")
 
@@ -518,8 +510,8 @@ class DiscoveryHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to get discovery background job: {error_msg}"}]
+                return self.error_text(f"❌ Failed to get discovery background job: {error_msg}")
 
         except Exception as e:
             logger.exception(f"Error getting discovery background job for {host_name}")
-            return [{"type": "text", "text": f"❌ Error getting discovery background job: {str(e)}"}]
+            return self.error_text(f"❌ Error getting discovery background job: {str(e)}")

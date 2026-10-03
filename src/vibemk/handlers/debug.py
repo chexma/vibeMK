@@ -60,19 +60,19 @@ class DebugHandler(BaseHandler):
                         elif "domain_type" in data and isinstance(data["domain_type"], list) and data["domain_type"]:
                             first_items = data["domain_type"][:2]
 
-                        results.append(f"✅ **{endpoint}**\\n   Keys: {keys}\\n   Sample: {str(first_items)[:200]}...")
+                        results.append(f"✅ **{endpoint}**\n   Keys: {keys}\n   Sample: {str(first_items)[:200]}...")
                     else:
                         results.append(
-                            f"✅ **{endpoint}**\\n   Data type: {type(data)}\\n   Content: {str(data)[:200]}..."
+                            f"✅ **{endpoint}**\n   Data type: {type(data)}\n   Content: {str(data)[:200]}..."
                         )
                 else:
                     error_info = result.get("data", {})
-                    results.append(f"❌ **{endpoint}**\\n   Error: {error_info}")
+                    results.append(f"❌ **{endpoint}**\n   Error: {error_info}")
 
             except Exception as e:
-                results.append(f"💥 **{endpoint}**\\n   Exception: {str(e)}")
+                results.append(f"💥 **{endpoint}**\n   Exception: {str(e)}")
 
-        return [{"type": "text", "text": ("🔍 **CheckMK API Endpoints Debug**\\n\\n" + "\\n\\n".join(results))}]
+        return [{"type": "text", "text": ("🔍 **CheckMK API Endpoints Debug**\n\n" + "\n\n".join(results))}]
 
     async def _test_all_host_endpoints(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Test all possible host-related endpoints for a specific host"""
@@ -98,7 +98,7 @@ class DebugHandler(BaseHandler):
         results = []
 
         for endpoint in host_endpoints:
-            results.append(f"\\n🎯 **Testing endpoint: {endpoint}**")
+            results.append(f"\n🎯 **Testing endpoint: {endpoint}**")
 
             # Test GET requests
             for i, params in enumerate(query_variations):
@@ -178,7 +178,7 @@ class DebugHandler(BaseHandler):
                 except Exception as e:
                     results.append(f"   💥 {method} Query {i+1}: Exception: {str(e)}")
 
-        return [{"type": "text", "text": (f"🔍 **Host Endpoints Test for: {host_name}**\\n" + "\\n".join(results))}]
+        return [{"type": "text", "text": (f"🔍 **Host Endpoints Test for: {host_name}**\n" + "\n".join(results))}]
 
     async def _debug_host_data_structure(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Analyze the actual data structure returned by host APIs"""
@@ -196,7 +196,7 @@ class DebugHandler(BaseHandler):
         ]
 
         for description, endpoint, method, data in test_scenarios:
-            results.append(f"\\n🧪 **{description}**")
+            results.append(f"\n🧪 **{description}**")
             try:
                 if method == "POST":
                     result = self.client.post(endpoint, data=data)
@@ -290,7 +290,7 @@ class DebugHandler(BaseHandler):
                 results.append(f"   💥 Exception: {str(e)}")
 
         return [
-            {"type": "text", "text": (f"🔬 **Host Data Structure Analysis for: {host_name}**\\n" + "\\n".join(results))}
+            {"type": "text", "text": (f"🔬 **Host Data Structure Analysis for: {host_name}**\n" + "\n".join(results))}
         ]
 
     async def _debug_service_data_structure(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -318,7 +318,7 @@ class DebugHandler(BaseHandler):
         ]
 
         for description, endpoint, method, params in test_scenarios:
-            results.append(f"\\n🧪 **{description}**")
+            results.append(f"\n🧪 **{description}**")
             try:
                 if method == "POST":
                     result = self.client.post(endpoint, data=params)
@@ -363,7 +363,7 @@ class DebugHandler(BaseHandler):
             except Exception as e:
                 results.append(f"   💥 Exception: {str(e)}")
 
-        return [{"type": "text", "text": ("🔬 **Service Data Structure Analysis**\\n" + "\\n".join(results))}]
+        return [{"type": "text", "text": ("🔬 **Service Data Structure Analysis**\n" + "\n".join(results))}]
 
     async def _debug_permissions(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Debug automation user permissions"""
@@ -378,7 +378,7 @@ class DebugHandler(BaseHandler):
         ]
 
         for description, endpoint in basic_tests:
-            results.append(f"\\n🧪 **{description}**")
+            results.append(f"\n🧪 **{description}**")
             try:
                 result = self.client.get(endpoint)
                 success = result.get("success", False)
@@ -400,7 +400,7 @@ class DebugHandler(BaseHandler):
         ]
 
         for description, endpoint in monitoring_tests:
-            results.append(f"\\n🔒 **{description} Permissions**")
+            results.append(f"\n🔒 **{description} Permissions**")
             try:
                 result = self.client.get(endpoint)
                 success = result.get("success", False)
@@ -431,4 +431,4 @@ class DebugHandler(BaseHandler):
             except Exception as e:
                 results.append(f"   💥 Exception: {str(e)}")
 
-        return [{"type": "text", "text": ("🔐 **Permissions Debug**\\n" + "\\n".join(results))}]
+        return [{"type": "text", "text": ("🔐 **Permissions Debug**\n" + "\n".join(results))}]

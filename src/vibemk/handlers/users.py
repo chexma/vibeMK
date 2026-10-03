@@ -110,18 +110,13 @@ class UserHandler(BaseHandler):
             if isinstance(error_details, dict):
                 error_msg = error_details.get("detail", error_details.get("message", "Unknown error"))
                 title = error_details.get("title", "API Error")
-                return [
-                    {
-                        "type": "text",
-                        "text": (
-                            f"❌ **User Creation Failed**\n\n"
-                            f"Error: {title}\n"
-                            f"Details: {error_msg}\n\n"
-                            f"Request data sent: {data}\n\n"
-                            f"Full response: {result}"
-                        ),
-                    }
-                ]
+                return self.error_text(
+                    f"❌ **User Creation Failed**\n\n"
+                    f"Error: {title}\n"
+                    f"Details: {error_msg}\n\n"
+                    f"Request data sent: {data}\n\n"
+                    f"Full response: {result}"
+                )
             else:
                 return self.error_response("User creation failed", f"API Error: {error_details}")
 
@@ -265,18 +260,13 @@ class UserHandler(BaseHandler):
             if isinstance(error_details, dict):
                 error_msg = error_details.get("detail", error_details.get("message", "Unknown error"))
                 title = error_details.get("title", "API Error")
-                return [
-                    {
-                        "type": "text",
-                        "text": (
-                            f"❌ **Contact Group Creation Failed**\n\n"
-                            f"Error: {title}\n"
-                            f"Details: {error_msg}\n\n"
-                            f"Request data sent: {data}\n\n"
-                            f"Full response: {result}"
-                        ),
-                    }
-                ]
+                return self.error_text(
+                    f"❌ **Contact Group Creation Failed**\n\n"
+                    f"Error: {title}\n"
+                    f"Details: {error_msg}\n\n"
+                    f"Request data sent: {data}\n\n"
+                    f"Full response: {result}"
+                )
             else:
                 return self.error_response("Contact group creation failed", f"API Error: {error_details}")
 

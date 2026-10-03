@@ -65,6 +65,12 @@ class BaseHandler(ABC):
     # it never reaches the client as a content block.
     STRUCTURED_BLOCK = "_structured"
 
+    # A block saying the call failed. It is the only thing the dispatcher reads
+    # to set isError: the leading ❌ it used to look for is also a perfectly
+    # good symbol for a CRITICAL service or a failed job, and twice turned a
+    # successful lookup into a reported failure.
+    ERROR_BLOCK = "_error"
+
     def structured_response(self, text: str, data: Any) -> List[Dict[str, Any]]:
         """Answer with prose for the reader and data for the model.
 
@@ -171,7 +177,11 @@ class BaseHandler(ABC):
         text = f"❌ **{message}**"
         if error_details:
             text += f"\n\n{error_details}"
-        return [{"type": "text", "text": text}]
+        return self.error_text(text)
+
+    def error_text(self, text: str) -> List[Dict[str, Any]]:
+        """Report a failure in this exact wording; the marker block is what makes it one."""
+        return [{"type": "text", "text": text}, {"type": self.ERROR_BLOCK}]
 
     def info_response(self, message: str, data: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Create info response"""

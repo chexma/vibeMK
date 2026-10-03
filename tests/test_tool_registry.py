@@ -431,3 +431,41 @@ class TestTheCatalogueIsInEnglish:
                 guilty[tool["name"]] = sorted(found)
 
         assert guilty == {}, f"non-example host names in the catalogue: {guilty}"
+
+
+class TestFailuresAreDeclared:
+    """A handler says a call failed with error_response / error_text, not with an emoji.
+
+    The dispatcher used to infer isError from a leading ❌. That read a CRITICAL
+    service and a failed background job -- both successful lookups -- as failed
+    calls, and it made "is this an error" depend on how a message was worded.
+    Now only the error block counts, so a text block that opens with ❌ but is
+    built by hand would silently stop being reported as a failure.
+    """
+
+    @staticmethod
+    def _leading_text(node: ast.AST) -> str:
+        while isinstance(node, ast.BinOp):
+            node = node.left
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.JoinedStr) and node.values and isinstance(node.values[0], ast.Constant):
+            return str(node.values[0].value)
+        return ""
+
+    def test_no_handler_builds_an_error_text_block_by_hand(self):
+        handlers = pathlib.Path(__file__).resolve().parent.parent / "src" / "vibemk" / "handlers"
+        offenders = []
+        for path in sorted(handlers.glob("*.py")):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if not isinstance(node, ast.Dict):
+                    continue
+                fields = {
+                    key.value: value
+                    for key, value in zip(node.keys, node.values, strict=True)
+                    if isinstance(key, ast.Constant)
+                }
+                if "text" in fields and self._leading_text(fields["text"]).lstrip().startswith("❌"):
+                    offenders.append(f"{path.name}:{node.lineno}")
+
+        assert offenders == [], f"use self.error_text(...) or self.error_response(...) instead: {offenders}"

@@ -82,7 +82,7 @@ class AcknowledgementHandler(BaseHandler):
         }
 
         if tool_name not in method_map:
-            return [{"type": "text", "text": f"❌ Unknown acknowledgement tool: {tool_name}"}]
+            return self.error_text(f"❌ Unknown acknowledgement tool: {tool_name}")
 
         return await method_map[tool_name](arguments)
 
@@ -97,7 +97,7 @@ class AcknowledgementHandler(BaseHandler):
             expire_on = args.get("expire_on")  # Optional expiration time
 
             if not host_name:
-                return [{"type": "text", "text": "❌ Error: host_name is required"}]
+                return self.error_text("❌ Error: host_name is required")
 
             # Detect CheckMK version and use appropriate endpoint
             version = await self._detect_checkmk_version()
@@ -138,11 +138,11 @@ class AcknowledgementHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to acknowledge host problem: {error_msg}"}]
+                return self.error_text(f"❌ Failed to acknowledge host problem: {error_msg}")
 
         except Exception as e:
             logger.exception(f"Error acknowledging host problem for {host_name}")
-            return [{"type": "text", "text": f"❌ Error acknowledging host problem: {str(e)}"}]
+            return self.error_text(f"❌ Error acknowledging host problem: {str(e)}")
 
     async def acknowledge_service_problem(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Acknowledge a service problem"""
@@ -156,7 +156,7 @@ class AcknowledgementHandler(BaseHandler):
             expire_on = args.get("expire_on")  # Optional expiration time
 
             if not host_name or not service_description:
-                return [{"type": "text", "text": "❌ Error: host_name and service_description are required"}]
+                return self.error_text("❌ Error: host_name and service_description are required")
 
             # Detect CheckMK version and use appropriate endpoint
             version = await self._detect_checkmk_version()
@@ -199,11 +199,11 @@ class AcknowledgementHandler(BaseHandler):
                 ]
             else:
                 error_msg = result.get("data", {}).get("detail", "Unknown error")
-                return [{"type": "text", "text": f"❌ Failed to acknowledge service problem: {error_msg}"}]
+                return self.error_text(f"❌ Failed to acknowledge service problem: {error_msg}")
 
         except Exception as e:
             logger.exception(f"Error acknowledging service problem for {host_name}/{service_description}")
-            return [{"type": "text", "text": f"❌ Error acknowledging service problem: {str(e)}"}]
+            return self.error_text(f"❌ Error acknowledging service problem: {str(e)}")
 
     def _delete_comment(self, comment_id: Any) -> Dict[str, Any]:
         """Delete one comment through the action endpoint.
@@ -240,7 +240,7 @@ class AcknowledgementHandler(BaseHandler):
             )
 
             if not result.get("success"):
-                return [{"type": "text", "text": "❌ Unable to retrieve acknowledgements from CheckMK API"}]
+                return self.error_text("❌ Unable to retrieve acknowledgements from CheckMK API")
 
             acknowledgements = result.get("data", {}).get("value", [])
 
@@ -281,7 +281,7 @@ class AcknowledgementHandler(BaseHandler):
 
         except Exception as e:
             logger.exception("Error listing acknowledgements")
-            return [{"type": "text", "text": f"❌ Error listing acknowledgements: {str(e)}"}]
+            return self.error_text(f"❌ Error listing acknowledgements: {str(e)}")
 
     async def remove_acknowledgement(self, args: Dict[str, Any]) -> List[Dict[str, str]]:
         """Remove an acknowledgement"""
@@ -302,14 +302,14 @@ class AcknowledgementHandler(BaseHandler):
                     return [{"type": "text", "text": f"✅ Successfully removed acknowledgement #{ack_id}"}]
                 else:
                     error_msg = result.get("data", {}).get("detail", "Unknown error")
-                    return [{"type": "text", "text": f"❌ Failed to remove acknowledgement: {error_msg}"}]
+                    return self.error_text(f"❌ Failed to remove acknowledgement: {error_msg}")
 
             elif comment_pattern and delete_all_matching:
                 # Remove all acknowledgements matching comment pattern
                 # First get all comments
                 list_result = self.client.get("domain-types/comment/collections/all")
                 if not list_result.get("success"):
-                    return [{"type": "text", "text": "❌ Unable to retrieve comments for pattern matching"}]
+                    return self.error_text("❌ Unable to retrieve comments for pattern matching")
 
                 comments = list_result.get("data", {}).get("value", [])
                 deleted_count = 0
@@ -336,9 +336,7 @@ class AcknowledgementHandler(BaseHandler):
                         }
                     ]
                 else:
-                    return [
-                        {"type": "text", "text": f"❌ No acknowledgements found matching pattern '{comment_pattern}'"}
-                    ]
+                    return self.error_text(f"❌ No acknowledgements found matching pattern '{comment_pattern}'")
 
             elif host_name:
                 # For CheckMK 2.4, we need to find and delete acknowledgements by comment ID
@@ -351,7 +349,7 @@ class AcknowledgementHandler(BaseHandler):
                     params={"query": {"op": "=", "left": "entry_type", "right": ACKNOWLEDGEMENT_ENTRY_TYPE}},
                 )
                 if not list_result.get("success"):
-                    return [{"type": "text", "text": "❌ Unable to retrieve acknowledgements for removal"}]
+                    return self.error_text("❌ Unable to retrieve acknowledgements for removal")
 
                 comments = list_result.get("data", {}).get("value", [])
                 deleted_count = 0
@@ -387,13 +385,11 @@ class AcknowledgementHandler(BaseHandler):
                     ]
                 else:
                     target = f"{host_name}/{service_description}" if service_description else host_name
-                    return [{"type": "text", "text": f"❌ No acknowledgements found for {target}"}]
+                    return self.error_text(f"❌ No acknowledgements found for {target}")
 
             else:
-                return [
-                    {"type": "text", "text": "❌ Error: acknowledgement_id, host_name, or comment_pattern is required"}
-                ]
+                return self.error_text("❌ Error: acknowledgement_id, host_name, or comment_pattern is required")
 
         except Exception as e:
             logger.exception("Error removing acknowledgement")
-            return [{"type": "text", "text": f"❌ Error removing acknowledgement: {str(e)}"}]
+            return self.error_text(f"❌ Error removing acknowledgement: {str(e)}")

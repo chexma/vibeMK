@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Whether a call failed no longer depends on how its answer is worded: a
+  status shown with ❌, such as a failed background job, is reported as a
+  result, not as a failed call
+- The host group rule and debug tools show line breaks instead of a literal `\n`
+
 ## [0.6.4] - 2026-10-03
 
 ### Added

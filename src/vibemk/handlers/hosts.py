@@ -314,26 +314,21 @@ class HostHandler(BaseHandler):
             self.logger.debug(f"Host config check failed: {e}")
 
         # If all methods failed, return comprehensive error information
-        return [
-            {
-                "type": "text",
-                "text": (
-                    f"❌ **Host Status Retrieval Failed**\n\n"
-                    f"Host: {host_name}\n\n"
-                    f"**Tried Methods:**\n"
-                    f"1️⃣ Direct host object API (objects/host/)\n"
-                    f"2️⃣ Host collections query (real-time data)\n"
-                    f"3️⃣ Host configuration check\n\n"
-                    f"**Possible Issues:**\n"
-                    f"• Host not found in monitoring system\n"
-                    f"• Host name mismatch\n"
-                    f"• CheckMK API version compatibility\n"
-                    f"• Monitoring data not yet available\n\n"
-                    f"**Recommendation:**\n"
-                    f"Verify the host exists in CheckMK GUI and is being monitored."
-                ),
-            }
-        ]
+        return self.error_text(
+            f"❌ **Host Status Retrieval Failed**\n\n"
+            f"Host: {host_name}\n\n"
+            f"**Tried Methods:**\n"
+            f"1️⃣ Direct host object API (objects/host/)\n"
+            f"2️⃣ Host collections query (real-time data)\n"
+            f"3️⃣ Host configuration check\n\n"
+            f"**Possible Issues:**\n"
+            f"• Host not found in monitoring system\n"
+            f"• Host name mismatch\n"
+            f"• CheckMK API version compatibility\n"
+            f"• Monitoring data not yet available\n\n"
+            f"**Recommendation:**\n"
+            f"Verify the host exists in CheckMK GUI and is being monitored."
+        )
 
     async def _get_host_details(self, host_name: Optional[str]) -> List[Dict[str, Any]]:
         """Get detailed host information"""

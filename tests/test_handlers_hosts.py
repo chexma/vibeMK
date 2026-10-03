@@ -6,7 +6,7 @@ import pytest
 
 from vibemk.api.exceptions import CheckMKAPIError
 from vibemk.handlers.hosts import HostHandler
-from vibemk.server.dispatch import structured_of
+from vibemk.server.dispatch import is_error, structured_of
 
 
 class TestHostHandler:
@@ -157,7 +157,7 @@ class TestHostHandler:
         )
 
         # Verify error response for missing host_name
-        assert len(result_invalid) == 1
+        assert is_error(result_invalid)
         assert "❌" in result_invalid[0]["text"]
         assert "host_name" in result_invalid[0]["text"].lower()
 
@@ -206,7 +206,7 @@ class TestHostHandler:
         result = await host_handler.handle("vibemk_get_host_status", {"host_name": "test-server-01"})
 
         # Verify error handling - handler provides generic failure message, not exact API error
-        assert len(result) == 1
+        assert is_error(result)
         assert "❌" in result[0]["text"]
         assert "Host Status Retrieval Failed" in result[0]["text"]  # Handler's generic error message
         assert "test-server-01" in result[0]["text"]  # Should contain the host name
@@ -221,7 +221,7 @@ class TestHostHandler:
         result = await host_handler.handle("vibemk_get_host_status", {"host_name": "nonexistent-host"})
 
         # Verify
-        assert len(result) == 1
+        assert is_error(result)
         assert "❌" in result[0]["text"]
         assert "not found" in result[0]["text"].lower()
 
@@ -232,6 +232,6 @@ class TestHostHandler:
         result = await host_handler.handle("invalid_tool_name", {})
 
         # Verify error response
-        assert len(result) == 1
+        assert is_error(result)
         assert "❌" in result[0]["text"]
         assert "Unknown tool" in result[0]["text"]
