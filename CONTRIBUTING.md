@@ -39,7 +39,6 @@ src/vibemk/
 ├── config/        # Configuration management
 ├── handlers/      # Tool handlers (modular design)
 ├── server/        # MCP server implementation and the `vibemk` command
-├── checkmk_types/ # Shared type definitions
 └── utils/         # Utility functions
 ```
 

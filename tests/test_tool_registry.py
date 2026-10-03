@@ -131,7 +131,7 @@ def test_repository_root_is_not_a_python_package():
     assert not (root / "__init__.py").exists(), (
         "__init__.py at the repository root couples the test suite to the "
         "checkout directory's name; the importable packages are api, config, "
-        "handlers, mcp, utils and checkmk_types"
+        "handlers, mcp and utils"
     )
 
 
